@@ -1,6 +1,6 @@
 // index.js
-import { UI_META, UI_FLAGS } from "./lib/env.js";
-import { watchAuth, loginWithGoogle, logout } from "./lib/ank_firebase.js";
+import { UI_FLAGS, UI_META } from "./lib/env.js";
+import { watchAuth } from "./lib/ank_firebase.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -8,73 +8,41 @@ function debug(...args) {
   if (UI_FLAGS?.DEBUG_LOG) console.log(...args);
 }
 
-function setStatus(message, kind = "ok") {
-  const el = $("status");
-  if (!el) return;
-  el.className = `status ${kind}`;
-  el.style.display = "block";
-  el.textContent = message || "";
+function setStatus(msg) {
+  $("status").textContent = msg || "";
 }
 
-function clearStatus() {
-  const el = $("status");
-  if (!el) return;
-  el.style.display = "none";
-  el.textContent = "";
-  el.className = "status";
+function getCurrentPathWithQuery() {
+  // 例: "/ank-ui/?a=1" のような形で返る（GitHub PagesでもOK）
+  return location.pathname + location.search;
 }
 
-function setLoggedOutUI() {
-  $("who").textContent = `${UI_META?.APP_NAME || "ank-ui"}：未ログイン`;
-  $("sub").textContent = "Googleでログインしてください。";
-  $("btnLogout").disabled = false;
-  $("btnLogout").textContent = "ログイン";
+function toLogin(returnTo) {
+  const url = new URL("./login.html", location.href);
+  url.searchParams.set("return_to", returnTo);
+  location.replace(url.toString());
 }
 
-function setLoggedInUI(user) {
-  const email = user?.email || "(no email)";
-  $("who").textContent = `${UI_META?.APP_NAME || "ank-ui"}：ログイン済み`;
-  $("sub").textContent = email;
-  $("btnLogout").disabled = false;
-  $("btnLogout").textContent = "ログアウト";
+function toAfterLogin() {
+  // ここは後で「契約ありならQA、なければ契約」などに変える場所
+  location.replace("./qa_generate.html");
 }
 
-async function onPrimaryButtonClick() {
-  clearStatus();
+setStatus("checking auth...");
+$("who").textContent = UI_META?.APP_NAME || "ank-ui";
+$("sub").textContent = "";
 
-  const mode = $("btnLogout").textContent || "";
-  const isLogin = mode.includes("ログイン");
-
-  try {
-    if (isLogin) {
-      setStatus("ログイン中…", "ok");
-      await loginWithGoogle();
-      clearStatus();
-      return;
-    }
-
-    setStatus("ログアウト中…", "ok");
-    await logout();
-    clearStatus();
-  } catch (e) {
-    console.error(e);
-    setStatus(String(e?.message || e), "error");
+watchAuth((user) => {
+  if (!user) {
+    debug("[index] not logged in -> login");
+    setStatus("not logged in");
+    const rt = getCurrentPathWithQuery();
+    toLogin(rt);
+    return;
   }
-}
 
-function init() {
-  $("btnLogout").addEventListener("click", onPrimaryButtonClick);
-
-  watchAuth((user) => {
-    debug("[auth]", user ? `logged in: ${user.email}` : "logged out");
-    clearStatus();
-
-    if (!user) {
-      setLoggedOutUI();
-      return;
-    }
-    setLoggedInUI(user);
-  });
-}
-
-init();
+  debug("[index] logged in:", user.email);
+  setStatus("logged in");
+  $("sub").textContent = user.email || "";
+  toAfterLogin();
+});
