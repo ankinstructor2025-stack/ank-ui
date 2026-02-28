@@ -2,7 +2,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-// ★ここにFirebaseコンソールで出た設定を貼る
 const firebaseConfig = {
   apiKey: "AIzaSyA55sbKFkPRKF5RlxeifVUIbko_Z74cOwY",
   authDomain: "ank-firebase.firebaseapp.com",
@@ -13,6 +12,9 @@ const firebaseConfig = {
   measurementId: "G-TC4J08VPTJ"
 };
 
+// ★Cloud Run(API) のベースURL（あなたのURLに置き換える）
+const API_BASE_URL = "https://ank-api-986862757498.asia-northeast1.run.app";
+
 // Firebase起動
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -20,11 +22,28 @@ const provider = new GoogleAuthProvider();
 
 // ログインボタン押下
 document.getElementById("loginButton").addEventListener("click", async (e) => {
-  e.preventDefault(); // これでsubmit/遷移を潰す
+  e.preventDefault();
 
   try {
-    await signInWithPopup(auth, provider);
-  } catch (err) {
-    alert(err.code || String(err)); // 理由だけ出す
+    // ログイン
+    const result = await signInWithPopup(auth, provider);
+
+    // user_id取得
+    const user_id = result.user.uid;
+
+    // APIに通知
+    await fetch(`${API_BASE_URL}/v1/session`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ user_id })
+    });
+
+    // ★ここで遷移
+    window.location.href = "./qa.html";
+
+    } catch (err) {
+    alert(err.code || String(err));
   }
 });
