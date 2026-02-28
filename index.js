@@ -4,10 +4,13 @@ import { getAuth, signInWithPopup, GoogleAuthProvider } from "https://www.gstati
 
 // ★ここにFirebaseコンソールで出た設定を貼る
 const firebaseConfig = {
-  apiKey: "ここ",
-  authDomain: "ここ",
-  projectId: "ここ",
-  appId: "ここ"
+  apiKey: "AIzaSyA55sbKFkPRKF5RlxeifVUIbko_Z74cOwY",
+  authDomain: "ank-firebase.firebaseapp.com",
+  projectId: "ank-firebase",
+  storageBucket: "ank-firebase.firebasestorage.app",
+  messagingSenderId: "808815038216",
+  appId: "1:808815038216:web:ac0921bcabf763ece926bd",
+  measurementId: "G-TC4J08VPTJ"
 };
 
 // Firebase起動
