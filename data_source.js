@@ -85,7 +85,7 @@ btnTest.addEventListener("click", async () => {
   try {
 
     const res = await fetch(
-      "https://ank-api-986862757498.asia-northeast1.run.app/v1/ingest/kokkai/test",
+      "https://ank-api-986862757498.asia-northeast1.run.app/v1/kokkai/test",
       {
         method: "POST",
         headers: {
