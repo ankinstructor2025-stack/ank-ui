@@ -31,19 +31,33 @@ document.getElementById("loginButton").addEventListener("click", async (e) => {
     // user_id取得
     const user_id = result.user.uid;
 
-    // APIに通知
+    // ★IDトークン取得（API側でuidを確定させるため）
+    const idToken = await result.user.getIdToken();
+
+    // APIに通知（session：デモ用に「ログイン確認」だけ）
     await fetch(`${API_BASE_URL}/v1/session`, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${idToken}`
       },
-      body: JSON.stringify({ user_id })
+      body: JSON.stringify({}) // ← user_idは送らない
+    });
+
+    // ★ユーザDB存在保証（なければ template.sqlite をコピー）
+    await fetch(`${API_BASE_URL}/v1/user/init`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${idToken}`
+      },
+      body: JSON.stringify({}) // ← body不要でもOK
     });
 
     // ★ここで遷移
     window.location.href = "./data_source.html";
 
-    } catch (err) {
+  } catch (err) {
     alert(err.code || String(err));
   }
 });
