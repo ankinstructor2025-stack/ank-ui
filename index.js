@@ -41,7 +41,7 @@ document.getElementById("loginButton").addEventListener("click", async (e) => {
     });
 
     // ★ここで遷移
-    window.location.href = "./qa.html";
+    window.location.href = "./data_source.html";
 
     } catch (err) {
     alert(err.code || String(err));
