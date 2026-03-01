@@ -4,108 +4,94 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>データ取り込み（デモ）</title>
-  <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 24px; }
-    .card { max-width: 980px; margin: 0 auto; border: 1px solid #ddd; border-radius: 12px; padding: 20px; }
-    h1 { font-size: 20px; margin: 0 0 16px; }
-    label { display: block; font-size: 13px; color: #333; margin: 12px 0 6px; }
-    select, input, textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 10px; font-size: 14px; }
-    textarea { min-height: 120px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
-    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px; }
-    button { padding: 10px 14px; border: 1px solid #444; border-radius: 10px; background: #fff; cursor: pointer; }
-    button.primary { background: #111; color: #fff; border-color: #111; }
-    .muted { color: #666; font-size: 12px; margin-top: 6px; }
-    .hidden { display: none; }
-    .log { margin-top: 18px; background: #fafafa; border: 1px solid #eee; border-radius: 10px; padding: 12px; }
-    .log pre { margin: 0; white-space: pre-wrap; font-size: 12px; }
-    .badge { display:inline-block; padding:2px 8px; border:1px solid #ddd; border-radius: 999px; font-size: 12px; color:#444; margin-left: 8px;}
-  </style>
+  <link rel="stylesheet" href="theme.css">
 </head>
 <body>
-  <div class="card">
-    <h1>データ取り込み（デモ）<span class="badge">7ソース固定</span></h1>
+  <div class="center-wrap">
+    <div class="card">
+      <h1>データ取り込み（デモ）<span class="badge">7ソース固定</span></h1>
 
-    <label for="sourceSelect">データ取得元を選択</label>
-    <select id="sourceSelect">
-      <option value="" selected disabled>選択してください</option>
+      <label for="sourceSelect">データ取得元を選択</label>
+      <select id="sourceSelect">
+        <option value="" selected disabled>選択してください</option>
 
-      <optgroup label="公開API">
-        <option value="api_kokkai">国会会議録API（国会議事録）</option>
-        <option value="api_datago">data.go.jp（政府オープンデータ）</option>
-        <option value="api_jma">気象庁（防災・気象）</option>
-      </optgroup>
+        <optgroup label="公開API">
+          <option value="api_kokkai">国会会議録API（国会議事録）</option>
+          <option value="api_datago">data.go.jp（政府オープンデータ）</option>
+          <option value="api_jma">気象庁（防災・気象）</option>
+        </optgroup>
 
-      <optgroup label="公開URL">
-        <option value="url_egov">e-Gov（法令・制度ページ）</option>
-        <option value="url_caa">消費者庁（FAQページ）</option>
-        <option value="url_tokyo">東京都（オープン情報ページ）</option>
-      </optgroup>
+        <optgroup label="公開URL">
+          <option value="url_egov">e-Gov（法令・制度ページ）</option>
+          <option value="url_caa">消費者庁（FAQページ）</option>
+          <option value="url_tokyo">東京都（オープン情報ページ）</option>
+        </optgroup>
 
-      <optgroup label="ダウンロード">
-        <option value="file_upload">ファイルアップロード（csv/txt/json）</option>
-      </optgroup>
-    </select>
-    <div class="muted">選択すると下の設定フォームが切り替わります（デモ）。</div>
+        <optgroup label="ダウンロード">
+          <option value="file_upload">ファイルアップロード（csv/txt/json）</option>
+        </optgroup>
+      </select>
+      <div class="subtitle">選択すると下の設定フォームが切り替わります（デモ）。</div>
 
-    <!-- 共通：名称 -->
-    <div id="commonFields" class="hidden">
-      <label for="sourceName">名称（表示名）</label>
-      <input id="sourceName" placeholder="例）国会会議録（AI関連）" />
-    </div>
-
-    <!-- APIフォーム -->
-    <div id="formApi" class="hidden">
-      <div class="row">
-        <div>
-          <label for="apiEndpoint">API URL</label>
-          <input id="apiEndpoint" />
-        </div>
-        <div>
-          <label for="apiSchedule">取得間隔（デモ）</label>
-          <select id="apiSchedule">
-            <option value="manual">手動</option>
-            <option value="daily">毎日</option>
-            <option value="weekly">毎週</option>
-          </select>
-        </div>
+      <!-- 共通：名称 -->
+      <div id="commonFields" class="hidden">
+        <label for="sourceName">名称（表示名）</label>
+        <input id="sourceName" placeholder="例）国会会議録（AI関連）" />
       </div>
 
-      <label for="apiParams">パラメータ（JSON）</label>
-      <textarea id="apiParams" placeholder='例）{"keyword":"AI","maximumRecords":200}'></textarea>
-    </div>
+      <!-- APIフォーム -->
+      <div id="formApi" class="hidden">
+        <div class="row">
+          <div>
+            <label for="apiEndpoint">API URL</label>
+            <input id="apiEndpoint" />
+          </div>
+          <div>
+            <label for="apiSchedule">取得間隔（デモ）</label>
+            <select id="apiSchedule">
+              <option value="manual">手動</option>
+              <option value="daily">毎日</option>
+              <option value="weekly">毎週</option>
+            </select>
+          </div>
+        </div>
 
-    <!-- URLフォーム -->
-    <div id="formUrl" class="hidden">
-      <label for="targetUrl">URL</label>
-      <input id="targetUrl" placeholder="https://..." />
+        <label for="apiParams">パラメータ（JSON）</label>
+        <textarea id="apiParams" placeholder='例）{"keyword":"AI","maximumRecords":200}'></textarea>
+      </div>
 
-      <label for="urlMode">取得タイプ（デモ）</label>
-      <select id="urlMode">
-        <option value="html">HTML</option>
-        <option value="json">JSON</option>
-      </select>
+      <!-- URLフォーム -->
+      <div id="formUrl" class="hidden">
+        <label for="targetUrl">URL</label>
+        <input id="targetUrl" placeholder="https://..." />
 
-      <label for="urlHint">抽出ヒント（任意）</label>
-      <input id="urlHint" placeholder="例）FAQ / 見出し / 章タイトル など" />
-    </div>
+        <label for="urlMode">取得タイプ（デモ）</label>
+        <select id="urlMode">
+          <option value="html">HTML</option>
+          <option value="json">JSON</option>
+        </select>
 
-    <!-- ファイルフォーム -->
-    <div id="formFile" class="hidden">
-      <label for="fileInput">ファイル</label>
-      <input id="fileInput" type="file" accept=".csv,.txt,.json" />
-      <div class="muted">PDF/画像は対象外（現方針）。</div>
-    </div>
+        <label for="urlHint">抽出ヒント（任意）</label>
+        <input id="urlHint" placeholder="例）FAQ / 見出し / 章タイトル など" />
+      </div>
 
-    <!-- actions -->
-    <div class="actions hidden" id="actions">
-      <button id="btnTest">取得テスト</button>
-      <button class="primary" id="btnRegister">登録</button>
-    </div>
+      <!-- ファイルフォーム -->
+      <div id="formFile" class="hidden">
+        <label for="fileInput">ファイル</label>
+        <input id="fileInput" type="file" accept=".csv,.txt,.json" />
+        <div class="subtitle">PDF/画像は対象外（現方針）。</div>
+      </div>
 
-    <!-- log -->
-    <div class="log hidden" id="logBox">
-      <pre id="logText"></pre>
+      <!-- actions -->
+      <div class="actions hidden" id="actions">
+        <button class="btn" id="btnTest">取得テスト</button>
+        <button class="btn btn-primary" id="btnRegister">登録</button>
+      </div>
+
+      <!-- log -->
+      <div class="log hidden" id="logBox">
+        <pre id="logText"></pre>
+      </div>
     </div>
   </div>
 
@@ -211,20 +197,13 @@
     });
 
     document.getElementById("btnTest").addEventListener("click", () => {
-      const key = sourceSelect.value;
-      if (!key) return alert("先に取得元を選択してください。");
-
-      // デモ用の「統一リクエスト」オブジェクト（ここが後でAPIに直結する）
-      const req = buildUnifiedRequest("test");
-      writeLog(req);
+      if (!sourceSelect.value) return alert("先に取得元を選択してください。");
+      writeLog(buildUnifiedRequest("test"));
     });
 
     document.getElementById("btnRegister").addEventListener("click", () => {
-      const key = sourceSelect.value;
-      if (!key) return alert("先に取得元を選択してください。");
-
-      const req = buildUnifiedRequest("register");
-      writeLog(req);
+      if (!sourceSelect.value) return alert("先に取得元を選択してください。");
+      writeLog(buildUnifiedRequest("register"));
     });
 
     function buildUnifiedRequest(action) {
