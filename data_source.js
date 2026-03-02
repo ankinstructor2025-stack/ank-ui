@@ -50,10 +50,25 @@ const preset = {
     type: "public_api",
     name: "国会会議録API（国会議事録）",
     endpoint: "https://kokkai.ndl.go.jp/api/meeting",
-    params: { keyword: "AI", maximumRecords: 200 }
+    params: { any: "AI", maximumRecords: 200 },
+
+    // ★追加：テスト用（Cloud Run 側）
+    testUrl: "https://ank-api-986862757498.asia-northeast1.run.app/v1/kokkai/test",
+    testLabel: "国会議事録"
+  },
+
+  // ★追加
+  api_digital_agency: {
+    type: "public_api",
+    name: "デジタル庁オープンデータ（e-Gov CKAN）",
+    endpoint: "https://data.e-gov.go.jp/data/api/action",
+    params: { action: "package_list", limit: 5 }, // 画面表示用の雰囲気だけ
+
+    // ★テスト用（Cloud Run 側）
+    testUrl: "https://ank-api-986862757498.asia-northeast1.run.app/v1/opendata/test",
+    testLabel: "オープンデータ"
   }
 };
-
 // -------------------------------
 sourceSelect.addEventListener("change", () => {
 
@@ -80,19 +95,23 @@ sourceSelect.addEventListener("change", () => {
 // -------------------------------
 btnTest.addEventListener("click", async () => {
 
-  writeLog("国会議事録 取得テスト開始");
+  const key = sourceSelect.value;
+  const p = preset[key];
+
+  if (!p || !p.testUrl) {
+    writeLog("取得テスト対象が選択されていません（preset.testUrl がありません）");
+    return;
+  }
+
+  writeLog(`${p.testLabel ?? p.name} 取得テスト開始`);
 
   try {
-
-    const res = await fetch(
-      "https://ank-api-986862757498.asia-northeast1.run.app/v1/kokkai/test",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        }
+    const res = await fetch(p.testUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
       }
-    );
+    });
 
     if (!res.ok) {
       throw new Error(`HTTP ${res.status}`);
@@ -100,7 +119,13 @@ btnTest.addEventListener("click", async () => {
 
     const data = await res.json();
 
-    writeLog(`取得成功 件数=${data.count}`);
+    // opendata/test は {count, dataset_ids} を返す想定
+    // kokkai/test は {count, ...} を返す想定
+    if (typeof data.count === "number") {
+      writeLog(`取得成功 件数=${data.count}`);
+    } else {
+      writeLog(`取得成功（countなし）`);
+    }
 
   } catch (e) {
     console.error(e);
