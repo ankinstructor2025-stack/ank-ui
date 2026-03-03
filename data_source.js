@@ -83,7 +83,9 @@ const preset = {
     name: "e-Gov（法令・制度ページ）",
     url: "https://elaws.e-gov.go.jp/",
     mode: "html",
-    hint: ""
+    hint: "法令検索 / 見出し",
+    testUrl: "https://ank-api-986862757498.asia-northeast1.run.app/v1/egov/test",
+    testLabel: "e-Gov"
   },
 
   url_caa: {
@@ -225,6 +227,30 @@ btnTest.addEventListener("click", async () => {
         if (typeof data.count === "number") writeLog(`取得成功 件数=${data.count}`);
         else writeLog("取得成功（countなし）");
 
+      } catch (e) {
+        console.error(e);
+        writeLog(`取得失敗: ${e.message}`);
+      }
+      return;
+    }
+
+    case "url_egov": {
+      if (!p.testUrl) {
+        writeLog("e-Gov は取得テスト未実装です（preset.testUrl を設定してください）");
+        return;
+      }
+
+      writeLog(`${p.testLabel ?? p.name} 取得テスト開始`);
+
+      try {
+        const res = await fetch(p.testUrl, { method: "GET" });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        const data = await res.json();
+        if (typeof data.count === "number") writeLog(`取得成功 件数=${data.count}`);
+        else writeLog("取得成功（countなし）");
+
+        if (typeof data.bytes === "number") writeLog(`HTMLサイズ bytes=${data.bytes}`);
       } catch (e) {
         console.error(e);
         writeLog(`取得失敗: ${e.message}`);
