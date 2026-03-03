@@ -71,10 +71,9 @@ const preset = {
   api_jma: {
     type: "public_api",
     name: "気象庁（防災・気象）",
-    // 例：気象庁JSONはエンドポイントが用途ごとに違うのでデモ用に仮置き
     endpoint: "https://www.jma.go.jp/bosai/forecast/data/overview_forecast/130000.json",
     params: {}, // GET想定なら空でOK（デモ用）
-    // testUrl: "https://.../v1/jma/test",
+    testUrl: "https://ank-api-986862757498.asia-northeast1.run.app/v1/jma/test",
     testLabel: "気象庁"
   },
 
