@@ -64,8 +64,7 @@ const preset = {
     name: "data.go.jp（政府オープンデータ）",
     endpoint: "https://www.data.go.jp/data/api/action",
     params: { action: "package_list", limit: 5 },
-    // テストAPIが無いならコメントアウトのままでOK（ボタン押下で警告ログが出る）
-    // testUrl: "https://.../v1/datago/test",
+    testUrl: "https://ank-api-986862757498.asia-northeast1.run.app/v1/opendata/test",
     testLabel: "data.go.jp"
   },
 
