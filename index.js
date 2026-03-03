@@ -54,6 +54,8 @@ document.getElementById("loginButton").addEventListener("click", async (e) => {
       body: JSON.stringify({}) // ← body不要でもOK
     });
 
+    sessionStorage.setItem("idToken", idToken);
+
     // ★ここで遷移
     window.location.href = "./data_source.html";
 
