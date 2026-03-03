@@ -93,7 +93,9 @@ const preset = {
     name: "消費者庁（FAQページ）",
     url: "https://www.caa.go.jp/policies/policy/consumer_policy/",
     mode: "html",
-    hint: "FAQ"
+    hint: "FAQ",
+    testUrl: "https://ank-api-986862757498.asia-northeast1.run.app/v1/caa/test",
+    testLabel: "消費者庁"
   },
 
   url_tokyo: {
@@ -251,6 +253,30 @@ btnTest.addEventListener("click", async () => {
         else writeLog("取得成功（countなし）");
 
         if (typeof data.bytes === "number") writeLog(`HTMLサイズ bytes=${data.bytes}`);
+      } catch (e) {
+        console.error(e);
+        writeLog(`取得失敗: ${e.message}`);
+      }
+      return;
+    }
+
+    case "url_caa": {
+      if (!p.testUrl) {
+        writeLog("消費者庁は取得テスト未実装です（preset.testUrl を設定してください）");
+        return;
+      }
+
+      writeLog(`${p.testLabel ?? p.name} 取得テスト開始`);
+
+      try {
+        const res = await fetch(p.testUrl, { method: "GET" });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        const data = await res.json();
+
+        if (typeof data.count === "number") writeLog(`取得成功 件数=${data.count}`);
+        if (typeof data.bytes === "number") writeLog(`HTMLサイズ bytes=${data.bytes}`);
+
       } catch (e) {
         console.error(e);
         writeLog(`取得失敗: ${e.message}`);
