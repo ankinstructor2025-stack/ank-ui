@@ -103,7 +103,9 @@ const preset = {
     name: "東京都（オープン情報ページ）",
     url: "https://www.metro.tokyo.lg.jp/",
     mode: "html",
-    hint: ""
+    hint: "",
+    testUrl: "https://ank-api-986862757498.asia-northeast1.run.app/tokyo/test",
+    testLabel: "東京都"
   },
 
   // ダウンロード
@@ -277,6 +279,28 @@ btnTest.addEventListener("click", async () => {
         if (typeof data.count === "number") writeLog(`取得成功 件数=${data.count}`);
         if (typeof data.bytes === "number") writeLog(`HTMLサイズ bytes=${data.bytes}`);
 
+      } catch (e) {
+        console.error(e);
+        writeLog(`取得失敗: ${e.message}`);
+      }
+      return;
+    }
+
+    case "url_tokyo": {
+      if (!p.testUrl) {
+        writeLog("東京都は取得テスト未実装です（preset.testUrl を設定してください）");
+        return;
+      }
+
+      writeLog(`${p.testLabel ?? p.name} 取得テスト開始`);
+
+      try {
+        const res = await fetch(p.testUrl, { method: "GET" });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        const data = await res.json();
+        if (typeof data.count === "number") writeLog(`取得成功 件数=${data.count}`);
+        if (typeof data.bytes === "number") writeLog(`HTMLサイズ bytes=${data.bytes}`);
       } catch (e) {
         console.error(e);
         writeLog(`取得失敗: ${e.message}`);
