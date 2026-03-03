@@ -45,33 +45,73 @@ function writeLog(msg) {
 // -------------------------------
 // プリセット
 // -------------------------------
+// -------------------------------
+// プリセット（HTMLの option value とキーを一致させる）
+// -------------------------------
 const preset = {
+  // 公開API
   api_kokkai: {
     type: "public_api",
     name: "国会会議録API（国会議事録）",
     endpoint: "https://kokkai.ndl.go.jp/api/meeting",
     params: { any: "AI", maximumRecords: 200 },
-
-    // ★追加：テスト用（Cloud Run 側）
     testUrl: "https://ank-api-986862757498.asia-northeast1.run.app/v1/kokkai/test",
     testLabel: "国会議事録"
   },
 
-  // ★追加
-  api_digital_agency: {
+  api_datago: {
     type: "public_api",
-    name: "デジタル庁オープンデータ（e-Gov CKAN）",
-    endpoint: "https://data.e-gov.go.jp/data/api/action",
-    params: { action: "package_list", limit: 5 }, // 画面表示用の雰囲気だけ
+    name: "data.go.jp（政府オープンデータ）",
+    endpoint: "https://www.data.go.jp/data/api/action",
+    params: { action: "package_list", limit: 5 },
+    // テストAPIが無いならコメントアウトのままでOK（ボタン押下で警告ログが出る）
+    // testUrl: "https://.../v1/datago/test",
+    testLabel: "data.go.jp"
+  },
 
-    // ★テスト用（Cloud Run 側）
-    testUrl: "https://ank-api-986862757498.asia-northeast1.run.app/v1/opendata/test",
-    testLabel: "オープンデータ"
+  api_jma: {
+    type: "public_api",
+    name: "気象庁（防災・気象）",
+    // 例：気象庁JSONはエンドポイントが用途ごとに違うのでデモ用に仮置き
+    endpoint: "https://www.jma.go.jp/bosai/forecast/data/overview_forecast/130000.json",
+    params: {}, // GET想定なら空でOK（デモ用）
+    // testUrl: "https://.../v1/jma/test",
+    testLabel: "気象庁"
+  },
+
+  // 公開URL
+  url_egov: {
+    type: "public_url",
+    name: "e-Gov（法令・制度ページ）",
+    url: "https://elaws.e-gov.go.jp/",
+    mode: "html",
+    hint: ""
+  },
+
+  url_caa: {
+    type: "public_url",
+    name: "消費者庁（FAQページ）",
+    url: "https://www.caa.go.jp/policies/policy/consumer_policy/",
+    mode: "html",
+    hint: "FAQ"
+  },
+
+  url_tokyo: {
+    type: "public_url",
+    name: "東京都（オープン情報ページ）",
+    url: "https://www.metro.tokyo.lg.jp/",
+    mode: "html",
+    hint: ""
+  },
+
+  // ダウンロード
+  file_upload: {
+    type: "file",
+    name: "ファイルアップロード（csv/txt/json）"
   }
 };
 // -------------------------------
 sourceSelect.addEventListener("change", () => {
-
   const key = sourceSelect.value;
   const p = preset[key];
   if (!p) return;
@@ -80,10 +120,19 @@ sourceSelect.addEventListener("change", () => {
 
   if (p.type === "public_api") {
     showOnly("api");
-
     document.getElementById("apiEndpoint").value = p.endpoint;
-    document.getElementById("apiParams").value =
-      JSON.stringify(p.params, null, 2);
+    document.getElementById("apiParams").value = JSON.stringify(p.params ?? {}, null, 2);
+  }
+
+  if (p.type === "public_url") {
+    showOnly("url");
+    document.getElementById("targetUrl").value = p.url ?? "";
+    document.getElementById("urlMode").value = p.mode ?? "html";
+    document.getElementById("urlHint").value = p.hint ?? "";
+  }
+
+  if (p.type === "file") {
+    showOnly("file");
   }
 
   logText.textContent = "";
