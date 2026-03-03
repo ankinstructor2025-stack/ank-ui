@@ -147,12 +147,12 @@ sourceSelect.addEventListener("change", () => {
 // 国会議事録 取得テスト
 // -------------------------------
 btnTest.addEventListener("click", async () => {
+  const key = sourceSelect.value;
+  const p = preset[key];
+
   writeLog(`key=${key}`);
   writeLog(`uploadFileInput exists=${!!document.getElementById("uploadFileInput")}`);
   writeLog(`idToken exists=${typeof idToken !== "undefined" && !!idToken}`);
-
-  const key = sourceSelect.value;
-  const p = preset[key];
 
   if (!key || !p) {
     writeLog("取得テスト対象が選択されていません（preset がありません）");
