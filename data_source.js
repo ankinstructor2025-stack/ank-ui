@@ -208,6 +208,29 @@ btnTest.addEventListener("click", async () => {
       }
       return;
     }
+    
+    case "api_jma": {
+      if (!p.testUrl) {
+        writeLog("気象庁は取得テスト未実装です（preset.testUrl を設定してください）");
+        return;
+      }
+
+      writeLog(`${p.testLabel ?? p.name} 取得テスト開始`);
+
+      try {
+        const res = await fetch(p.testUrl, { method: "GET" });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        const data = await res.json();
+        if (typeof data.count === "number") writeLog(`取得成功 件数=${data.count}`);
+        else writeLog("取得成功（countなし）");
+
+      } catch (e) {
+        console.error(e);
+        writeLog(`取得失敗: ${e.message}`);
+      }
+      return;
+    }
 
     default: {
       writeLog(`この取得元は取得テスト未実装です: ${key}`);
