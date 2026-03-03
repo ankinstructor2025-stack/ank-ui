@@ -308,6 +308,50 @@ btnTest.addEventListener("click", async () => {
       return;
     }
 
+case "file_upload": {
+      const input = document.getElementById("uploadFileInput");
+
+      if (!input || !input.files || input.files.length === 0) {
+        writeLog("アップロードするファイルを選択してください");
+        return;
+      }
+
+      const file = input.files[0];
+
+      writeLog(`アップロード開始: ${file.name}`);
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      try {
+        const res = await fetch(
+          "https://ank-api-986862757498.asia-northeast1.run.app/v1/upload_and_register",
+          {
+            method: "POST",
+            body: formData
+          }
+        );
+
+        if (res.status === 409) {
+          writeLog("同名ファイルはアップロードできません");
+          return;
+        }
+
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        const data = await res.json();
+
+        writeLog("アップロード成功");
+        writeLog(`file_id=${data.file_id}`);
+
+      } catch (e) {
+        console.error(e);
+        writeLog(`アップロード失敗: ${e.message}`);
+      }
+
+      return;
+    }
+
     default: {
       writeLog(`この取得元は取得テスト未実装です: ${key}`);
       return;
