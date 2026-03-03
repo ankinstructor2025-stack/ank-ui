@@ -320,8 +320,9 @@ btnTest.addEventListener("click", async () => {
         return;
       }
 
+      const idToken = sessionStorage.getItem("idToken");
       if (!idToken) {
-        writeLog("idToken がありません（ログイン済みか確認してください）");
+        writeLog("idToken がありません（ログインからやり直してください）");
         return;
       }
 
