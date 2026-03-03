@@ -308,11 +308,16 @@ btnTest.addEventListener("click", async () => {
       return;
     }
 
-case "file_upload": {
+    case "file_upload": {
       const input = document.getElementById("uploadFileInput");
 
       if (!input || !input.files || input.files.length === 0) {
         writeLog("アップロードするファイルを選択してください");
+        return;
+      }
+
+      if (!idToken) {
+        writeLog("idToken がありません（ログイン済みか確認してください）");
         return;
       }
 
@@ -328,6 +333,7 @@ case "file_upload": {
           "https://ank-api-986862757498.asia-northeast1.run.app/v1/upload_and_register",
           {
             method: "POST",
+            headers: { Authorization: `Bearer ${idToken}` },
             body: formData
           }
         );
@@ -337,7 +343,22 @@ case "file_upload": {
           return;
         }
 
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        if (res.status === 401) {
+          const t = await res.text();
+          writeLog(`認証エラー(401): ${t}`);
+          return;
+        }
+
+        if (res.status === 403) {
+          const t = await res.text();
+          writeLog(`権限エラー(403): ${t}`);
+          return;
+        }
+
+        if (!res.ok) {
+          const t = await res.text();
+          throw new Error(`HTTP ${res.status}: ${t}`);
+        }
 
         const data = await res.json();
 
