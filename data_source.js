@@ -143,41 +143,77 @@ sourceSelect.addEventListener("change", () => {
 // 国会議事録 取得テスト
 // -------------------------------
 btnTest.addEventListener("click", async () => {
-
   const key = sourceSelect.value;
   const p = preset[key];
 
-  if (!p || !p.testUrl) {
-    writeLog("取得テスト対象が選択されていません（preset.testUrl がありません）");
+  if (!key || !p) {
+    writeLog("取得テスト対象が選択されていません（preset がありません）");
     return;
   }
 
-  writeLog(`${p.testLabel ?? p.name} 取得テスト開始`);
-
-  try {
-    const res = await fetch(p.testUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
+  switch (key) {
+    // -------------------------------
+    // 国会議事録：現状動作を壊さない（あなたのコードそのまま）
+    // -------------------------------
+    case "api_kokkai": {
+      if (!p || !p.testUrl) {
+        writeLog("取得テスト対象が選択されていません（preset.testUrl がありません）");
+        return;
       }
-    });
 
-    if (!res.ok) {
-      throw new Error(`HTTP ${res.status}`);
+      writeLog(`${p.testLabel ?? p.name} 取得テスト開始`);
+
+      try {
+        const res = await fetch(p.testUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" }
+        });
+
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        const data = await res.json();
+
+        if (typeof data.count === "number") writeLog(`取得成功 件数=${data.count}`);
+        else writeLog(`取得成功（countなし）`);
+
+      } catch (e) {
+        console.error(e);
+        writeLog(`取得失敗: ${e.message}`);
+      }
+      return;
     }
 
-    const data = await res.json();
+    // -------------------------------
+    // data.go.jp（e-Gov CKAN）：添付 opendata_test.py の /opendata/test を叩く
+    // ※GETで {count, dataset_ids} が返る :contentReference[oaicite:2]{index=2}
+    // -------------------------------
+    case "api_datago": {
+      if (!p.testUrl) {
+        writeLog("data.go.jp は testUrl が未設定です（/opendata/test を設定してください）");
+        return;
+      }
 
-    // opendata/test は {count, dataset_ids} を返す想定
-    // kokkai/test は {count, ...} を返す想定
-    if (typeof data.count === "number") {
-      writeLog(`取得成功 件数=${data.count}`);
-    } else {
-      writeLog(`取得成功（countなし）`);
+      writeLog(`${p.testLabel ?? p.name} 取得テスト開始`);
+
+      try {
+        const res = await fetch(p.testUrl, { method: "GET" });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        const data = await res.json();
+
+        if (typeof data.count === "number") writeLog(`取得成功 件数=${data.count}`);
+        else writeLog(`取得成功（countなし）`);
+
+      } catch (e) {
+        console.error(e);
+        writeLog(`取得失敗: ${e.message}`);
+      }
+      return;
     }
 
-  } catch (e) {
-    console.error(e);
-    writeLog(`取得失敗: ${e.message}`);
+    default: {
+      writeLog(`この取得元は取得テスト未実装です: ${key}`);
+      return;
+    }
   }
 });
