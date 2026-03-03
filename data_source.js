@@ -104,7 +104,7 @@ const preset = {
     url: "https://www.metro.tokyo.lg.jp/",
     mode: "html",
     hint: "",
-    testUrl: "https://ank-api-986862757498.asia-northeast1.run.app/tokyo/test",
+    testUrl: "https://ank-api-986862757498.asia-northeast1.run.app/v1/tokyo/test",
     testLabel: "東京都"
   },
 
