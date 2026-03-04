@@ -53,8 +53,7 @@ const preset = {
   api_kokkai: {
     type: "public_api",
     name: "国会会議録API（国会議事録）",
-    endpoint: "https://kokkai.ndl.go.jp/api/meeting",
-    params: { any: "AI", maximumRecords: 200 },
+    templatePath: "template/kokkai.json",
     testUrl: "https://ank-api-986862757498.asia-northeast1.run.app/v1/kokkai/test",
     testLabel: "国会議事録"
   },
@@ -124,8 +123,18 @@ sourceSelect.addEventListener("change", () => {
 
   if (p.type === "public_api") {
     showOnly("api");
-    document.getElementById("apiEndpoint").value = p.endpoint;
-    document.getElementById("apiParams").value = JSON.stringify(p.params ?? {}, null, 2);
+
+    // 国会議事録は template 管理
+    if (key === "api_kokkai") {
+      document.getElementById("apiEndpoint").value = p.templatePath ?? "";
+      document.getElementById("apiParams").value = "params は template/kokkai.json を参照";
+      return;
+    }
+
+    // その他のAPIは従来どおり
+    document.getElementById("apiEndpoint").value = p.endpoint ?? "";
+    document.getElementById("apiParams").value =
+      JSON.stringify(p.params ?? {}, null, 2);
   }
 
   if (p.type === "public_url") {
