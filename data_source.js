@@ -16,7 +16,8 @@ const actions = document.getElementById("actions");
 const logBox = document.getElementById("logBox");
 const logText = document.getElementById("logText");
 
-const btnTest = document.getElementById("btnTest");
+const btnRegister = document.getElementById("btnRegister");
+const btnLogout = document.getElementById("btnLogout");
 
 // -------------------------------
 function showOnly(kind) {
@@ -37,6 +38,17 @@ function writeLog(msg) {
   logBox.classList.remove("hidden");
   const now = new Date().toISOString();
   logText.textContent += `[${now}] ${msg}\n`;
+}
+
+// -------------------------------
+// ログアウト（index.htmlへ遷移）
+// -------------------------------
+if (btnLogout) {
+  btnLogout.addEventListener("click", () => {
+    // 最小：idTokenだけ削除して index.html に戻す
+    sessionStorage.removeItem("idToken");
+    window.location.href = "index.html";
+  });
 }
 
 // -------------------------------
@@ -147,290 +159,292 @@ sourceSelect.addEventListener("change", () => {
 });
 
 // -------------------------------
-// 国会議事録 取得テスト
+// （旧）取得テスト → （新）登録ボタンで実行
 // -------------------------------
-btnTest.addEventListener("click", async () => {
-  const key = sourceSelect.value;
-  const p = preset[key];
-  const idToken = sessionStorage.getItem("idToken");
+if (!btnRegister) {
+  console.warn("btnRegister not found");
+} else {
+  btnRegister.addEventListener("click", async () => {
+    const key = sourceSelect.value;
+    const p = preset[key];
+    const idToken = sessionStorage.getItem("idToken");
 
-  writeLog(`key=${key}`);
-  writeLog(`uploadFileInput exists=${!!document.getElementById("uploadFileInput")}`);
-  writeLog(`idToken exists=${!!idToken}`);
+    writeLog(`key=${key}`);
+    writeLog(`uploadFileInput exists=${!!document.getElementById("uploadFileInput")}`);
+    writeLog(`idToken exists=${!!idToken}`);
 
-  if (!key || !p) {
-    writeLog("取得テスト対象が選択されていません（preset がありません）");
-    return;
-  }
-
-  switch (key) {
-    // -------------------------------
-    // 国会議事録：現状動作を壊さない（あなたのコードそのまま）
-    // -------------------------------
-    case "api_kokkai": {
-      if (!p || !p.testUrl) {
-        writeLog("取得テスト対象が選択されていません（preset.testUrl がありません）");
-        return;
-      }
-
-      writeLog(`${p.testLabel ?? p.name} 取得テスト開始`);
-
-      if (!idToken) {
-        writeLog("idToken がありません（ログインからやり直してください）");
-        return;
-      }
-
-      try {
-        const res = await fetch(p.testUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${idToken}` }
-        });
-
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-        const data = await res.json();
-
-        if (typeof data.count === "number") writeLog(`取得成功 件数=${data.count}`);
-        else writeLog(`取得成功（countなし）`);
-
-      } catch (e) {
-        console.error(e);
-        writeLog(`取得失敗: ${e.message}`);
-      }
+    if (!key || !p) {
+      writeLog("取得テスト対象が選択されていません（preset がありません）");
       return;
     }
 
-    // -------------------------------
-    // data.go.jp（e-Gov CKAN）：添付 opendata_test.py の /opendata/test を叩く
-    // ※GETで {count, dataset_ids} が返る :contentReference[oaicite:2]{index=2}
-    // -------------------------------
-    case "api_datago": {
-      if (!p.testUrl) {
-        writeLog("data.go.jp は testUrl が未設定です（/opendata/test を設定してください）");
-        return;
-      }
-
-      writeLog(`${p.testLabel ?? p.name} 取得テスト開始`);
-
-      try {
-        const res = await fetch(p.testUrl);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-
-        if (typeof data.count === "number") writeLog(`取得成功 件数=${data.count}`);
-        else writeLog(`取得成功（countなし）`);
-
-      } catch (e) {
-        console.error(e);
-        writeLog(`取得失敗: ${e.message}`);
-      }
-      return;
-    }
-
-    // -------------------------------
-    // 気象庁（防災・気象）：/jma/test を叩く
-    // ※GETで {bytes, head} が返る
-    // -------------------------------
-    case "api_jma": {
-      if (!p.testUrl) {
-        writeLog("気象庁は testUrl が未設定です（/jma/test を設定してください）");
-        return;
-      }
-
-      writeLog(`${p.testLabel ?? p.name} 取得テスト開始`);
-
-      try {
-        const res = await fetch(p.testUrl);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-
-        if (typeof data.bytes === "number") writeLog(`取得成功 bytes=${data.bytes}`);
-        else writeLog(`取得成功（bytesなし）`);
-
-      } catch (e) {
-        console.error(e);
-        writeLog(`取得失敗: ${e.message}`);
-      }
-      return;
-    }
-
-    // -------------------------------
-    // e-Gov：/egov/test を叩く
-    // -------------------------------
-    case "url_egov": {
-      if (!p.testUrl) {
-        writeLog("e-Gov は testUrl が未設定です（/egov/test を設定してください）");
-        return;
-      }
-
-      writeLog(`${p.testLabel ?? p.name} 取得テスト開始`);
-
-      try {
-        const res = await fetch(p.testUrl);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-
-        if (typeof data.bytes === "number") writeLog(`取得成功 bytes=${data.bytes}`);
-        else writeLog(`取得成功（bytesなし）`);
-
-      } catch (e) {
-        console.error(e);
-        writeLog(`取得失敗: ${e.message}`);
-      }
-      return;
-    }
-
-    // -------------------------------
-    // 消費者庁 FAQ：/caa/test を叩く
-    // -------------------------------
-    case "url_caa": {
-      if (!p.testUrl) {
-        writeLog("消費者庁は testUrl が未設定です（/caa/test を設定してください）");
-        return;
-      }
-
-      writeLog(`${p.testLabel ?? p.name} 取得テスト開始`);
-
-      try {
-        const res = await fetch(p.testUrl);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-
-        if (typeof data.bytes === "number") writeLog(`取得成功 bytes=${data.bytes}`);
-        else writeLog(`取得成功（bytesなし）`);
-
-      } catch (e) {
-        console.error(e);
-        writeLog(`取得失敗: ${e.message}`);
-      }
-      return;
-    }
-
-    // -------------------------------
-    // 東京都：/tokyo/test を叩く
-    // -------------------------------
-    case "url_tokyo": {
-      if (!p.testUrl) {
-        writeLog("東京都は testUrl が未設定です（/tokyo/test を設定してください）");
-        return;
-      }
-
-      writeLog(`${p.testLabel ?? p.name} 取得テスト開始`);
-
-      try {
-        const res = await fetch(p.testUrl);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-
-        if (typeof data.bytes === "number") writeLog(`取得成功 bytes=${data.bytes}`);
-        else writeLog(`取得成功（bytesなし）`);
-
-      } catch (e) {
-        console.error(e);
-        writeLog(`取得失敗: ${e.message}`);
-      }
-      return;
-    }
-
-    // -------------------------------
-    // ファイルアップロード：upload_and_register → ingest_uploaded_file
-    // -------------------------------
-    case "file_upload": {
-      const input = document.getElementById("uploadFileInput");
-
-      if (!input || !input.files || input.files.length === 0) {
-        writeLog("アップロードするファイルを選択してください");
-        return;
-      }
-
-      const API_BASE = "https://ank-api-986862757498.asia-northeast1.run.app/v1";
-
-      const idToken = sessionStorage.getItem("idToken");
-      if (!idToken) {
-        writeLog("idToken がありません（ログインからやり直してください）");
-        return;
-      }
-
-      const file = input.files[0];
-
-      writeLog(`アップロード開始: ${file.name}`);
-
-      const formData = new FormData();
-      formData.append("file", file);
-
-      try {
-        // 1) upload_and_register
-        const res = await fetch(`${API_BASE}/upload_and_register`, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${idToken}` },
-          body: formData
-        });
-
-        if (res.status === 409) {
-          writeLog("同名ファイルはアップロードできません");
+    switch (key) {
+      // -------------------------------
+      // 国会議事録：現状動作を壊さない（あなたのコードそのまま）
+      // -------------------------------
+      case "api_kokkai": {
+        if (!p || !p.testUrl) {
+          writeLog("取得テスト対象が選択されていません（preset.testUrl がありません）");
           return;
         }
-        if (res.status === 401) {
-          const t = await res.text();
-          writeLog(`認証エラー(401): ${t}`);
+
+        writeLog(`${p.testLabel ?? p.name} 取得テスト開始`);
+
+        if (!idToken) {
+          writeLog("idToken がありません（ログインからやり直してください）");
           return;
         }
-        if (res.status === 403) {
-          const t = await res.text();
-          writeLog(`権限エラー(403): ${t}`);
-          return;
+
+        try {
+          const res = await fetch(p.testUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${idToken}` }
+          });
+
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+          const data = await res.json();
+
+          if (typeof data.count === "number") writeLog(`取得成功 件数=${data.count}`);
+          else writeLog(`取得成功（countなし）`);
+
+        } catch (e) {
+          console.error(e);
+          writeLog(`取得失敗: ${e.message}`);
         }
-        if (!res.ok) {
-          const t = await res.text();
-          throw new Error(`HTTP ${res.status}: ${t}`);
-        }
-
-        const data = await res.json();
-
-        writeLog("アップロード成功");
-        writeLog(`file_id=${data.file_id}`);
-
-        // 2) ingest_uploaded_file
-        writeLog("row_data 取り込み開始");
-
-        const res2 = await fetch(`${API_BASE}/ingest_uploaded_file/${data.file_id}`, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${idToken}` }
-        });
-
-        if (res2.status === 409) {
-          const t = await res2.text();
-          writeLog(`取り込みスキップ(409): ${t}`);
-          return;
-        }
-        if (res2.status === 401) {
-          const t = await res2.text();
-          writeLog(`認証エラー(401): ${t}`);
-          return;
-        }
-        if (!res2.ok) {
-          const t = await res2.text();
-          throw new Error(`HTTP ${res2.status}: ${t}`);
-        }
-
-        const ingest = await res2.json();
-
-        writeLog("row_data 取り込み成功");
-        if (typeof ingest.row_count === "number") {
-          writeLog(`row_count=${ingest.row_count}`);
-        }
-
-        writeLog("完了");
-
-      } catch (e) {
-        console.error(e);
-        writeLog(`アップロード/取り込み失敗: ${e.message}`);
+        return;
       }
-      return;
-    }
 
-    default:
-      writeLog(`未対応の取得元です: ${key}`);
-      return;
-  }
-});
+      // -------------------------------
+      // data.go.jp（e-Gov CKAN）：添付 opendata_test.py の /opendata/test を叩く
+      // -------------------------------
+      case "api_datago": {
+        if (!p.testUrl) {
+          writeLog("data.go.jp は testUrl が未設定です（/opendata/test を設定してください）");
+          return;
+        }
+
+        writeLog(`${p.testLabel ?? p.name} 取得テスト開始`);
+
+        try {
+          const res = await fetch(p.testUrl);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const data = await res.json();
+
+          if (typeof data.count === "number") writeLog(`取得成功 件数=${data.count}`);
+          else writeLog(`取得成功（countなし）`);
+
+        } catch (e) {
+          console.error(e);
+          writeLog(`取得失敗: ${e.message}`);
+        }
+        return;
+      }
+
+      // -------------------------------
+      // 気象庁（防災・気象）：/jma/test を叩く
+      // -------------------------------
+      case "api_jma": {
+        if (!p.testUrl) {
+          writeLog("気象庁は testUrl が未設定です（/jma/test を設定してください）");
+          return;
+        }
+
+        writeLog(`${p.testLabel ?? p.name} 取得テスト開始`);
+
+        try {
+          const res = await fetch(p.testUrl);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const data = await res.json();
+
+          if (typeof data.bytes === "number") writeLog(`取得成功 bytes=${data.bytes}`);
+          else writeLog(`取得成功（bytesなし）`);
+
+        } catch (e) {
+          console.error(e);
+          writeLog(`取得失敗: ${e.message}`);
+        }
+        return;
+      }
+
+      // -------------------------------
+      // e-Gov：/egov/test を叩く
+      // -------------------------------
+      case "url_egov": {
+        if (!p.testUrl) {
+          writeLog("e-Gov は testUrl が未設定です（/egov/test を設定してください）");
+          return;
+        }
+
+        writeLog(`${p.testLabel ?? p.name} 取得テスト開始`);
+
+        try {
+          const res = await fetch(p.testUrl);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const data = await res.json();
+
+          if (typeof data.bytes === "number") writeLog(`取得成功 bytes=${data.bytes}`);
+          else writeLog(`取得成功（bytesなし）`);
+
+        } catch (e) {
+          console.error(e);
+          writeLog(`取得失敗: ${e.message}`);
+        }
+        return;
+      }
+
+      // -------------------------------
+      // 消費者庁 FAQ：/caa/test を叩く
+      // -------------------------------
+      case "url_caa": {
+        if (!p.testUrl) {
+          writeLog("消費者庁は testUrl が未設定です（/caa/test を設定してください）");
+          return;
+        }
+
+        writeLog(`${p.testLabel ?? p.name} 取得テスト開始`);
+
+        try {
+          const res = await fetch(p.testUrl);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const data = await res.json();
+
+          if (typeof data.bytes === "number") writeLog(`取得成功 bytes=${data.bytes}`);
+          else writeLog(`取得成功（bytesなし）`);
+
+        } catch (e) {
+          console.error(e);
+          writeLog(`取得失敗: ${e.message}`);
+        }
+        return;
+      }
+
+      // -------------------------------
+      // 東京都：/tokyo/test を叩く
+      // -------------------------------
+      case "url_tokyo": {
+        if (!p.testUrl) {
+          writeLog("東京都は testUrl が未設定です（/tokyo/test を設定してください）");
+          return;
+        }
+
+        writeLog(`${p.testLabel ?? p.name} 取得テスト開始`);
+
+        try {
+          const res = await fetch(p.testUrl);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const data = await res.json();
+
+          if (typeof data.bytes === "number") writeLog(`取得成功 bytes=${data.bytes}`);
+          else writeLog(`取得成功（bytesなし）`);
+
+        } catch (e) {
+          console.error(e);
+          writeLog(`取得失敗: ${e.message}`);
+        }
+        return;
+      }
+
+      // -------------------------------
+      // ファイルアップロード：upload_and_register → ingest_uploaded_file
+      // -------------------------------
+      case "file_upload": {
+        const input = document.getElementById("uploadFileInput");
+
+        if (!input || !input.files || input.files.length === 0) {
+          writeLog("アップロードするファイルを選択してください");
+          return;
+        }
+
+        const API_BASE = "https://ank-api-986862757498.asia-northeast1.run.app/v1";
+
+        const idToken = sessionStorage.getItem("idToken");
+        if (!idToken) {
+          writeLog("idToken がありません（ログインからやり直してください）");
+          return;
+        }
+
+        const file = input.files[0];
+
+        writeLog(`アップロード開始: ${file.name}`);
+
+        const formData = new FormData();
+        formData.append("file", file);
+
+        try {
+          // 1) upload_and_register
+          const res = await fetch(`${API_BASE}/upload_and_register`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${idToken}` },
+            body: formData
+          });
+
+          if (res.status === 409) {
+            writeLog("同名ファイルはアップロードできません");
+            return;
+          }
+          if (res.status === 401) {
+            const t = await res.text();
+            writeLog(`認証エラー(401): ${t}`);
+            return;
+          }
+          if (res.status === 403) {
+            const t = await res.text();
+            writeLog(`権限エラー(403): ${t}`);
+            return;
+          }
+          if (!res.ok) {
+            const t = await res.text();
+            throw new Error(`HTTP ${res.status}: ${t}`);
+          }
+
+          const data = await res.json();
+
+          writeLog("アップロード成功");
+          writeLog(`file_id=${data.file_id}`);
+
+          // 2) ingest_uploaded_file
+          writeLog("row_data 取り込み開始");
+
+          const res2 = await fetch(`${API_BASE}/ingest_uploaded_file/${data.file_id}`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${idToken}` }
+          });
+
+          if (res2.status === 409) {
+            const t = await res2.text();
+            writeLog(`取り込みスキップ(409): ${t}`);
+            return;
+          }
+          if (res2.status === 401) {
+            const t = await res2.text();
+            writeLog(`認証エラー(401): ${t}`);
+            return;
+          }
+          if (!res2.ok) {
+            const t = await res2.text();
+            throw new Error(`HTTP ${res2.status}: ${t}`);
+          }
+
+          const ingest = await res2.json();
+
+          writeLog("row_data 取り込み成功");
+          if (typeof ingest.row_count === "number") {
+            writeLog(`row_count=${ingest.row_count}`);
+          }
+
+          writeLog("完了");
+
+        } catch (e) {
+          console.error(e);
+          writeLog(`アップロード/取り込み失敗: ${e.message}`);
+        }
+        return;
+      }
+
+      default:
+        writeLog(`未対応の取得元です: ${key}`);
+        return;
+    }
+  });
+}
