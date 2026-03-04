@@ -9,10 +9,17 @@
 <body>
   <div class="center-wrap">
     <div class="card">
-      <h1>
-        データ取り込み（デモ）<span class="badge">7ソース固定</span>
-      </h1>
-      <button class="btn" id="btnLogout" type="button">ログアウト</button>
+
+      <!-- ヘッダー -->
+      <div style="display:flex; align-items:center; justify-content:space-between;">
+        <h1 style="margin:0;">
+          データ取り込み（デモ）<span class="badge">7ソース固定</span>
+        </h1>
+
+        <button class="btn" id="btnLogout" type="button">
+          ログアウト
+        </button>
+      </div>
 
       <label for="sourceSelect">データ取得元を選択</label>
       <select id="sourceSelect">
@@ -94,6 +101,7 @@
       <div class="log hidden" id="logBox">
         <pre id="logText"></pre>
       </div>
+
     </div>
   </div>
 
