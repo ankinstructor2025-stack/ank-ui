@@ -333,15 +333,18 @@ btnTest.addEventListener("click", async () => {
       const formData = new FormData();
       formData.append("file", file);
 
+      // 既存のベースURLを揃える（upload側と同じホスト）
+      const API_BASE = "https://ank-api-986862757498.asia-northeast1.run.app/v1";
+
       try {
-        const res = await fetch(
-          "https://ank-api-986862757498.asia-northeast1.run.app/v1/upload_and_register",
-          {
-            method: "POST",
-            headers: { Authorization: `Bearer ${idToken}` },
-            body: formData
-          }
-        );
+        // -------------------------
+        // 1) upload_and_register
+        // -------------------------
+        const res = await fetch(`${API_BASE}/upload_and_register`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${idToken}` },
+          body: formData
+        });
 
         if (res.status === 409) {
           writeLog("同名ファイルはアップロードできません");
@@ -370,11 +373,45 @@ btnTest.addEventListener("click", async () => {
         writeLog("アップロード成功");
         writeLog(`file_id=${data.file_id}`);
 
+        // -------------------------
+        // 2) ingest_uploaded_file（ここを追加）
+        // -------------------------
+        writeLog("row_data 取り込み開始");
+
+        const res2 = await fetch(`${API_BASE}/ingest_uploaded_file/${data.file_id}`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${idToken}` }
+        });
+
+        if (res2.status === 409) {
+          // すでに取り込み済み（再押下など）
+          const t = await res2.text();
+          writeLog(`取り込みスキップ(409): ${t}`);
+          return;
+        }
+
+        if (res2.status === 401) {
+          const t = await res2.text();
+          writeLog(`認証エラー(401): ${t}`);
+          return;
+        }
+
+        if (!res2.ok) {
+          const t = await res2.text();
+          throw new Error(`HTTP ${res2.status}: ${t}`);
+        }
+
+        const ingest = await res2.json();
+
+        writeLog("row_data 取り込み成功");
+        if (typeof ingest.row_count === "number") {
+          writeLog(`row_count=${ingest.row_count}`);
+        }
+
       } catch (e) {
         console.error(e);
-        writeLog(`アップロード失敗: ${e.message}`);
+        writeLog(`アップロード/取り込み失敗: ${e.message}`);
       }
-
       return;
     }
 
