@@ -67,8 +67,7 @@ const preset = {
   api_datago: {
     type: "public_api",
     name: "data.go.jp（政府オープンデータ）",
-    endpoint: "https://www.data.go.jp/data/api/action",
-    params: { action: "package_list", limit: 5 },
+    templatePath: "template/opendata.json",
     testUrl: "https://ank-api-986862757498.asia-northeast1.run.app/v1/opendata/test",
     testLabel: "data.go.jp"
   },
@@ -132,7 +131,7 @@ sourceSelect.addEventListener("change", () => {
     showOnly("api");
 
     // 国会議事録は template 管理
-    if (key === "api_kokkai") {
+    if (key === "api_kokkai" || key === "api_datago") {
       document.getElementById("apiEndpoint").value = p.templatePath ?? "";
       document.getElementById("apiParams").value = "params は template/kokkai.json を参照";
     } else {
@@ -219,16 +218,29 @@ if (!btnRegister) {
       // data.go.jp（e-Gov CKAN）：添付 opendata_test.py の /opendata/test を叩く
       // -------------------------------
       case "api_datago": {
-        if (!p.testUrl) {
-          writeLog("data.go.jp は testUrl が未設定です（/opendata/test を設定してください）");
+        if (!p || !p.testUrl) {
+          writeLog("取得テスト対象が選択されていません（preset.testUrl がありません）");
           return;
         }
 
         writeLog(`${p.testLabel ?? p.name} 取得テスト開始`);
 
+        if (!idToken) {
+          writeLog("idToken がありません（ログインからやり直してください）");
+          return;
+        }
+
         try {
-          const res = await fetch(p.testUrl);
+          const res = await fetch(p.testUrl, {
+            method: "GET", // ←APIがGETならGETのまま。POST化するならここをPOSTに
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${idToken}`
+            }
+          });
+
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
           const data = await res.json();
 
           if (typeof data.count === "number") writeLog(`取得成功 件数=${data.count}`);
