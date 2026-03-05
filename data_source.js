@@ -60,16 +60,16 @@ const preset = {
     type: "public_api",
     name: "国会会議録API（国会議事録）",
     templatePath: "template/kokkai.json",
-    testUrl: "https://ank-api-986862757498.asia-northeast1.run.app/v1/kokkai/test",
-    testLabel: "国会議事録"
+    url: "https://ank-api-986862757498.asia-northeast1.run.app/v1/kokkai/fetch",
+    label: "国会議事録"
   },
 
   api_datago: {
     type: "public_api",
     name: "data.go.jp（政府オープンデータ）",
     templatePath: "template/opendata.json",
-    testUrl: "https://ank-api-986862757498.asia-northeast1.run.app/v1/opendata/test",
-    testLabel: "data.go.jp"
+    url: "https://ank-api-986862757498.asia-northeast1.run.app/v1/opendata/fetch",
+    label: "data.go.jp"
   },
 
   api_jma: {
@@ -77,8 +77,8 @@ const preset = {
     name: "気象庁（防災・気象）",
     endpoint: "https://www.jma.go.jp/bosai/forecast/data/overview_forecast/130000.json",
     params: {},
-    testUrl: "https://ank-api-986862757498.asia-northeast1.run.app/v1/jma/test",
-    testLabel: "気象庁"
+    url: "https://ank-api-986862757498.asia-northeast1.run.app/v1/jma/fetch",
+    label: "気象庁"
   },
 
   // 公開URL
@@ -88,8 +88,8 @@ const preset = {
     url: "https://elaws.e-gov.go.jp/",
     mode: "html",
     hint: "法令検索 / 見出し",
-    testUrl: "https://ank-api-986862757498.asia-northeast1.run.app/v1/egov/test",
-    testLabel: "e-Gov"
+    url: "https://ank-api-986862757498.asia-northeast1.run.app/v1/egov/fetch",
+    label: "e-Gov"
   },
 
   url_caa: {
@@ -98,8 +98,8 @@ const preset = {
     url: "https://www.caa.go.jp/policies/policy/consumer_policy/",
     mode: "html",
     hint: "FAQ",
-    testUrl: "https://ank-api-986862757498.asia-northeast1.run.app/v1/caa/test",
-    testLabel: "消費者庁"
+    url: "https://ank-api-986862757498.asia-northeast1.run.app/v1/caa/fetch",
+    label: "消費者庁"
   },
 
   url_tokyo: {
@@ -108,8 +108,8 @@ const preset = {
     url: "https://www.metro.tokyo.lg.jp/",
     mode: "html",
     hint: "",
-    testUrl: "https://ank-api-986862757498.asia-northeast1.run.app/v1/tokyo/test",
-    testLabel: "東京都"
+    url: "https://ank-api-986862757498.asia-northeast1.run.app/v1/tokyo/fetch",
+    label: "東京都"
   },
 
   // ダウンロード
@@ -182,12 +182,12 @@ if (!btnRegister) {
       // 国会議事録：現状動作を壊さない（あなたのコードそのまま）
       // -------------------------------
       case "api_kokkai": {
-        if (!p || !p.testUrl) {
-          writeLog("取得テスト対象が選択されていません（preset.testUrl がありません）");
+        if (!p || !p.url) {
+          writeLog("取得テスト対象が選択されていません（preset.url がありません）");
           return;
         }
 
-        writeLog(`${p.testLabel ?? p.name} 取得テスト開始`);
+        writeLog(`${p.label ?? p.name} 取得テスト開始`);
 
         if (!idToken) {
           writeLog("idToken がありません（ログインからやり直してください）");
@@ -195,7 +195,7 @@ if (!btnRegister) {
         }
 
         try {
-          const res = await fetch(p.testUrl, {
+          const res = await fetch(p.url, {
             method: "POST",
             headers: { "Content-Type": "application/json", Authorization: `Bearer ${idToken}` }
           });
@@ -215,15 +215,15 @@ if (!btnRegister) {
       }
 
       // -------------------------------
-      // data.go.jp（e-Gov CKAN）：添付 opendata_test.py の /opendata/test を叩く
+      // data.go.jp（e-Gov CKAN）：添付 opendata_fetch.py の /opendata/fetch を叩く
       // -------------------------------
       case "api_datago": {
-        if (!p || !p.testUrl) {
-          writeLog("取得テスト対象が選択されていません（preset.testUrl がありません）");
+        if (!p || !p.url) {
+          writeLog("取得テスト対象が選択されていません（preset.url がありません）");
           return;
         }
 
-        writeLog(`${p.testLabel ?? p.name} 取得テスト開始`);
+        writeLog(`${p.label ?? p.name} 取得テスト開始`);
 
         if (!idToken) {
           writeLog("idToken がありません（ログインからやり直してください）");
@@ -231,7 +231,7 @@ if (!btnRegister) {
         }
 
         try {
-          const res = await fetch(p.testUrl, {
+          const res = await fetch(p.url, {
             method: "GET", // ←APIがGETならGETのまま。POST化するならここをPOSTに
             headers: {
               "Content-Type": "application/json",
@@ -254,18 +254,18 @@ if (!btnRegister) {
       }
 
       // -------------------------------
-      // 気象庁（防災・気象）：/jma/test を叩く
+      // 気象庁（防災・気象）：/jma/fetch を叩く
       // -------------------------------
       case "api_jma": {
-        if (!p.testUrl) {
-          writeLog("気象庁は testUrl が未設定です（/jma/test を設定してください）");
+        if (!p.url) {
+          writeLog("気象庁は url が未設定です（/jma/fetch を設定してください）");
           return;
         }
 
-        writeLog(`${p.testLabel ?? p.name} 取得テスト開始`);
+        writeLog(`${p.label ?? p.name} 取得テスト開始`);
 
         try {
-          const res = await fetch(p.testUrl);
+          const res = await fetch(p.url);
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           const data = await res.json();
 
@@ -280,18 +280,18 @@ if (!btnRegister) {
       }
 
       // -------------------------------
-      // e-Gov：/egov/test を叩く
+      // e-Gov：/egov/fetch を叩く
       // -------------------------------
       case "url_egov": {
-        if (!p.testUrl) {
-          writeLog("e-Gov は testUrl が未設定です（/egov/test を設定してください）");
+        if (!p.url) {
+          writeLog("e-Gov は url が未設定です（/egov/fetch を設定してください）");
           return;
         }
 
-        writeLog(`${p.testLabel ?? p.name} 取得テスト開始`);
+        writeLog(`${p.label ?? p.name} 取得テスト開始`);
 
         try {
-          const res = await fetch(p.testUrl);
+          const res = await fetch(p.url);
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           const data = await res.json();
 
@@ -306,18 +306,18 @@ if (!btnRegister) {
       }
 
       // -------------------------------
-      // 消費者庁 FAQ：/caa/test を叩く
+      // 消費者庁 FAQ：/caa/fetch を叩く
       // -------------------------------
       case "url_caa": {
-        if (!p.testUrl) {
-          writeLog("消費者庁は testUrl が未設定です（/caa/test を設定してください）");
+        if (!p.url) {
+          writeLog("消費者庁は url が未設定です（/caa/fetch を設定してください）");
           return;
         }
 
-        writeLog(`${p.testLabel ?? p.name} 取得テスト開始`);
+        writeLog(`${p.label ?? p.name} 取得テスト開始`);
 
         try {
-          const res = await fetch(p.testUrl);
+          const res = await fetch(p.url);
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           const data = await res.json();
 
@@ -332,18 +332,18 @@ if (!btnRegister) {
       }
 
       // -------------------------------
-      // 東京都：/tokyo/test を叩く
+      // 東京都：/tokyo/fetch を叩く
       // -------------------------------
       case "url_tokyo": {
-        if (!p.testUrl) {
-          writeLog("東京都は testUrl が未設定です（/tokyo/test を設定してください）");
+        if (!p.url) {
+          writeLog("東京都は url が未設定です（/tokyo/fetch を設定してください）");
           return;
         }
 
-        writeLog(`${p.testLabel ?? p.name} 取得テスト開始`);
+        writeLog(`${p.label ?? p.name} 取得テスト開始`);
 
         try {
-          const res = await fetch(p.testUrl);
+          const res = await fetch(p.url);
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           const data = await res.json();
 
