@@ -60,7 +60,7 @@ const preset = {
     type: "public_api",
     name: "国会会議録API（国会議事録）",
     templatePath: "template/kokkai.json",
-    url: "https://ank-api-986862757498.asia-northeast1.run.app/v1/kokkai/fetch",
+    url: "https://ank-api-986862757498.asia-northeast1.run.app/v1/kokkai/fetch_and_register",
     label: "国会議事録"
   },
 
@@ -68,7 +68,7 @@ const preset = {
     type: "public_api",
     name: "data.go.jp（政府オープンデータ）",
     templatePath: "template/opendata.json",
-    url: "https://ank-api-986862757498.asia-northeast1.run.app/v1/opendata/fetch",
+    url: "https://ank-api-986862757498.asia-northeast1.run.app/v1/opendata/fetch_and_register",
     label: "data.go.jp"
   },
 
@@ -77,7 +77,7 @@ const preset = {
     name: "気象庁（防災・気象）",
     endpoint: "https://www.jma.go.jp/bosai/forecast/data/overview_forecast/130000.json",
     params: {},
-    url: "https://ank-api-986862757498.asia-northeast1.run.app/v1/jma/fetch",
+    url: "https://ank-api-986862757498.asia-northeast1.run.app/v1/jma/fetch_and_register",
     label: "気象庁"
   },
 
@@ -88,7 +88,7 @@ const preset = {
     url: "https://elaws.e-gov.go.jp/",
     mode: "html",
     hint: "法令検索 / 見出し",
-    url: "https://ank-api-986862757498.asia-northeast1.run.app/v1/egov/fetch",
+    url: "https://ank-api-986862757498.asia-northeast1.run.app/v1/egov/fetch_and_register",
     label: "e-Gov"
   },
 
@@ -98,7 +98,7 @@ const preset = {
     url: "https://www.caa.go.jp/policies/policy/consumer_policy/",
     mode: "html",
     hint: "FAQ",
-    url: "https://ank-api-986862757498.asia-northeast1.run.app/v1/caa/fetch",
+    url: "https://ank-api-986862757498.asia-northeast1.run.app/v1/caa/fetch_and_register",
     label: "消費者庁"
   },
 
@@ -108,7 +108,7 @@ const preset = {
     url: "https://www.metro.tokyo.lg.jp/",
     mode: "html",
     hint: "",
-    url: "https://ank-api-986862757498.asia-northeast1.run.app/v1/tokyo/fetch",
+    url: "https://ank-api-986862757498.asia-northeast1.run.app/v1/tokyo/fetch_and_register",
     label: "東京都"
   },
 
