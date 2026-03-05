@@ -72,15 +72,6 @@ const preset = {
     label: "data.go.jp"
   },
 
-  api_jma: {
-    type: "public_api",
-    name: "気象庁（防災・気象）",
-    endpoint: "https://www.jma.go.jp/bosai/forecast/data/overview_forecast/130000.json",
-    params: {},
-    url: "https://ank-api-986862757498.asia-northeast1.run.app/v1/jma/fetch_and_register",
-    label: "気象庁"
-  },
-
   // 公開URL
   url_egov: {
     type: "public_url",
@@ -100,16 +91,6 @@ const preset = {
     hint: "FAQ",
     url: "https://ank-api-986862757498.asia-northeast1.run.app/v1/caa/fetch_and_register",
     label: "消費者庁"
-  },
-
-  url_tokyo: {
-    type: "public_url",
-    name: "東京都（オープン情報ページ）",
-    url: "https://www.metro.tokyo.lg.jp/",
-    mode: "html",
-    hint: "",
-    url: "https://ank-api-986862757498.asia-northeast1.run.app/v1/tokyo/fetch_and_register",
-    label: "東京都"
   },
 
   // ダウンロード
@@ -254,32 +235,6 @@ if (!btnRegister) {
       }
 
       // -------------------------------
-      // 気象庁（防災・気象）：/jma/fetch を叩く
-      // -------------------------------
-      case "api_jma": {
-        if (!p.url) {
-          writeLog("気象庁は url が未設定です（/jma/fetch を設定してください）");
-          return;
-        }
-
-        writeLog(`${p.label ?? p.name} 取得テスト開始`);
-
-        try {
-          const res = await fetch(p.url);
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          const data = await res.json();
-
-          if (typeof data.bytes === "number") writeLog(`取得成功 bytes=${data.bytes}`);
-          else writeLog(`取得成功（bytesなし）`);
-
-        } catch (e) {
-          console.error(e);
-          writeLog(`取得失敗: ${e.message}`);
-        }
-        return;
-      }
-
-      // -------------------------------
       // e-Gov：/egov/fetch を叩く
       // -------------------------------
       case "url_egov": {
@@ -311,32 +266,6 @@ if (!btnRegister) {
       case "url_caa": {
         if (!p.url) {
           writeLog("消費者庁は url が未設定です（/caa/fetch を設定してください）");
-          return;
-        }
-
-        writeLog(`${p.label ?? p.name} 取得テスト開始`);
-
-        try {
-          const res = await fetch(p.url);
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          const data = await res.json();
-
-          if (typeof data.bytes === "number") writeLog(`取得成功 bytes=${data.bytes}`);
-          else writeLog(`取得成功（bytesなし）`);
-
-        } catch (e) {
-          console.error(e);
-          writeLog(`取得失敗: ${e.message}`);
-        }
-        return;
-      }
-
-      // -------------------------------
-      // 東京都：/tokyo/fetch を叩く
-      // -------------------------------
-      case "url_tokyo": {
-        if (!p.url) {
-          writeLog("東京都は url が未設定です（/tokyo/fetch を設定してください）");
           return;
         }
 
