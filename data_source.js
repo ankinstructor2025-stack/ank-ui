@@ -116,7 +116,7 @@ sourceSelect.addEventListener("change", () => {
     // 国会議事録は template 管理
     if (key === "api_kokkai" || key === "api_datago") {
       document.getElementById("apiEndpoint").value = p.templatePath ?? "";
-      document.getElementById("apiParams").value = "params は template/kokkai.json を参照";
+      document.getElementById("apiParams").value = `params は ${p.templatePath ?? ""} を参照`;
     } else {
       document.getElementById("apiEndpoint").value = p.endpoint ?? "";
       document.getElementById("apiParams").value =
@@ -126,7 +126,7 @@ sourceSelect.addEventListener("change", () => {
 
   if (p.type === "public_url") {
     showOnly("url");
-    document.getElementById("targetUrl").value = p.url ?? "";
+    document.getElementById("targetUrl").value = p.templatePath ?? "";
     document.getElementById("urlMode").value = p.mode ?? "html";
     document.getElementById("urlHint").value = p.hint ?? "";
   }
