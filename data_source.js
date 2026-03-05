@@ -76,7 +76,8 @@ const preset = {
   url_egov: {
     type: "public_url",
     name: "e-Gov（法令・制度ページ）",
-    url: "https://elaws.e-gov.go.jp/",
+    templatePath: "template/egov.json",
+    targetUrl: "https://elaws.e-gov.go.jp/",
     mode: "html",
     hint: "法令検索 / 見出し",
     url: "https://ank-api-986862757498.asia-northeast1.run.app/v1/egov/fetch_and_register",
@@ -86,7 +87,8 @@ const preset = {
   url_caa: {
     type: "public_url",
     name: "消費者庁（FAQページ）",
-    url: "https://www.caa.go.jp/policies/policy/consumer_policy/",
+    templatePath: "template/caa.json",
+    targetUrl: "https://www.caa.go.jp/policies/policy/consumer_policy/",
     mode: "html",
     hint: "FAQ",
     url: "https://ank-api-986862757498.asia-northeast1.run.app/v1/caa/fetch_and_register",
@@ -239,14 +241,25 @@ if (!btnRegister) {
       // -------------------------------
       case "url_egov": {
         if (!p.url) {
-          writeLog("e-Gov は url が未設定です（/egov/fetch を設定してください）");
+          writeLog("e-Gov は url が未設定です（/egov/fetch_and_register を設定してください）");
           return;
         }
 
         writeLog(`${p.label ?? p.name} 取得テスト開始`);
 
+        if (!idToken) {
+          writeLog("idToken がありません（ログインからやり直してください）");
+          return;
+        }
+
         try {
-          const res = await fetch(p.url);
+          const res = await fetch(p.url, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${idToken}`
+            }
+          });
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           const data = await res.json();
 
@@ -265,14 +278,25 @@ if (!btnRegister) {
       // -------------------------------
       case "url_caa": {
         if (!p.url) {
-          writeLog("消費者庁は url が未設定です（/caa/fetch を設定してください）");
+          writeLog("消費者庁は url が未設定です（/caa/fetch_and_register を設定してください）");
           return;
         }
 
         writeLog(`${p.label ?? p.name} 取得テスト開始`);
 
+        if (!idToken) {
+          writeLog("idToken がありません（ログインからやり直してください）");
+          return;
+        }
+
         try {
-          const res = await fetch(p.url);
+          const res = await fetch(p.url, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${idToken}`
+            }
+          });
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           const data = await res.json();
 
