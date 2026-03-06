@@ -245,7 +245,7 @@ if (!btnRegister) {
           return;
         }
 
-        writeLog(`${p.label ?? p.name} 取得テスト開始`);
+        writeLog(`${p.label ?? p.name} 登録開始`);
 
         if (!idToken) {
           writeLog("idToken がありません（ログインからやり直してください）");
@@ -263,12 +263,17 @@ if (!btnRegister) {
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           const data = await res.json();
 
-          if (typeof data.bytes === "number") writeLog(`取得成功 bytes=${data.bytes}`);
-          else writeLog(`取得成功（bytesなし）`);
+          writeLog("登録完了");
+          writeLog(`fetched=${data.fetched ?? 0}`);
+          writeLog(`inserted=${data.inserted ?? 0}`);
+          writeLog(`skipped=${data.skipped ?? 0}`);
+          if (data.file_id) {
+            writeLog(`file_id=${data.file_id}`);
+          }
 
         } catch (e) {
           console.error(e);
-          writeLog(`取得失敗: ${e.message}`);
+          writeLog(`登録失敗: ${e.message}`);
         }
         return;
       }
@@ -282,7 +287,7 @@ if (!btnRegister) {
           return;
         }
 
-        writeLog(`${p.label ?? p.name} 取得テスト開始`);
+        writeLog(`${p.label ?? p.name} 登録開始`);
 
         if (!idToken) {
           writeLog("idToken がありません（ログインからやり直してください）");
@@ -300,12 +305,17 @@ if (!btnRegister) {
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           const data = await res.json();
 
-          if (typeof data.bytes === "number") writeLog(`取得成功 bytes=${data.bytes}`);
-          else writeLog(`取得成功（bytesなし）`);
+          writeLog("登録完了");
+          writeLog(`fetched=${data.fetched ?? 0}`);
+          writeLog(`inserted=${data.inserted ?? 0}`);
+          writeLog(`skipped=${data.skipped ?? 0}`);
+          if (data.file_id) {
+            writeLog(`file_id=${data.file_id}`);
+          }
 
         } catch (e) {
           console.error(e);
-          writeLog(`取得失敗: ${e.message}`);
+          writeLog(`登録失敗: ${e.message}`);
         }
         return;
       }
