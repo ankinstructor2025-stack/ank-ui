@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>機能メニュー</title>
+
+<link rel="stylesheet" href="theme.css">
+
+<style>
+.menu-layout{
+  display:grid;
+  grid-template-columns:220px 1fr;
+  gap:20px;
+}
+
+.menu-buttons{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+.menu-buttons button{
+  width:100%;
+}
+
+.menu-description{
+  font-size:14px;
+  line-height:1.6;
+}
+</style>
+
+</head>
+
+<body>
+
+<div class="center-wrap">
+
+<div class="card">
+
+<h2>機能メニュー</h2>
+<div class="subtitle">使用する機能を選択してください</div>
+
+<div class="menu-layout">
+
+<!-- 左メニュー -->
+<div class="menu-buttons">
+
+<button class="btn btn-primary" id="btn-import">
+データ取込
+</button>
+
+<button class="btn">
+データ照会
+</button>
+
+<button class="btn">
+ナレッジ作成
+</button>
+
+<button class="btn">
+QA検索
+</button>
+
+</div>
+
+
+<!-- 右説明 -->
+<div class="menu-description">
+
+<h3>データ取込</h3>
+
+<p>
+公開API、公開URL、アップロードファイルからデータを取り込みます。
+</p>
+
+<p>
+取り込んだデータはナレッジ作成やQA検索に利用されます。
+</p>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+<script src="menu.js"></script>
+
+</body>
+</html>

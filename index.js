@@ -57,7 +57,7 @@ document.getElementById("loginButton").addEventListener("click", async (e) => {
     sessionStorage.setItem("idToken", idToken);
 
     // ★ここで遷移
-    window.location.href = "./data_source.html";
+    window.location.href = "./menu.html";
 
   } catch (err) {
     alert(err.code || String(err));
