@@ -172,6 +172,12 @@ if (!btnRegister) {
             }
           });
 
+          if (res.status === 409) {
+            const data = await res.json()
+            log("既に登録済みのデータです")
+            return
+          }
+
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
           const data = await res.json();
