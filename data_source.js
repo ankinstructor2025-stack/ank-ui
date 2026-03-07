@@ -11,6 +11,7 @@ const logText = document.getElementById("logText");
 
 const btnRegister = document.getElementById("btnRegister");
 const btnLogout = document.getElementById("btnLogout");
+const btnMenu = document.getElementById("btnMenu");
 
 function showOnly(kind) {
   commonFields.classList.remove("hidden");
@@ -44,6 +45,12 @@ if (btnLogout) {
   btnLogout.addEventListener("click", () => {
     sessionStorage.removeItem("idToken");
     window.location.href = "index.html";
+  });
+}
+
+if (btnMenu) {
+  btnMenu.addEventListener("click", () => {
+    window.location.href = "menu.html";
   });
 }
 
