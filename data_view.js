@@ -2,6 +2,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   const tableBody = document.getElementById("data-table-body");
   const sourceTypeSelect = document.getElementById("sourceTypeSelect");
 
+  const btnMenu = document.getElementById("btnMenu");
+  const btnLogout = document.getElementById("btnLogout");
+
   const items = [
     {
       row_index: 1,
@@ -22,6 +25,19 @@ document.addEventListener("DOMContentLoaded", async () => {
       created_at: "2026-03-06 10:10:00"
     }
   ];
+
+  if (btnMenu) {
+    btnMenu.addEventListener("click", () => {
+      window.location.href = "menu.html";
+    });
+  }
+
+  if (btnLogout) {
+    btnLogout.addEventListener("click", () => {
+      sessionStorage.removeItem("idToken");
+      window.location.href = "index.html";
+    });
+  }
 
   let currentItems = [...items];
 

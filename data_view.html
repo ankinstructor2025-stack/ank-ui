@@ -46,9 +46,21 @@
 <body>
   <div class="container">
     <div class="card">
-      <div class="page-header">
-        <h2>データ照会</h2>
-        <div class="subtitle">row_data の一覧表示</div>
+      <div class="page-header" style="display:flex; align-items:center; justify-content:space-between;">
+        <div>
+          <h2>データ照会</h2>
+          <div class="subtitle">row_data の一覧表示</div>
+        </div>
+
+        <div style="display:flex; gap:8px;">
+          <button class="btn" id="btnMenu" type="button">
+            メニューに戻る
+          </button>
+
+          <button class="btn" id="btnLogout" type="button">
+            ログアウト
+          </button>
+        </div>
       </div>
 
       <div class="filter-wrap">
