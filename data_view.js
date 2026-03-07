@@ -26,7 +26,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   await loadSourceMaster();
 
-  renderKokkaiHeader();
+  renderDefaultHeader();
   renderMessageRow("データ種別を選択してください", 5);
   updatePager();
 
@@ -61,14 +61,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   tableBody.addEventListener("click", (event) => {
-    const rowEl = event.target.closest(".kokkai-row");
+    const rowEl = event.target.closest(".data-row");
     if (!rowEl) return;
 
     const index = Number(rowEl.dataset.index);
     const row = currentRows[index];
     if (!row) return;
 
-    tableBody.querySelectorAll(".kokkai-row").forEach(el => {
+    tableBody.querySelectorAll(".data-row").forEach(el => {
       el.classList.remove("selected");
     });
 
@@ -86,7 +86,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     hideDetail();
 
     if (!selected) {
-      renderKokkaiHeader();
+      renderDefaultHeader();
       renderMessageRow("データ種別を選択してください", 5);
       updatePager();
       return;
@@ -94,15 +94,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const p = sourceMap[selected];
     if (!p) {
-      renderKokkaiHeader();
+      renderDefaultHeader();
       renderMessageRow("データ種別が不正です", 5);
-      updatePager();
-      return;
-    }
-
-    if (selected !== "api_kokkai") {
-      renderKokkaiHeader();
-      renderMessageRow("国会議事録を選択してください", 5);
       updatePager();
       return;
     }
@@ -117,7 +110,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       totalCount = Number(data.total_count || 0);
       currentRows = (data.rows || [])
-        .map(row => parseKokkaiRow(row))
+        .map(row => parseRowBySourceType(currentSourceType, row))
         .filter(row => row !== null);
 
       renderCurrentPage();
@@ -125,7 +118,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       console.error(e);
       currentRows = [];
       totalCount = 0;
-      renderKokkaiHeader();
+      renderHeaderBySourceType(currentSourceType);
       renderMessageRow(`読込失敗: ${e.message}`, 5);
       hideDetail();
       updatePager();
@@ -201,6 +194,18 @@ document.addEventListener("DOMContentLoaded", async () => {
     return await res.json();
   }
 
+  function parseRowBySourceType(sourceType, row) {
+    if (sourceType === "api_kokkai") {
+      return parseKokkaiRow(row);
+    }
+
+    if (sourceType === "api_opendata") {
+      return parseOpendataRow(row);
+    }
+
+    return parseGenericRow(row);
+  }
+
   function parseKokkaiRow(row) {
     try {
       const obj = typeof row.content === "string"
@@ -208,6 +213,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         : row.content;
 
       return {
+        viewType: "kokkai",
         date: normalizeText(obj.date),
         house: normalizeText(obj.nameOfHouse),
         meeting: normalizeText(obj.nameOfMeeting),
@@ -220,8 +226,65 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
+  function parseOpendataRow(row) {
+    try {
+      const obj = typeof row.content === "string"
+        ? JSON.parse(row.content)
+        : row.content;
+
+      const datasetId = normalizeText(obj.dataset_id);
+      const title = normalizeText(obj.title);
+      const sourcePath = normalizeText(obj.source_path);
+
+      const data = obj.data || {};
+      const organization = normalizeText(
+        (data.organization && (data.organization.title || data.organization.name)) || ""
+      );
+      const notes = normalizeText(data.notes);
+      const resources = Array.isArray(data.resources) ? data.resources : [];
+
+      return {
+        viewType: "opendata",
+        dataset_id: datasetId,
+        title: title,
+        organization: organization,
+        source_path: sourcePath,
+        notes: shortenText(notes, 160),
+        notes_full: notes,
+        resource_count: resources.length,
+        data_full: obj,
+      };
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function parseGenericRow(row) {
+    try {
+      const obj = typeof row.content === "string"
+        ? JSON.parse(row.content)
+        : row.content;
+
+      return {
+        viewType: "generic",
+        title: normalizeText(obj.title || row.source_item_id || ""),
+        col2: normalizeText(obj.source_path || ""),
+        col3: shortenText(normalizeText(JSON.stringify(obj)), 160),
+        full: JSON.stringify(obj, null, 2),
+      };
+    } catch (e) {
+      return {
+        viewType: "generic",
+        title: normalizeText(row.source_item_id || ""),
+        col2: "",
+        col3: shortenText(normalizeText(row.content || ""), 160),
+        full: normalizeText(row.content || ""),
+      };
+    }
+  }
+
   function renderCurrentPage() {
-    renderKokkaiHeader();
+    renderHeaderBySourceType(currentSourceType);
 
     if (!currentRows || currentRows.length === 0) {
       renderMessageRow("データがありません", 5);
@@ -230,8 +293,21 @@ document.addEventListener("DOMContentLoaded", async () => {
       return;
     }
 
+    if (currentSourceType === "api_kokkai") {
+      renderKokkaiRows();
+    } else if (currentSourceType === "api_opendata") {
+      renderOpendataRows();
+    } else {
+      renderGenericRows();
+    }
+
+    hideDetail();
+    updatePager();
+  }
+
+  function renderKokkaiRows() {
     tableBody.innerHTML = currentRows.map((row, index) => `
-      <tr class="kokkai-row" data-index="${index}">
+      <tr class="data-row" data-index="${index}">
         <td>${escapeHtml(row.date)}</td>
         <td>${escapeHtml(row.house)}</td>
         <td>${escapeHtml(row.meeting)}</td>
@@ -239,9 +315,28 @@ document.addEventListener("DOMContentLoaded", async () => {
         <td class="content-cell">${escapeHtml(row.speech)}</td>
       </tr>
     `).join("");
+  }
 
-    hideDetail();
-    updatePager();
+  function renderOpendataRows() {
+    tableBody.innerHTML = currentRows.map((row, index) => `
+      <tr class="data-row" data-index="${index}">
+        <td>${escapeHtml(row.dataset_id)}</td>
+        <td>${escapeHtml(row.title)}</td>
+        <td>${escapeHtml(row.organization)}</td>
+        <td>${escapeHtml(String(row.resource_count))}</td>
+        <td class="content-cell">${escapeHtml(row.notes)}</td>
+      </tr>
+    `).join("");
+  }
+
+  function renderGenericRows() {
+    tableBody.innerHTML = currentRows.map((row, index) => `
+      <tr class="data-row" data-index="${index}">
+        <td>${escapeHtml(row.title)}</td>
+        <td>${escapeHtml(row.col2)}</td>
+        <td colspan="3" class="content-cell">${escapeHtml(row.col3)}</td>
+      </tr>
+    `).join("");
   }
 
   function showDetail(row) {
@@ -251,9 +346,31 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     detailCard.style.display = "block";
-    detailMeta.textContent =
-      `${row.date} / ${row.house} / ${row.meeting} / ${row.speaker}`;
-    detailSpeech.textContent = row.speech_full || "";
+
+    if (row.viewType === "kokkai") {
+      detailMeta.textContent =
+        `${row.date} / ${row.house} / ${row.meeting} / ${row.speaker}`;
+      detailSpeech.textContent = row.speech_full || "";
+      return;
+    }
+
+    if (row.viewType === "opendata") {
+      detailMeta.textContent =
+        `${row.dataset_id} / ${row.title} / ${row.organization} / resource=${row.resource_count}`;
+
+      const lines = [
+        `source_path: ${row.source_path || ""}`,
+        "",
+        `notes:`,
+        row.notes_full || "",
+      ];
+
+      detailSpeech.textContent = lines.join("\n");
+      return;
+    }
+
+    detailMeta.textContent = row.title || "詳細";
+    detailSpeech.textContent = row.full || "";
   }
 
   function hideDetail() {
@@ -264,6 +381,20 @@ document.addEventListener("DOMContentLoaded", async () => {
     detailSpeech.textContent = "";
   }
 
+  function renderHeaderBySourceType(sourceType) {
+    if (sourceType === "api_kokkai") {
+      renderKokkaiHeader();
+      return;
+    }
+
+    if (sourceType === "api_opendata") {
+      renderOpendataHeader();
+      return;
+    }
+
+    renderDefaultHeader();
+  }
+
   function renderKokkaiHeader() {
     tableHead.innerHTML = `
       <tr>
@@ -272,6 +403,28 @@ document.addEventListener("DOMContentLoaded", async () => {
         <th style="width: 180px;">会議名</th>
         <th style="width: 140px;">発言者</th>
         <th>発言内容</th>
+      </tr>
+    `;
+  }
+
+  function renderOpendataHeader() {
+    tableHead.innerHTML = `
+      <tr>
+        <th style="width: 180px;">dataset_id</th>
+        <th style="width: 280px;">タイトル</th>
+        <th style="width: 180px;">組織</th>
+        <th style="width: 100px;">資源数</th>
+        <th>概要</th>
+      </tr>
+    `;
+  }
+
+  function renderDefaultHeader() {
+    tableHead.innerHTML = `
+      <tr>
+        <th style="width: 220px;">項目1</th>
+        <th style="width: 220px;">項目2</th>
+        <th colspan="3">内容</th>
       </tr>
     `;
   }
