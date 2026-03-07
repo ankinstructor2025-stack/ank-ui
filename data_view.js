@@ -9,13 +9,16 @@ document.addEventListener("DOMContentLoaded", async () => {
   const prevPageBtn = document.getElementById("prevPageBtn");
   const nextPageBtn = document.getElementById("nextPageBtn");
   const pageInfo = document.getElementById("pageInfo");
+  const resultInfo = document.getElementById("resultInfo");
 
   let sourceList = [];
   let sourceMap = {};
 
+  let currentSourceType = "";
   let currentRows = [];
   let currentPage = 1;
-  const pageSize = 100;
+  let totalCount = 0;
+  const pageSize = 10;
 
   await loadSourceMaster();
 
@@ -37,28 +40,30 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   if (prevPageBtn) {
-    prevPageBtn.addEventListener("click", () => {
+    prevPageBtn.addEventListener("click", async () => {
       if (currentPage <= 1) return;
       currentPage -= 1;
-      renderCurrentPage();
+      await reloadCurrentPage();
     });
   }
 
   if (nextPageBtn) {
-    nextPageBtn.addEventListener("click", () => {
-      const totalPages = Math.max(1, Math.ceil(currentRows.length / pageSize));
+    nextPageBtn.addEventListener("click", async () => {
+      const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
       if (currentPage >= totalPages) return;
       currentPage += 1;
-      renderCurrentPage();
+      await reloadCurrentPage();
     });
   }
 
   sourceTypeSelect.addEventListener("change", async () => {
     const selected = sourceTypeSelect.value;
+    currentSourceType = selected;
+    currentPage = 1;
+    totalCount = 0;
+    currentRows = [];
 
     if (!selected) {
-      currentRows = [];
-      currentPage = 1;
       renderKokkaiHeader();
       renderMessageRow("データ種別を選択してください", 5);
       updatePager();
@@ -67,8 +72,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const p = sourceMap[selected];
     if (!p) {
-      currentRows = [];
-      currentPage = 1;
       renderKokkaiHeader();
       renderMessageRow("データ種別が不正です", 5);
       updatePager();
@@ -76,32 +79,35 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     if (selected !== "api_kokkai") {
-      currentRows = [];
-      currentPage = 1;
       renderKokkaiHeader();
       renderMessageRow("国会議事録を選択してください", 5);
       updatePager();
       return;
     }
 
-    try {
-      const rows = await fetchRowsBySourceType(selected);
+    await reloadCurrentPage();
+  });
 
-      currentRows = rows
+  async function reloadCurrentPage() {
+    try {
+      const offset = (currentPage - 1) * pageSize;
+      const data = await fetchRowsBySourceType(currentSourceType, pageSize, offset);
+
+      totalCount = Number(data.total_count || 0);
+      currentRows = (data.rows || [])
         .map(row => parseKokkaiRow(row))
         .filter(row => row !== null);
 
-      currentPage = 1;
       renderCurrentPage();
     } catch (e) {
       console.error(e);
       currentRows = [];
-      currentPage = 1;
+      totalCount = 0;
       renderKokkaiHeader();
       renderMessageRow(`読込失敗: ${e.message}`, 5);
       updatePager();
     }
-  });
+  }
 
   async function loadSourceMaster() {
     try {
@@ -144,14 +150,18 @@ document.addEventListener("DOMContentLoaded", async () => {
     sourceTypeSelect.innerHTML = html.join("");
   }
 
-  async function fetchRowsBySourceType(sourceType) {
+  async function fetchRowsBySourceType(sourceType, limit, offset) {
     const idToken = sessionStorage.getItem("idToken");
     if (!idToken) {
       throw new Error("idToken がありません");
     }
 
     const API_BASE = "https://ank-api-986862757498.asia-northeast1.run.app/v1";
-    const url = `${API_BASE}/row_data?source_type=${encodeURIComponent(sourceType)}`;
+    const url =
+      `${API_BASE}/row_data` +
+      `?source_type=${encodeURIComponent(sourceType)}` +
+      `&limit=${encodeURIComponent(limit)}` +
+      `&offset=${encodeURIComponent(offset)}`;
 
     const res = await fetch(url, {
       method: "GET",
@@ -165,17 +175,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       throw new Error(`HTTP ${res.status}: ${text}`);
     }
 
-    const data = await res.json();
-
-    if (Array.isArray(data)) {
-      return data;
-    }
-
-    if (Array.isArray(data.rows)) {
-      return data.rows;
-    }
-
-    return [];
+    return await res.json();
   }
 
   function parseKokkaiRow(row) {
@@ -189,7 +189,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         house: normalizeText(obj.nameOfHouse),
         meeting: normalizeText(obj.nameOfMeeting),
         speaker: normalizeText(obj.speaker),
-        speech: shortenText(normalizeText(obj.speech), 200)
+        speech: shortenText(normalizeText(obj.speech), 160)
       };
     } catch (e) {
       return null;
@@ -205,11 +205,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       return;
     }
 
-    const start = (currentPage - 1) * pageSize;
-    const end = start + pageSize;
-    const pageRows = currentRows.slice(start, end);
-
-    tableBody.innerHTML = pageRows.map(row => `
+    tableBody.innerHTML = currentRows.map(row => `
       <tr>
         <td>${escapeHtml(row.date)}</td>
         <td>${escapeHtml(row.house)}</td>
@@ -243,15 +239,16 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   function updatePager() {
-    const totalPages = Math.max(1, Math.ceil(currentRows.length / pageSize));
+    const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
     pageInfo.textContent = `${currentPage} / ${totalPages}`;
+    resultInfo.textContent = `${totalCount} 件`;
 
     if (prevPageBtn) {
       prevPageBtn.disabled = currentPage <= 1;
     }
 
     if (nextPageBtn) {
-      nextPageBtn.disabled = currentRows.length === 0 || currentPage >= totalPages;
+      nextPageBtn.disabled = totalCount === 0 || currentPage >= totalPages;
     }
   }
 
