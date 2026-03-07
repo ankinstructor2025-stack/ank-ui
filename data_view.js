@@ -11,6 +11,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   const pageInfo = document.getElementById("pageInfo");
   const resultInfo = document.getElementById("resultInfo");
 
+  const detailCard = document.getElementById("detailCard");
+  const detailMeta = document.getElementById("detailMeta");
+  const detailSpeech = document.getElementById("detailSpeech");
+
   let sourceList = [];
   let sourceMap = {};
 
@@ -63,6 +67,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     totalCount = 0;
     currentRows = [];
 
+    hideDetail();
+
     if (!selected) {
       renderKokkaiHeader();
       renderMessageRow("データ種別を選択してください", 5);
@@ -105,6 +111,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       totalCount = 0;
       renderKokkaiHeader();
       renderMessageRow(`読込失敗: ${e.message}`, 5);
+      hideDetail();
       updatePager();
     }
   }
@@ -189,7 +196,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         house: normalizeText(obj.nameOfHouse),
         meeting: normalizeText(obj.nameOfMeeting),
         speaker: normalizeText(obj.speaker),
-        speech: shortenText(normalizeText(obj.speech), 160)
+        speech: shortenText(normalizeText(obj.speech), 160),
+        speech_full: normalizeText(obj.speech),
       };
     } catch (e) {
       return null;
@@ -201,12 +209,13 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     if (!currentRows || currentRows.length === 0) {
       renderMessageRow("データがありません", 5);
+      hideDetail();
       updatePager();
       return;
     }
 
-    tableBody.innerHTML = currentRows.map(row => `
-      <tr>
+    tableBody.innerHTML = currentRows.map((row, index) => `
+      <tr class="kokkai-row" data-index="${index}">
         <td>${escapeHtml(row.date)}</td>
         <td>${escapeHtml(row.house)}</td>
         <td>${escapeHtml(row.meeting)}</td>
@@ -215,7 +224,41 @@ document.addEventListener("DOMContentLoaded", async () => {
       </tr>
     `).join("");
 
+    bindRowClickEvents();
+    hideDetail();
     updatePager();
+  }
+
+  function bindRowClickEvents() {
+    const rowEls = tableBody.querySelectorAll(".kokkai-row");
+
+    rowEls.forEach(rowEl => {
+      rowEl.addEventListener("click", () => {
+        const index = Number(rowEl.dataset.index);
+        const row = currentRows[index];
+        if (!row) return;
+
+        rowEls.forEach(el => {
+          el.classList.remove("selected");
+        });
+
+        rowEl.classList.add("selected");
+        showDetail(row);
+      });
+    });
+  }
+
+  function showDetail(row) {
+    detailCard.style.display = "block";
+    detailMeta.textContent =
+      `${row.date} / ${row.house} / ${row.meeting} / ${row.speaker}`;
+    detailSpeech.textContent = row.speech_full || "";
+  }
+
+  function hideDetail() {
+    detailCard.style.display = "none";
+    detailMeta.textContent = "行を選択してください";
+    detailSpeech.textContent = "";
   }
 
   function renderKokkaiHeader() {

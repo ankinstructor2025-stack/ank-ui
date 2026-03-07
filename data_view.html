@@ -66,6 +66,32 @@
       gap: 8px;
       flex-shrink: 0;
     }
+
+    .kokkai-row {
+      cursor: pointer;
+    }
+
+    .kokkai-row:hover {
+      background-color: rgba(255,255,255,0.04);
+    }
+
+    .kokkai-row.selected {
+      background-color: rgba(255,255,255,0.08);
+    }
+
+    .detail-card {
+      margin-top: 16px;
+    }
+
+    .detail-meta {
+      margin-bottom: 12px;
+    }
+
+    .detail-speech {
+      white-space: pre-wrap;
+      line-height: 1.7;
+      word-break: break-word;
+    }
   </style>
 </head>
 <body>
@@ -119,6 +145,17 @@
             </tr>
           </tbody>
         </table>
+      </div>
+
+      <div id="detailCard" class="card detail-card" style="display:none;">
+        <div class="page-header" style="margin-bottom:12px;">
+          <div>
+            <h3 style="margin:0;">発言詳細</h3>
+            <div class="subtitle detail-meta" id="detailMeta">行を選択してください</div>
+          </div>
+        </div>
+
+        <div id="detailSpeech" class="detail-speech"></div>
       </div>
 
     </div>
