@@ -60,6 +60,22 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
+  tableBody.addEventListener("click", (event) => {
+    const rowEl = event.target.closest(".kokkai-row");
+    if (!rowEl) return;
+
+    const index = Number(rowEl.dataset.index);
+    const row = currentRows[index];
+    if (!row) return;
+
+    tableBody.querySelectorAll(".kokkai-row").forEach(el => {
+      el.classList.remove("selected");
+    });
+
+    rowEl.classList.add("selected");
+    showDetail(row);
+  });
+
   sourceTypeSelect.addEventListener("change", async () => {
     const selected = sourceTypeSelect.value;
     currentSourceType = selected;
@@ -224,31 +240,16 @@ document.addEventListener("DOMContentLoaded", async () => {
       </tr>
     `).join("");
 
-    bindRowClickEvents();
     hideDetail();
     updatePager();
   }
 
-  function bindRowClickEvents() {
-    const rowEls = tableBody.querySelectorAll(".kokkai-row");
-
-    rowEls.forEach(rowEl => {
-      rowEl.addEventListener("click", () => {
-        const index = Number(rowEl.dataset.index);
-        const row = currentRows[index];
-        if (!row) return;
-
-        rowEls.forEach(el => {
-          el.classList.remove("selected");
-        });
-
-        rowEl.classList.add("selected");
-        showDetail(row);
-      });
-    });
-  }
-
   function showDetail(row) {
+    if (!detailCard || !detailMeta || !detailSpeech) {
+      console.error("detailCard / detailMeta / detailSpeech が見つかりません");
+      return;
+    }
+
     detailCard.style.display = "block";
     detailMeta.textContent =
       `${row.date} / ${row.house} / ${row.meeting} / ${row.speaker}`;
@@ -256,6 +257,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   function hideDetail() {
+    if (!detailCard || !detailMeta || !detailSpeech) return;
+
     detailCard.style.display = "none";
     detailMeta.textContent = "行を選択してください";
     detailSpeech.textContent = "";
