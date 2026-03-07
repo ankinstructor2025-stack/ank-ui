@@ -199,7 +199,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       return parseKokkaiRow(row);
     }
 
-    if (sourceType === "api_opendata") {
+    if (sourceType === "api_datago") {
       return parseOpendataRow(row);
     }
 
@@ -295,7 +295,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     if (currentSourceType === "api_kokkai") {
       renderKokkaiRows();
-    } else if (currentSourceType === "api_opendata") {
+    } else if (currentSourceType === "api_datago") {
       renderOpendataRows();
     } else {
       renderGenericRows();
@@ -387,7 +387,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       return;
     }
 
-    if (sourceType === "api_opendata") {
+    if (sourceType === "api_datago") {
       renderOpendataHeader();
       return;
     }
