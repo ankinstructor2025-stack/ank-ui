@@ -3,30 +3,53 @@
     "key": "api_kokkai",
     "label": "国会会議録API（国会議事録）",
     "group": "公開API",
-    "type": "public_api"
+    "type": "public_api",
+    "name": "国会会議録API（国会議事録）",
+    "templatePath": "template/kokkai.json",
+    "url": "https://ank-api-986862757498.asia-northeast1.run.app/v1/kokkai/fetch_and_register",
+    "method": "POST"
   },
   {
     "key": "api_datago",
     "label": "data.go.jp（政府オープンデータ）",
     "group": "公開API",
-    "type": "public_api"
+    "type": "public_api",
+    "name": "data.go.jp（政府オープンデータ）",
+    "templatePath": "template/opendata.json",
+    "url": "https://ank-api-986862757498.asia-northeast1.run.app/v1/opendata/fetch_and_register",
+    "method": "GET"
   },
   {
     "key": "url_egov",
     "label": "e-Gov（法令・制度ページ）",
     "group": "公開URL",
-    "type": "public_url"
+    "type": "public_url",
+    "name": "e-Gov（法令・制度ページ）",
+    "templatePath": "template/egov.json",
+    "targetUrl": "https://elaws.e-gov.go.jp/",
+    "mode": "html",
+    "hint": "法令検索 / 見出し",
+    "url": "https://ank-api-986862757498.asia-northeast1.run.app/v1/egov/fetch_and_register",
+    "method": "POST"
   },
   {
     "key": "url_caa",
     "label": "消費者庁（FAQページ）",
     "group": "公開URL",
-    "type": "public_url"
+    "type": "public_url",
+    "name": "消費者庁（FAQページ）",
+    "templatePath": "template/caa.json",
+    "targetUrl": "https://www.caa.go.jp/policies/policy/consumer_policy/",
+    "mode": "html",
+    "hint": "FAQ",
+    "url": "https://ank-api-986862757498.asia-northeast1.run.app/v1/caa/fetch_and_register",
+    "method": "POST"
   },
   {
     "key": "file_upload",
     "label": "ファイルアップロード（csv/txt/json）",
     "group": "ダウンロード",
-    "type": "file"
+    "type": "file",
+    "name": "ファイルアップロード（csv/txt/json）"
   }
 ]

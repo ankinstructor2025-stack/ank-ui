@@ -13,6 +13,9 @@ const btnRegister = document.getElementById("btnRegister");
 const btnLogout = document.getElementById("btnLogout");
 const btnMenu = document.getElementById("btnMenu");
 
+let sourceList = [];
+let sourceMap = {};
+
 function showOnly(kind) {
   commonFields.classList.remove("hidden");
   actions.classList.remove("hidden");
@@ -54,51 +57,6 @@ if (btnMenu) {
   });
 }
 
-const preset = {
-  api_kokkai: {
-    type: "public_api",
-    name: "国会会議録API（国会議事録）",
-    templatePath: "template/kokkai.json",
-    url: "https://ank-api-986862757498.asia-northeast1.run.app/v1/kokkai/fetch_and_register",
-    label: "国会議事録"
-  },
-
-  api_datago: {
-    type: "public_api",
-    name: "data.go.jp（政府オープンデータ）",
-    templatePath: "template/opendata.json",
-    url: "https://ank-api-986862757498.asia-northeast1.run.app/v1/opendata/fetch_and_register",
-    label: "data.go.jp"
-  },
-
-  url_egov: {
-    type: "public_url",
-    name: "e-Gov（法令・制度ページ）",
-    templatePath: "template/egov.json",
-    targetUrl: "https://elaws.e-gov.go.jp/",
-    mode: "html",
-    hint: "法令検索 / 見出し",
-    url: "https://ank-api-986862757498.asia-northeast1.run.app/v1/egov/fetch_and_register",
-    label: "e-Gov"
-  },
-
-  url_caa: {
-    type: "public_url",
-    name: "消費者庁（FAQページ）",
-    templatePath: "template/caa.json",
-    targetUrl: "https://www.caa.go.jp/policies/policy/consumer_policy/",
-    mode: "html",
-    hint: "FAQ",
-    url: "https://ank-api-986862757498.asia-northeast1.run.app/v1/caa/fetch_and_register",
-    label: "消費者庁"
-  },
-
-  file_upload: {
-    type: "file",
-    name: "ファイルアップロード（csv/txt/json）"
-  }
-};
-
 document.addEventListener("DOMContentLoaded", async () => {
   await loadSourceMaster();
 });
@@ -110,7 +68,9 @@ async function loadSourceMaster() {
       throw new Error(`HTTP ${res.status}`);
     }
 
-    const sourceList = await res.json();
+    sourceList = await res.json();
+    sourceMap = Object.fromEntries(sourceList.map(item => [item.key, item]));
+
     renderSourceOptions(sourceList);
   } catch (e) {
     console.error(e);
@@ -119,10 +79,10 @@ async function loadSourceMaster() {
   }
 }
 
-function renderSourceOptions(sourceList) {
+function renderSourceOptions(list) {
   const groups = {};
 
-  sourceList.forEach(item => {
+  list.forEach(item => {
     if (!groups[item.group]) {
       groups[item.group] = [];
     }
@@ -135,7 +95,7 @@ function renderSourceOptions(sourceList) {
     html.push(`<optgroup label="${escapeHtml(groupName)}">`);
     groups[groupName].forEach(item => {
       html.push(
-        `<option value="${escapeHtml(item.key)}">${escapeHtml(item.label)}</option>`
+        `<option value="${escapeHtml(item.key)}">${escapeHtml(item.label)}<\/option>`
       );
     });
     html.push(`</optgroup>`);
@@ -146,22 +106,15 @@ function renderSourceOptions(sourceList) {
 
 sourceSelect.addEventListener("change", () => {
   const key = sourceSelect.value;
-  const p = preset[key];
+  const p = sourceMap[key];
   if (!p) return;
 
-  document.getElementById("sourceName").value = p.name;
+  document.getElementById("sourceName").value = p.name ?? p.label ?? "";
 
   if (p.type === "public_api") {
     showOnly("api");
-
-    if (key === "api_kokkai" || key === "api_datago") {
-      document.getElementById("apiEndpoint").value = p.templatePath ?? "";
-      document.getElementById("apiParams").value = `params は ${p.templatePath ?? ""} を参照`;
-    } else {
-      document.getElementById("apiEndpoint").value = p.endpoint ?? "";
-      document.getElementById("apiParams").value =
-        JSON.stringify(p.params ?? {}, null, 2);
-    }
+    document.getElementById("apiEndpoint").value = p.templatePath ?? "";
+    document.getElementById("apiParams").value = `params は ${p.templatePath ?? ""} を参照`;
   }
 
   if (p.type === "public_url") {
@@ -184,7 +137,7 @@ if (!btnRegister) {
 } else {
   btnRegister.addEventListener("click", async () => {
     const key = sourceSelect.value;
-    const p = preset[key];
+    const p = sourceMap[key];
     const idToken = sessionStorage.getItem("idToken");
 
     writeLog(`key=${key}`);
@@ -192,14 +145,14 @@ if (!btnRegister) {
     writeLog(`idToken exists=${!!idToken}`);
 
     if (!key || !p) {
-      writeLog("取得テスト対象が選択されていません（preset がありません）");
+      writeLog("取得テスト対象が選択されていません");
       return;
     }
 
     switch (key) {
       case "api_kokkai": {
-        if (!p || !p.url) {
-          writeLog("取得テスト対象が選択されていません（preset.url がありません）");
+        if (!p.url) {
+          writeLog("取得テスト対象の url がありません");
           return;
         }
 
@@ -212,7 +165,7 @@ if (!btnRegister) {
 
         try {
           const res = await fetch(p.url, {
-            method: "POST",
+            method: p.method ?? "POST",
             headers: {
               "Content-Type": "application/json",
               Authorization: `Bearer ${idToken}`
@@ -236,8 +189,8 @@ if (!btnRegister) {
       }
 
       case "api_datago": {
-        if (!p || !p.url) {
-          writeLog("取得テスト対象が選択されていません（preset.url がありません）");
+        if (!p.url) {
+          writeLog("取得テスト対象の url がありません");
           return;
         }
 
@@ -250,7 +203,7 @@ if (!btnRegister) {
 
         try {
           const res = await fetch(p.url, {
-            method: "GET",
+            method: p.method ?? "GET",
             headers: {
               "Content-Type": "application/json",
               Authorization: `Bearer ${idToken}`
@@ -275,7 +228,7 @@ if (!btnRegister) {
 
       case "url_egov": {
         if (!p.url) {
-          writeLog("e-Gov は url が未設定です（/egov/fetch_and_register を設定してください）");
+          writeLog("e-Gov は url が未設定です");
           return;
         }
 
@@ -288,7 +241,7 @@ if (!btnRegister) {
 
         try {
           const res = await fetch(p.url, {
-            method: "POST",
+            method: p.method ?? "POST",
             headers: {
               "Content-Type": "application/json",
               Authorization: `Bearer ${idToken}`
@@ -314,7 +267,7 @@ if (!btnRegister) {
 
       case "url_caa": {
         if (!p.url) {
-          writeLog("消費者庁は url が未設定です（/caa/fetch_and_register を設定してください）");
+          writeLog("消費者庁は url が未設定です");
           return;
         }
 
@@ -327,7 +280,7 @@ if (!btnRegister) {
 
         try {
           const res = await fetch(p.url, {
-            method: "POST",
+            method: p.method ?? "POST",
             headers: {
               "Content-Type": "application/json",
               Authorization: `Bearer ${idToken}`
