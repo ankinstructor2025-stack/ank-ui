@@ -1,12 +1,5 @@
-// ===============================
-// data_source.js
-// ===============================
-
 console.log("data_source.js loaded");
 
-// -------------------------------
-// DOM取得
-// -------------------------------
 const sourceSelect = document.getElementById("sourceSelect");
 const commonFields = document.getElementById("commonFields");
 const formApi = document.getElementById("formApi");
@@ -19,7 +12,6 @@ const logText = document.getElementById("logText");
 const btnRegister = document.getElementById("btnRegister");
 const btnLogout = document.getElementById("btnLogout");
 
-// -------------------------------
 function showOnly(kind) {
   commonFields.classList.remove("hidden");
   actions.classList.remove("hidden");
@@ -33,29 +25,29 @@ function showOnly(kind) {
   if (kind === "file") formFile.classList.remove("hidden");
 }
 
-// -------------------------------
 function writeLog(msg) {
   logBox.classList.remove("hidden");
   const now = new Date().toISOString();
   logText.textContent += `[${now}] ${msg}\n`;
 }
 
-// -------------------------------
-// ログアウト（index.htmlへ遷移）
-// -------------------------------
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 if (btnLogout) {
   btnLogout.addEventListener("click", () => {
-    // 最小：idTokenだけ削除して index.html に戻す
     sessionStorage.removeItem("idToken");
     window.location.href = "index.html";
   });
 }
 
-// -------------------------------
-// プリセット（HTMLの option value とキーを一致させる）
-// -------------------------------
 const preset = {
-  // 公開API
   api_kokkai: {
     type: "public_api",
     name: "国会会議録API（国会議事録）",
@@ -72,7 +64,6 @@ const preset = {
     label: "data.go.jp"
   },
 
-  // 公開URL
   url_egov: {
     type: "public_url",
     name: "e-Gov（法令・制度ページ）",
@@ -95,14 +86,57 @@ const preset = {
     label: "消費者庁"
   },
 
-  // ダウンロード
   file_upload: {
     type: "file",
     name: "ファイルアップロード（csv/txt/json）"
   }
 };
 
-// -------------------------------
+document.addEventListener("DOMContentLoaded", async () => {
+  await loadSourceMaster();
+});
+
+async function loadSourceMaster() {
+  try {
+    const res = await fetch("./source_master.json");
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}`);
+    }
+
+    const sourceList = await res.json();
+    renderSourceOptions(sourceList);
+  } catch (e) {
+    console.error(e);
+    sourceSelect.innerHTML = `<option value="" selected disabled>データ種別読込失敗</option>`;
+    writeLog(`データ種別読込失敗: ${e.message}`);
+  }
+}
+
+function renderSourceOptions(sourceList) {
+  const groups = {};
+
+  sourceList.forEach(item => {
+    if (!groups[item.group]) {
+      groups[item.group] = [];
+    }
+    groups[item.group].push(item);
+  });
+
+  const html = [`<option value="" selected disabled>選択してください</option>`];
+
+  Object.keys(groups).forEach(groupName => {
+    html.push(`<optgroup label="${escapeHtml(groupName)}">`);
+    groups[groupName].forEach(item => {
+      html.push(
+        `<option value="${escapeHtml(item.key)}">${escapeHtml(item.label)}</option>`
+      );
+    });
+    html.push(`</optgroup>`);
+  });
+
+  sourceSelect.innerHTML = html.join("");
+}
+
 sourceSelect.addEventListener("change", () => {
   const key = sourceSelect.value;
   const p = preset[key];
@@ -113,7 +147,6 @@ sourceSelect.addEventListener("change", () => {
   if (p.type === "public_api") {
     showOnly("api");
 
-    // 国会議事録は template 管理
     if (key === "api_kokkai" || key === "api_datago") {
       document.getElementById("apiEndpoint").value = p.templatePath ?? "";
       document.getElementById("apiParams").value = `params は ${p.templatePath ?? ""} を参照`;
@@ -135,14 +168,10 @@ sourceSelect.addEventListener("change", () => {
     showOnly("file");
   }
 
-  // ログ初期化
   logText.textContent = "";
   logBox.classList.add("hidden");
 });
 
-// -------------------------------
-// （旧）取得テスト → （新）登録ボタンで実行
-// -------------------------------
 if (!btnRegister) {
   console.warn("btnRegister not found");
 } else {
@@ -161,9 +190,6 @@ if (!btnRegister) {
     }
 
     switch (key) {
-      // -------------------------------
-      // 国会議事録：現状動作を壊さない（あなたのコードそのまま）
-      // -------------------------------
       case "api_kokkai": {
         if (!p || !p.url) {
           writeLog("取得テスト対象が選択されていません（preset.url がありません）");
@@ -180,16 +206,21 @@ if (!btnRegister) {
         try {
           const res = await fetch(p.url, {
             method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${idToken}` }
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${idToken}`
+            }
           });
 
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
           const data = await res.json();
 
-          if (typeof data.count === "number") writeLog(`取得成功 件数=${data.count}`);
-          else writeLog(`取得成功（countなし）`);
-
+          if (typeof data.count === "number") {
+            writeLog(`取得成功 件数=${data.count}`);
+          } else {
+            writeLog("取得成功（countなし）");
+          }
         } catch (e) {
           console.error(e);
           writeLog(`取得失敗: ${e.message}`);
@@ -197,9 +228,6 @@ if (!btnRegister) {
         return;
       }
 
-      // -------------------------------
-      // data.go.jp（e-Gov CKAN）：添付 opendata_fetch.py の /opendata/fetch を叩く
-      // -------------------------------
       case "api_datago": {
         if (!p || !p.url) {
           writeLog("取得テスト対象が選択されていません（preset.url がありません）");
@@ -215,7 +243,7 @@ if (!btnRegister) {
 
         try {
           const res = await fetch(p.url, {
-            method: "GET", // ←APIがGETならGETのまま。POST化するならここをPOSTに
+            method: "GET",
             headers: {
               "Content-Type": "application/json",
               Authorization: `Bearer ${idToken}`
@@ -226,9 +254,11 @@ if (!btnRegister) {
 
           const data = await res.json();
 
-          if (typeof data.count === "number") writeLog(`取得成功 件数=${data.count}`);
-          else writeLog(`取得成功（countなし）`);
-
+          if (typeof data.count === "number") {
+            writeLog(`取得成功 件数=${data.count}`);
+          } else {
+            writeLog("取得成功（countなし）");
+          }
         } catch (e) {
           console.error(e);
           writeLog(`取得失敗: ${e.message}`);
@@ -236,9 +266,6 @@ if (!btnRegister) {
         return;
       }
 
-      // -------------------------------
-      // e-Gov：/egov/fetch を叩く
-      // -------------------------------
       case "url_egov": {
         if (!p.url) {
           writeLog("e-Gov は url が未設定です（/egov/fetch_and_register を設定してください）");
@@ -260,6 +287,7 @@ if (!btnRegister) {
               Authorization: `Bearer ${idToken}`
             }
           });
+
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           const data = await res.json();
 
@@ -270,7 +298,6 @@ if (!btnRegister) {
           if (data.file_id) {
             writeLog(`file_id=${data.file_id}`);
           }
-
         } catch (e) {
           console.error(e);
           writeLog(`登録失敗: ${e.message}`);
@@ -278,9 +305,6 @@ if (!btnRegister) {
         return;
       }
 
-      // -------------------------------
-      // 消費者庁 FAQ：/caa/fetch を叩く
-      // -------------------------------
       case "url_caa": {
         if (!p.url) {
           writeLog("消費者庁は url が未設定です（/caa/fetch_and_register を設定してください）");
@@ -302,6 +326,7 @@ if (!btnRegister) {
               Authorization: `Bearer ${idToken}`
             }
           });
+
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           const data = await res.json();
 
@@ -312,7 +337,6 @@ if (!btnRegister) {
           if (data.file_id) {
             writeLog(`file_id=${data.file_id}`);
           }
-
         } catch (e) {
           console.error(e);
           writeLog(`登録失敗: ${e.message}`);
@@ -320,9 +344,6 @@ if (!btnRegister) {
         return;
       }
 
-      // -------------------------------
-      // ファイルアップロード：upload_and_register → ingest_uploaded_file
-      // -------------------------------
       case "file_upload": {
         const input = document.getElementById("uploadFileInput");
 
@@ -333,7 +354,6 @@ if (!btnRegister) {
 
         const API_BASE = "https://ank-api-986862757498.asia-northeast1.run.app/v1";
 
-        const idToken = sessionStorage.getItem("idToken");
         if (!idToken) {
           writeLog("idToken がありません（ログインからやり直してください）");
           return;
@@ -347,7 +367,6 @@ if (!btnRegister) {
         formData.append("file", file);
 
         try {
-          // 1) upload_and_register
           const res = await fetch(`${API_BASE}/upload_and_register`, {
             method: "POST",
             headers: { Authorization: `Bearer ${idToken}` },
@@ -378,7 +397,6 @@ if (!btnRegister) {
           writeLog("アップロード成功");
           writeLog(`file_id=${data.file_id}`);
 
-          // 2) ingest_uploaded_file
           writeLog("row_data 取り込み開始");
 
           const res2 = await fetch(`${API_BASE}/ingest_uploaded_file/${data.file_id}`, {
@@ -409,7 +427,6 @@ if (!btnRegister) {
           }
 
           writeLog("完了");
-
         } catch (e) {
           console.error(e);
           writeLog(`アップロード/取り込み失敗: ${e.message}`);

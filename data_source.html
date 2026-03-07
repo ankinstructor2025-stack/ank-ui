@@ -10,10 +10,9 @@
   <div class="center-wrap">
     <div class="card">
 
-      <!-- ヘッダー -->
       <div style="display:flex; align-items:center; justify-content:space-between;">
         <h1 style="margin:0;">
-          データ取り込み（デモ）<span class="badge">7ソース固定</span>
+          データ取り込み（デモ）<span class="badge">ソース固定</span>
         </h1>
 
         <button class="btn" id="btnLogout" type="button">
@@ -23,31 +22,15 @@
 
       <label for="sourceSelect">データ取得元を選択</label>
       <select id="sourceSelect">
-        <option value="" selected disabled>選択してください</option>
-
-        <optgroup label="公開API">
-          <option value="api_kokkai">国会会議録API（国会議事録）</option>
-          <option value="api_datago">data.go.jp（政府オープンデータ）</option>
-        </optgroup>
-
-        <optgroup label="公開URL">
-          <option value="url_egov">e-Gov（法令・制度ページ）</option>
-          <option value="url_caa">消費者庁（FAQページ）</option>
-        </optgroup>
-
-        <optgroup label="ダウンロード">
-          <option value="file_upload">ファイルアップロード（csv/txt/json）</option>
-        </optgroup>
+        <option value="" selected disabled>読み込み中...</option>
       </select>
       <div class="subtitle">選択すると下の設定フォームが切り替わります（デモ）。</div>
 
-      <!-- 共通：名称 -->
       <div id="commonFields" class="hidden">
         <label for="sourceName">名称（表示名）</label>
         <input id="sourceName" placeholder="例）国会会議録（AI関連）" />
       </div>
 
-      <!-- APIフォーム -->
       <div id="formApi" class="hidden">
         <div class="row">
           <div>
@@ -60,7 +43,6 @@
         <textarea id="apiParams" placeholder='例）{"keyword":"AI","maximumRecords":200}'></textarea>
       </div>
 
-      <!-- URLフォーム -->
       <div id="formUrl" class="hidden">
         <label for="targetUrl">パラメータ</label>
         <input id="targetUrl" placeholder="https://..." />
@@ -75,19 +57,16 @@
         <input id="urlHint" placeholder="例）FAQ / 見出し / 章タイトル など" />
       </div>
 
-      <!-- ファイルフォーム -->
       <div id="formFile" class="hidden">
         <label for="fileInput">ファイル</label>
         <input id="uploadFileInput" type="file" accept=".csv,.txt,.json" />
         <div class="subtitle">PDF/画像は対象外（現方針）。</div>
       </div>
 
-      <!-- actions -->
       <div class="actions hidden" id="actions">
         <button class="btn btn-primary" id="btnRegister" type="button">登録</button>
       </div>
 
-      <!-- log -->
       <div class="log hidden" id="logBox">
         <pre id="logText"></pre>
       </div>

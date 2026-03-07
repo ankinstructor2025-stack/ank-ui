@@ -9,6 +9,10 @@
       margin-bottom: 16px;
     }
 
+    .filter-wrap {
+      margin: 16px 0 20px 0;
+    }
+
     .table-wrap {
       overflow-x: auto;
       margin-top: 16px;
@@ -45,6 +49,14 @@
       <div class="page-header">
         <h2>データ照会</h2>
         <div class="subtitle">row_data の一覧表示</div>
+      </div>
+
+      <div class="filter-wrap">
+        <label for="sourceTypeSelect">データ種別</label>
+        <select id="sourceTypeSelect">
+          <option value="">読み込み中...</option>
+        </select>
+        <div class="subtitle">選択したデータ種別で一覧を切り替えます</div>
       </div>
 
       <div class="table-wrap">
