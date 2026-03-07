@@ -42,7 +42,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   async function loadSourceTypes() {
     try {
-      const res = await fetch("./source_master.json");
+      const SOURCE_MASTER_URL = "https://storage.googleapis.com/ank-bucket/template/source_master.json";
+      const res = await fetch(SOURCE_MASTER_URL);
       if (!res.ok) {
         throw new Error(`HTTP ${res.status}`);
       }
