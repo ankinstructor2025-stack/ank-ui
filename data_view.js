@@ -3,9 +3,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   const tableBody = document.getElementById("data-table-body");
   const sourceTypeSelect = document.getElementById("sourceTypeSelect");
 
-  const SOURCE_MASTER_URL =
-    "https://storage.googleapis.com/ank-bucket/template/source_master.json";
-
   const items = [
     {
       row_index: 1,
@@ -37,8 +34,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     try {
 
-      const res = await fetch(SOURCE_MASTER_URL);
-
+      const res = await fetch("./source_master.json");
       if (!res.ok) {
         throw new Error(`HTTP ${res.status}`);
       }
