@@ -1,96 +1,74 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<title>データ取得</title>
-
-<link rel="stylesheet" href="./theme.css">
-
+  <meta charset="UTF-8">
+  <title>データ取得</title>
+  <link rel="stylesheet" href="./theme.css">
 </head>
 <body>
 
 <div class="page">
-
   <div class="card">
 
     <div class="header-row">
       <h2>データ取得</h2>
 
       <div class="header-actions">
-        <button id="btnMenu" class="btn">メニュー</button>
-        <button id="btnLogout" class="btn">ログアウト</button>
+        <button id="btnMenu" class="btn" type="button">メニュー</button>
+        <button id="btnLogout" class="btn" type="button">ログアウト</button>
       </div>
     </div>
 
-    <!-- 共通パネル -->
     <div class="common-panel">
-
       <div class="common-grid">
-
         <div>
-          <label>取得元</label>
+          <label for="sourceSelect">取得元</label>
           <select id="sourceSelect"></select>
         </div>
 
         <div>
-          <label>名称</label>
+          <label for="sourceName">名称</label>
           <input id="sourceName" readonly>
         </div>
-
       </div>
-
     </div>
 
-    <!-- 作業パネル -->
     <div class="work-panel">
 
-      <!-- 未選択 -->
       <div id="panelEmpty" class="placeholder">
         取得元を選択してください
       </div>
 
-      <!-- 国会議事録 -->
       <div id="panelKokkai" class="hidden">
-
         <h3 class="panel-title">国会議事録取得</h3>
-
         <div class="compact-actions">
-          <button id="btnKokkaiRegister" class="btn-primary">
+          <button id="btnKokkaiRegister" class="btn btn-primary" type="button">
             国会議事録取得
           </button>
         </div>
-
       </div>
 
-      <!-- ファイル -->
       <div id="panelUpload" class="hidden">
-
         <h3 class="panel-title">ファイルアップロード</h3>
 
         <div class="section-block">
-
-          <label>ファイル</label>
+          <label for="uploadFileInput">ファイル</label>
           <input id="uploadFileInput" type="file">
 
           <div class="compact-actions">
-            <button id="btnUploadRegister" class="btn-primary">
+            <button id="btnUploadRegister" class="btn btn-primary" type="button">
               アップロード
             </button>
           </div>
-
         </div>
-
       </div>
 
-      <!-- オープンデータ -->
       <div id="panelOpenData" class="hidden">
-
         <h3 class="panel-title">オープンデータ取得</h3>
 
         <div class="section-block">
-
           <div class="compact-actions">
-            <button id="btnFetchDatasets" class="btn-primary">
+            <button id="btnFetchDatasets" class="btn btn-primary" type="button">
               データセット取得
             </button>
           </div>
@@ -100,17 +78,13 @@
               まだ取得していません
             </div>
           </div>
-
         </div>
 
         <div class="section-block">
-
-          <div class="selected-box" id="openDataSelectedDataset">
-            未選択
-          </div>
+          <div class="selected-box" id="openDataSelectedDataset">未選択</div>
 
           <div class="compact-actions">
-            <button id="btnFetchResources" class="btn">
+            <button id="btnFetchResources" class="btn" type="button">
               データセット分解
             </button>
           </div>
@@ -120,41 +94,30 @@
               まだ分解していません
             </div>
           </div>
-
         </div>
 
         <div class="section-block">
-
-          <div class="selected-box" id="openDataSelectedResource">
-            未選択
-          </div>
+          <div class="selected-box" id="openDataSelectedResource">未選択</div>
 
           <div class="compact-actions">
-            <button id="btnRegisterResource" class="btn-primary">
+            <button id="btnRegisterResource" class="btn btn-primary" type="button">
               データ登録
             </button>
           </div>
-
         </div>
-
       </div>
 
     </div>
 
-    <!-- ログ -->
-    <div class="log">
-
+    <div class="log" id="logBox">
       <div class="log-head">
         <strong>ログ</strong>
-        <button id="btnClearLog" class="btn">クリア</button>
+        <button id="btnClearLog" class="btn" type="button">クリア</button>
       </div>
-
       <pre id="logText"></pre>
-
     </div>
 
   </div>
-
 </div>
 
 <script src="./data_source_upload.js"></script>
