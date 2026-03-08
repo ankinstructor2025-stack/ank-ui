@@ -1,29 +1,12 @@
 console.log("data_source_opendata.js loaded");
 
 (function () {
-  async function readErrorText(res) {
-    try {
-      const text = await res.text();
-      return text || `HTTP ${res.status}`;
-    } catch {
-      return `HTTP ${res.status}`;
-    }
-  }
-
   function getDatasetListEl() {
     return document.getElementById("openDataDatasetList");
   }
 
-  function getSelectedDatasetEl() {
-    return document.getElementById("openDataSelectedDataset");
-  }
-
   function getResourceListEl() {
     return document.getElementById("openDataResourceList");
-  }
-
-  function getSelectedResourceEl() {
-    return document.getElementById("openDataSelectedResource");
   }
 
   function escapeHtml(value) {
@@ -35,165 +18,146 @@ console.log("data_source_opendata.js loaded");
       .replace(/'/g, "&#39;");
   }
 
-  function clearResources() {
-    const resourceList = getResourceListEl();
-    const selectedResource = getSelectedResourceEl();
+  async function readErrorText(res) {
+    try {
+      const text = await res.text();
+      return text || `HTTP ${res.status}`;
+    } catch {
+      return `HTTP ${res.status}`;
+    }
+  }
 
+  function resetOpenDataArea() {
+    const datasetList = getDatasetListEl();
+    const resourceList = getResourceListEl();
+
+    if (datasetList) {
+      datasetList.innerHTML = `<div class="placeholder">まだ取得していません</div>`;
+    }
     if (resourceList) {
       resourceList.innerHTML = `<div class="placeholder">まだ分解していません</div>`;
     }
-
-    if (selectedResource) {
-      selectedResource.textContent = "未選択";
-      selectedResource.dataset.resourceId = "";
-      selectedResource.dataset.resourceName = "";
-    }
   }
 
-  function setSelectedDataset(dataset) {
-    const el = getSelectedDatasetEl();
-    if (!el) return;
-
-    if (!dataset) {
-      el.textContent = "未選択";
-      el.dataset.datasetId = "";
-      el.dataset.datasetTitle = "";
-      clearResources();
-      return;
-    }
-
-    el.textContent = `${dataset.title} (${dataset.dataset_id})`;
-    el.dataset.datasetId = dataset.dataset_id;
-    el.dataset.datasetTitle = dataset.title;
-    clearResources();
-  }
-
-  function setSelectedResource(resource) {
-    const el = getSelectedResourceEl();
-    if (!el) return;
-
-    if (!resource) {
-      el.textContent = "未選択";
-      el.dataset.resourceId = "";
-      el.dataset.resourceName = "";
-      return;
-    }
-
-    el.textContent = `${resource.resource_name} (${resource.resource_id})`;
-    el.dataset.resourceId = resource.resource_id;
-    el.dataset.resourceName = resource.resource_name;
-  }
-
-  function renderDatasets(items, writeLog) {
+  function renderDatasets(items, handlers, writeLog) {
     const wrap = getDatasetListEl();
     if (!wrap) return;
 
     if (!Array.isArray(items) || items.length === 0) {
       wrap.innerHTML = `<div class="placeholder">データセットがありません</div>`;
-      setSelectedDataset(null);
       return;
     }
 
     wrap.innerHTML = items.map((item, idx) => {
       return `
-        <label class="choice-item">
-          <input
-            type="radio"
-            name="opendataDataset"
-            value="${escapeHtml(item.dataset_id)}"
-            data-dataset-id="${escapeHtml(item.dataset_id)}"
-            data-title="${escapeHtml(item.title)}"
-            ${idx === 0 ? "checked" : ""}
-          />
-          <span class="choice-main">
-            <span class="choice-title">${escapeHtml(item.title)}</span>
-            <span class="choice-meta">
+        <div class="choice-item">
+          <div class="choice-main">
+            <div class="choice-title">${escapeHtml(item.title)}</div>
+            <div class="choice-meta">
               dataset_id: ${escapeHtml(item.dataset_id)}<br>
               resources: ${escapeHtml(item.resource_count)}
-            </span>
-          </span>
-        </label>
+            </div>
+          </div>
+          <div class="choice-actions">
+            <button
+              type="button"
+              class="btn btn-primary btn-dataset-expand"
+              data-dataset-id="${escapeHtml(item.dataset_id)}"
+              data-dataset-title="${escapeHtml(item.title)}"
+            >
+              分解
+            </button>
+          </div>
+        </div>
       `;
     }).join("");
 
-    const radios = wrap.querySelectorAll('input[name="opendataDataset"]');
-    radios.forEach((radio) => {
-      radio.addEventListener("change", () => {
-        setSelectedDataset({
-          dataset_id: radio.dataset.datasetId,
-          title: radio.dataset.title
-        });
-        writeLog(`dataset 選択: ${radio.dataset.title}`);
+    const buttons = wrap.querySelectorAll(".btn-dataset-expand");
+    buttons.forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const datasetId = btn.dataset.datasetId;
+        const datasetTitle = btn.dataset.datasetTitle;
+        writeLog(`dataset 分解開始: ${datasetTitle}`);
+
+        try {
+          await handlers.onExpandDataset(datasetId, datasetTitle);
+        } catch (e) {
+          console.error(e);
+          writeLog(`dataset 分解失敗: ${e.message}`);
+        }
       });
     });
-
-    const first = radios[0];
-    if (first) {
-      setSelectedDataset({
-        dataset_id: first.dataset.datasetId,
-        title: first.dataset.title
-      });
-      writeLog(`dataset 初期選択: ${first.dataset.title}`);
-    }
   }
 
-  function renderResources(items, writeLog) {
+  function renderResources(items, datasetId, datasetTitle, handlers, writeLog) {
     const wrap = getResourceListEl();
     if (!wrap) return;
 
     if (!Array.isArray(items) || items.length === 0) {
       wrap.innerHTML = `<div class="placeholder">resource がありません</div>`;
-      setSelectedResource(null);
       return;
     }
 
-    wrap.innerHTML = items.map((item, idx) => {
-      const allowedText = item.allowed ? "対象" : "対象外";
+    wrap.innerHTML = items.map((item) => {
+      const allowed = !!item.allowed;
       return `
-        <label class="choice-item">
-          <input
-            type="radio"
-            name="opendataResource"
-            value="${escapeHtml(item.resource_id)}"
-            data-resource-id="${escapeHtml(item.resource_id)}"
-            data-resource-name="${escapeHtml(item.resource_name)}"
-            ${idx === 0 ? "checked" : ""}
-          />
-          <span class="choice-main">
-            <span class="choice-title">${escapeHtml(item.resource_name)}</span>
-            <span class="choice-meta">
+        <div class="choice-item">
+          <div class="choice-main">
+            <div class="choice-title">${escapeHtml(item.resource_name)}</div>
+            <div class="choice-meta">
               resource_id: ${escapeHtml(item.resource_id)}<br>
               format: ${escapeHtml(item.format || "-")} /
               kind: ${escapeHtml(item.kind || "-")} /
-              ${escapeHtml(allowedText)}
-            </span>
-          </span>
-        </label>
+              ${allowed ? "対象" : "対象外"}
+            </div>
+          </div>
+          <div class="choice-actions">
+            ${
+              allowed
+                ? `
+                <button
+                  type="button"
+                  class="btn btn-primary btn-resource-register"
+                  data-dataset-id="${escapeHtml(datasetId)}"
+                  data-dataset-title="${escapeHtml(datasetTitle)}"
+                  data-resource-id="${escapeHtml(item.resource_id)}"
+                  data-resource-name="${escapeHtml(item.resource_name)}"
+                >
+                  登録
+                </button>
+                `
+                : `
+                <button type="button" class="btn" disabled>
+                  対象外
+                </button>
+                `
+            }
+          </div>
+        </div>
       `;
     }).join("");
 
-    const radios = wrap.querySelectorAll('input[name="opendataResource"]');
-    radios.forEach((radio) => {
-      radio.addEventListener("change", () => {
-        setSelectedResource({
-          resource_id: radio.dataset.resourceId,
-          resource_name: radio.dataset.resourceName
-        });
-        writeLog(`resource 選択: ${radio.dataset.resourceName}`);
+    const buttons = wrap.querySelectorAll(".btn-resource-register");
+    buttons.forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const datasetId = btn.dataset.datasetId;
+        const datasetTitle = btn.dataset.datasetTitle;
+        const resourceId = btn.dataset.resourceId;
+        const resourceName = btn.dataset.resourceName;
+
+        writeLog(`resource 登録開始: ${datasetTitle} / ${resourceName}`);
+
+        try {
+          await handlers.onRegisterResource(datasetId, resourceId, resourceName);
+        } catch (e) {
+          console.error(e);
+          writeLog(`resource 登録失敗: ${e.message}`);
+        }
       });
     });
-
-    const first = radios[0];
-    if (first) {
-      setSelectedResource({
-        resource_id: first.dataset.resourceId,
-        resource_name: first.dataset.resourceName
-      });
-      writeLog(`resource 初期選択: ${first.dataset.resourceName}`);
-    }
   }
 
-  async function fetchDatasets({ apiBase, idToken, writeLog }) {
+  async function fetchDatasets({ apiBase, idToken, writeLog, onRender }) {
     const res = await fetch(`${apiBase}/opendata/fetch_datasets`, {
       method: "POST",
       headers: {
@@ -207,9 +171,12 @@ console.log("data_source_opendata.js loaded");
     }
 
     const data = await res.json();
-    renderDatasets(data.datasets || [], writeLog);
-
     writeLog(`データセット取得完了: ${data.dataset_count ?? 0}件`);
+
+    if (typeof onRender === "function") {
+      onRender(data.datasets || []);
+    }
+
     return data;
   }
 
@@ -229,8 +196,6 @@ console.log("data_source_opendata.js loaded");
     }
 
     const data = await res.json();
-    renderResources(data.resources || [], writeLog);
-
     writeLog(`resource 取得完了: ${data.resource_count ?? 0}件`);
     return data;
   }
@@ -271,11 +236,11 @@ console.log("data_source_opendata.js loaded");
   }
 
   window.DataSourceOpenData = {
+    resetOpenDataArea,
+    renderDatasets,
+    renderResources,
     fetchDatasets,
     fetchResources,
-    registerResource,
-    setSelectedDataset,
-    setSelectedResource,
-    clearResources
+    registerResource
   };
 })();

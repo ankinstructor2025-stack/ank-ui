@@ -19,10 +19,7 @@ const btnClearLog = document.getElementById("btnClearLog");
 
 const btnKokkaiRegister = document.getElementById("btnKokkaiRegister");
 const btnUploadRegister = document.getElementById("btnUploadRegister");
-
 const btnFetchDatasets = document.getElementById("btnFetchDatasets");
-const btnFetchResources = document.getElementById("btnFetchResources");
-const btnRegisterResource = document.getElementById("btnRegisterResource");
 
 const API_BASE = "https://ank-api-986862757498.asia-northeast1.run.app/v1";
 
@@ -134,30 +131,6 @@ function renderSourceOptions(list) {
   sourceSelect.innerHTML = html.join("");
 }
 
-function resetOpenDataArea() {
-  const datasetList = document.getElementById("openDataDatasetList");
-  const selectedDataset = document.getElementById("openDataSelectedDataset");
-  const resourceList = document.getElementById("openDataResourceList");
-  const selectedResource = document.getElementById("openDataSelectedResource");
-
-  if (datasetList) {
-    datasetList.innerHTML = `<div class="placeholder">まだ取得していません</div>`;
-  }
-  if (selectedDataset) {
-    selectedDataset.textContent = "未選択";
-    selectedDataset.dataset.datasetId = "";
-    selectedDataset.dataset.datasetTitle = "";
-  }
-  if (resourceList) {
-    resourceList.innerHTML = `<div class="placeholder">まだ分解していません</div>`;
-  }
-  if (selectedResource) {
-    selectedResource.textContent = "未選択";
-    selectedResource.dataset.resourceId = "";
-    selectedResource.dataset.resourceName = "";
-  }
-}
-
 function applySelection(key) {
   const p = sourceMap[key];
   if (!p) {
@@ -170,8 +143,8 @@ function applySelection(key) {
     sourceName.value = p.name ?? p.label ?? "";
   }
 
-  if (key === "api_datago") {
-    resetOpenDataArea();
+  if (key === "api_datago" && window.DataSourceOpenData) {
+    window.DataSourceOpenData.resetOpenDataArea();
   }
 
   showPanelByKey(key);
@@ -284,7 +257,7 @@ if (btnFetchDatasets) {
     const idToken = requireIdToken();
     if (!idToken) return;
 
-    if (!window.DataSourceOpenData || typeof window.DataSourceOpenData.fetchDatasets !== "function") {
+    if (!window.DataSourceOpenData) {
       writeLog("data_source_opendata.js が読み込まれていません");
       return;
     }
@@ -293,84 +266,41 @@ if (btnFetchDatasets) {
       await window.DataSourceOpenData.fetchDatasets({
         apiBase: API_BASE,
         idToken,
-        writeLog
-      });
-    } catch (e) {
-      console.error(e);
-      writeLog(`処理失敗: ${e.message}`);
-    }
-  });
-}
+        writeLog,
+        onRender: (datasets) => {
+          window.DataSourceOpenData.renderDatasets(
+            datasets,
+            {
+              onExpandDataset: async (datasetId, datasetTitle) => {
+                const data = await window.DataSourceOpenData.fetchResources({
+                  apiBase: API_BASE,
+                  idToken,
+                  datasetId,
+                  writeLog
+                });
 
-if (btnFetchResources) {
-  btnFetchResources.addEventListener("click", async () => {
-    writeLog("データセット分解ボタン押下");
-
-    const idToken = requireIdToken();
-    if (!idToken) return;
-
-    const selectedDataset = document.getElementById("openDataSelectedDataset");
-    const datasetId = selectedDataset?.dataset?.datasetId || "";
-
-    if (!datasetId) {
-      writeLog("データセットが未選択です");
-      return;
-    }
-
-    if (!window.DataSourceOpenData || typeof window.DataSourceOpenData.fetchResources !== "function") {
-      writeLog("data_source_opendata.js が読み込まれていません");
-      return;
-    }
-
-    try {
-      await window.DataSourceOpenData.fetchResources({
-        apiBase: API_BASE,
-        idToken,
-        datasetId,
-        writeLog
-      });
-    } catch (e) {
-      console.error(e);
-      writeLog(`処理失敗: ${e.message}`);
-    }
-  });
-}
-
-if (btnRegisterResource) {
-  btnRegisterResource.addEventListener("click", async () => {
-    writeLog("データ登録ボタン押下");
-
-    const idToken = requireIdToken();
-    if (!idToken) return;
-
-    const selectedDataset = document.getElementById("openDataSelectedDataset");
-    const selectedResource = document.getElementById("openDataSelectedResource");
-
-    const datasetId = selectedDataset?.dataset?.datasetId || "";
-    const resourceId = selectedResource?.dataset?.resourceId || "";
-
-    if (!datasetId) {
-      writeLog("データセットが未選択です");
-      return;
-    }
-
-    if (!resourceId) {
-      writeLog("resource が未選択です");
-      return;
-    }
-
-    if (!window.DataSourceOpenData || typeof window.DataSourceOpenData.registerResource !== "function") {
-      writeLog("data_source_opendata.js が読み込まれていません");
-      return;
-    }
-
-    try {
-      await window.DataSourceOpenData.registerResource({
-        apiBase: API_BASE,
-        idToken,
-        datasetId,
-        resourceId,
-        writeLog
+                window.DataSourceOpenData.renderResources(
+                  data.resources || [],
+                  datasetId,
+                  datasetTitle,
+                  {
+                    onRegisterResource: async (datasetId2, resourceId, resourceName) => {
+                      await window.DataSourceOpenData.registerResource({
+                        apiBase: API_BASE,
+                        idToken,
+                        datasetId: datasetId2,
+                        resourceId,
+                        writeLog
+                      });
+                    }
+                  },
+                  writeLog
+                );
+              }
+            },
+            writeLog
+          );
+        }
       });
     } catch (e) {
       console.error(e);
