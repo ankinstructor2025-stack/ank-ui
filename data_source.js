@@ -284,7 +284,7 @@ if (btnFetchDatasets) {
                   datasetId,
                   datasetTitle,
                   {
-                    onRegisterResource: async (datasetId2, resourceId, resourceName) => {
+                    onRegisterResource: async (datasetId2, resourceId) => {
                       await window.DataSourceOpenData.registerResource({
                         apiBase: API_BASE,
                         idToken,
@@ -308,9 +308,3 @@ if (btnFetchDatasets) {
     }
   });
 }
-
-document.addEventListener("DOMContentLoaded", async () => {
-  hideAllPanels();
-  if (panelEmpty) panelEmpty.classList.remove("hidden");
-  await loadSourceMaster();
-});

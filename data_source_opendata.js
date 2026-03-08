@@ -48,7 +48,7 @@ console.log("data_source_opendata.js loaded");
       return;
     }
 
-    wrap.innerHTML = items.map((item, idx) => {
+    wrap.innerHTML = items.map((item) => {
       return `
         <div class="choice-item">
           <div class="choice-main">
@@ -140,15 +140,14 @@ console.log("data_source_opendata.js loaded");
     const buttons = wrap.querySelectorAll(".btn-resource-register");
     buttons.forEach((btn) => {
       btn.addEventListener("click", async () => {
-        const datasetId = btn.dataset.datasetId;
-        const datasetTitle = btn.dataset.datasetTitle;
+        const datasetId2 = btn.dataset.datasetId;
         const resourceId = btn.dataset.resourceId;
         const resourceName = btn.dataset.resourceName;
 
-        writeLog(`resource 登録開始: ${datasetTitle} / ${resourceName}`);
+        writeLog(`resource 登録開始: ${resourceName}`);
 
         try {
-          await handlers.onRegisterResource(datasetId, resourceId, resourceName);
+          await handlers.onRegisterResource(datasetId2, resourceId, resourceName);
         } catch (e) {
           console.error(e);
           writeLog(`resource 登録失敗: ${e.message}`);
