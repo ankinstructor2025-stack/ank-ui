@@ -308,3 +308,9 @@ if (btnFetchDatasets) {
     }
   });
 }
+
+document.addEventListener("DOMContentLoaded", async () => {
+  hideAllPanels();
+  if (panelEmpty) panelEmpty.classList.remove("hidden");
+  await loadSourceMaster();
+});
