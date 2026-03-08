@@ -31,14 +31,7 @@ console.log("data_source_opendata.js loaded");
     }
   }
 
-  /*
-  --------------------------------------
-  dataset 一覧表示
-  --------------------------------------
-  */
-
   function renderDatasets(items, handlers, writeLog) {
-
     const wrap = getDatasetListEl();
     if (!wrap) return;
 
@@ -47,31 +40,27 @@ console.log("data_source_opendata.js loaded");
       return;
     }
 
-    wrap.innerHTML = items.map(item => {
-
+    wrap.innerHTML = items.map((item) => {
       const status = item.status || "new";
       const done = status === "done";
+      const ext = item.ext || "-";
+      const rowCount = item.row_count ?? "-";
 
       return `
         <div class="choice-item">
-
           <div class="choice-main">
-            <div class="choice-title">
-              ${escapeHtml(item.title)}
-            </div>
-
+            <div class="choice-title">${escapeHtml(item.title)}</div>
             <div class="choice-meta">
               dataset_id: ${escapeHtml(item.dataset_id)}<br>
+              ext: ${escapeHtml(ext)}<br>
               status: ${escapeHtml(status)}<br>
-              rows: ${escapeHtml(item.row_count ?? "-")}
+              rows: ${escapeHtml(rowCount)}
             </div>
           </div>
-
           <div class="choice-actions">
-
             ${
               done
-                ? `<button class="btn" disabled>分解済</button>`
+                ? `<button type="button" class="btn" disabled>分解済</button>`
                 : `
                   <button
                     type="button"
@@ -83,50 +72,29 @@ console.log("data_source_opendata.js loaded");
                   </button>
                 `
             }
-
           </div>
-
         </div>
       `;
-
     }).join("");
 
     const buttons = wrap.querySelectorAll(".btn-dataset-expand");
-
-    buttons.forEach(btn => {
-
+    buttons.forEach((btn) => {
       btn.addEventListener("click", async () => {
-
         const datasetId = btn.dataset.datasetId;
         const datasetTitle = btn.dataset.datasetTitle;
-
         writeLog(`dataset 分解開始: ${datasetTitle}`);
 
         try {
-
           await handlers.onExpandDataset(datasetId, datasetTitle);
-
         } catch (e) {
-
           console.error(e);
           writeLog(`dataset 分解失敗: ${e.message}`);
-
         }
-
       });
-
     });
-
   }
 
-  /*
-  --------------------------------------
-  dataset取得
-  --------------------------------------
-  */
-
   async function fetchDatasets({ apiBase, idToken, writeLog, onRender }) {
-
     const res = await fetch(`${apiBase}/opendata/fetch_datasets`, {
       method: "POST",
       headers: {
@@ -135,14 +103,11 @@ console.log("data_source_opendata.js loaded");
     });
 
     if (!res.ok) {
-
       const text = await readErrorText(res);
       throw new Error(`データセット取得失敗: ${text}`);
-
     }
 
     const data = await res.json();
-
     writeLog(`データセット取得完了: ${data.dataset_count ?? 0}件`);
 
     if (typeof onRender === "function") {
@@ -150,17 +115,9 @@ console.log("data_source_opendata.js loaded");
     }
 
     return data;
-
   }
 
-  /*
-  --------------------------------------
-  dataset 分解
-  --------------------------------------
-  */
-
   async function expandDataset({ apiBase, idToken, datasetId, writeLog }) {
-
     const url =
       `${apiBase}/opendata/expand_dataset` +
       `?dataset_id=${encodeURIComponent(datasetId)}`;
@@ -173,28 +130,25 @@ console.log("data_source_opendata.js loaded");
     });
 
     if (!res.ok) {
-
       const text = await readErrorText(res);
       throw new Error(`dataset 分解失敗: ${text}`);
-
     }
 
     const data = await res.json();
 
-    writeLog(`row_data 登録完了`);
-    writeLog(`row_inserted=${data.row_inserted}`);
+    writeLog("dataset 分解完了");
+    if (data.source_id) writeLog(`source_id=${data.source_id}`);
+    if (data.ext) writeLog(`ext=${data.ext}`);
+    if (typeof data.row_inserted === "number") writeLog(`row_inserted=${data.row_inserted}`);
+    if (typeof data.row_skipped === "number") writeLog(`row_skipped=${data.row_skipped}`);
 
     return data;
-
   }
 
   window.DataSourceOpenData = {
-
     resetOpenDataArea,
     renderDatasets,
     fetchDatasets,
     expandDataset
-
   };
-
 })();
