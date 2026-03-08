@@ -20,6 +20,10 @@ const btnClearLog = document.getElementById("btnClearLog");
 const btnKokkaiRegister = document.getElementById("btnKokkaiRegister");
 const btnUploadRegister = document.getElementById("btnUploadRegister");
 
+const btnFetchDatasets = document.getElementById("btnFetchDatasets");
+const btnFetchResources = document.getElementById("btnFetchResources");
+const btnRegisterResource = document.getElementById("btnRegisterResource");
+
 const API_BASE = "https://ank-api-986862757498.asia-northeast1.run.app/v1";
 
 let sourceList = [];
@@ -106,23 +110,12 @@ function requireIdToken() {
   return idToken;
 }
 
-async function readErrorText(res) {
-  try {
-    const text = await res.text();
-    return text || `HTTP ${res.status}`;
-  } catch {
-    return `HTTP ${res.status}`;
-  }
-}
-
 function renderSourceOptions(list) {
   const groups = {};
 
   list.forEach((item) => {
     const groupName = item.group || "その他";
-    if (!groups[groupName]) {
-      groups[groupName] = [];
-    }
+    if (!groups[groupName]) groups[groupName] = [];
     groups[groupName].push(item);
   });
 
@@ -141,6 +134,30 @@ function renderSourceOptions(list) {
   sourceSelect.innerHTML = html.join("");
 }
 
+function resetOpenDataArea() {
+  const datasetList = document.getElementById("openDataDatasetList");
+  const selectedDataset = document.getElementById("openDataSelectedDataset");
+  const resourceList = document.getElementById("openDataResourceList");
+  const selectedResource = document.getElementById("openDataSelectedResource");
+
+  if (datasetList) {
+    datasetList.innerHTML = `<div class="placeholder">まだ取得していません</div>`;
+  }
+  if (selectedDataset) {
+    selectedDataset.textContent = "未選択";
+    selectedDataset.dataset.datasetId = "";
+    selectedDataset.dataset.datasetTitle = "";
+  }
+  if (resourceList) {
+    resourceList.innerHTML = `<div class="placeholder">まだ分解していません</div>`;
+  }
+  if (selectedResource) {
+    selectedResource.textContent = "未選択";
+    selectedResource.dataset.resourceId = "";
+    selectedResource.dataset.resourceName = "";
+  }
+}
+
 function applySelection(key) {
   const p = sourceMap[key];
   if (!p) {
@@ -153,25 +170,8 @@ function applySelection(key) {
     sourceName.value = p.name ?? p.label ?? "";
   }
 
-  const apiEndpoint = document.getElementById("apiEndpoint");
-  const apiParams = document.getElementById("apiParams");
-  const targetUrl = document.getElementById("targetUrl");
-  const urlMode = document.getElementById("urlMode");
-  const urlHint = document.getElementById("urlHint");
-
   if (key === "api_datago") {
     resetOpenDataArea();
-  }
-
-  if (p.type === "public_api") {
-    if (apiEndpoint) apiEndpoint.value = p.templatePath ?? "";
-    if (apiParams) apiParams.value = `params は ${p.templatePath ?? ""} を参照`;
-  }
-
-  if (p.type === "public_url") {
-    if (targetUrl) targetUrl.value = p.templatePath ?? "";
-    if (urlMode) urlMode.value = p.mode ?? "html";
-    if (urlHint) urlHint.value = p.hint ?? "";
   }
 
   showPanelByKey(key);
@@ -193,28 +193,6 @@ async function loadSourceMaster() {
       sourceSelect.innerHTML = `<option value="" selected disabled>データ種別読込失敗</option>`;
     }
     writeLog(`データ種別読込失敗: ${e.message}`);
-  }
-}
-
-function resetOpenDataArea() {
-  const datasetList = document.getElementById("openDataDatasetList");
-  const selectedDataset = document.getElementById("openDataSelectedDataset");
-  const resourceList = document.getElementById("openDataResourceList");
-  const selectedResource = document.getElementById("openDataSelectedResource");
-
-  if (datasetList) {
-    datasetList.innerHTML = `<div class="subtitle">まだ取得していません。</div>`;
-  }
-  if (selectedDataset) {
-    selectedDataset.textContent = "未選択";
-    selectedDataset.dataset.datasetId = "";
-  }
-  if (resourceList) {
-    resourceList.innerHTML = `<div class="subtitle">まだ分解していません。</div>`;
-  }
-  if (selectedResource) {
-    selectedResource.textContent = "未選択";
-    selectedResource.dataset.resourceId = "";
   }
 }
 
@@ -276,6 +254,8 @@ if (btnKokkaiRegister) {
 
 if (btnUploadRegister) {
   btnUploadRegister.addEventListener("click", async () => {
+    writeLog("アップロードボタン押下");
+
     const idToken = requireIdToken();
     if (!idToken) return;
 
@@ -288,6 +268,108 @@ if (btnUploadRegister) {
       await window.DataSourceUpload.run({
         apiBase: API_BASE,
         idToken,
+        writeLog
+      });
+    } catch (e) {
+      console.error(e);
+      writeLog(`処理失敗: ${e.message}`);
+    }
+  });
+}
+
+if (btnFetchDatasets) {
+  btnFetchDatasets.addEventListener("click", async () => {
+    writeLog("データセット取得ボタン押下");
+
+    const idToken = requireIdToken();
+    if (!idToken) return;
+
+    if (!window.DataSourceOpenData || typeof window.DataSourceOpenData.fetchDatasets !== "function") {
+      writeLog("data_source_opendata.js が読み込まれていません");
+      return;
+    }
+
+    try {
+      await window.DataSourceOpenData.fetchDatasets({
+        apiBase: API_BASE,
+        idToken,
+        writeLog
+      });
+    } catch (e) {
+      console.error(e);
+      writeLog(`処理失敗: ${e.message}`);
+    }
+  });
+}
+
+if (btnFetchResources) {
+  btnFetchResources.addEventListener("click", async () => {
+    writeLog("データセット分解ボタン押下");
+
+    const idToken = requireIdToken();
+    if (!idToken) return;
+
+    const selectedDataset = document.getElementById("openDataSelectedDataset");
+    const datasetId = selectedDataset?.dataset?.datasetId || "";
+
+    if (!datasetId) {
+      writeLog("データセットが未選択です");
+      return;
+    }
+
+    if (!window.DataSourceOpenData || typeof window.DataSourceOpenData.fetchResources !== "function") {
+      writeLog("data_source_opendata.js が読み込まれていません");
+      return;
+    }
+
+    try {
+      await window.DataSourceOpenData.fetchResources({
+        apiBase: API_BASE,
+        idToken,
+        datasetId,
+        writeLog
+      });
+    } catch (e) {
+      console.error(e);
+      writeLog(`処理失敗: ${e.message}`);
+    }
+  });
+}
+
+if (btnRegisterResource) {
+  btnRegisterResource.addEventListener("click", async () => {
+    writeLog("データ登録ボタン押下");
+
+    const idToken = requireIdToken();
+    if (!idToken) return;
+
+    const selectedDataset = document.getElementById("openDataSelectedDataset");
+    const selectedResource = document.getElementById("openDataSelectedResource");
+
+    const datasetId = selectedDataset?.dataset?.datasetId || "";
+    const resourceId = selectedResource?.dataset?.resourceId || "";
+
+    if (!datasetId) {
+      writeLog("データセットが未選択です");
+      return;
+    }
+
+    if (!resourceId) {
+      writeLog("resource が未選択です");
+      return;
+    }
+
+    if (!window.DataSourceOpenData || typeof window.DataSourceOpenData.registerResource !== "function") {
+      writeLog("data_source_opendata.js が読み込まれていません");
+      return;
+    }
+
+    try {
+      await window.DataSourceOpenData.registerResource({
+        apiBase: API_BASE,
+        idToken,
+        datasetId,
+        resourceId,
         writeLog
       });
     } catch (e) {
