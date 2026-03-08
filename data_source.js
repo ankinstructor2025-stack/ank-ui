@@ -244,6 +244,8 @@ if (sourceSelect) {
 
 if (btnKokkaiRegister) {
   btnKokkaiRegister.addEventListener("click", async () => {
+    writeLog("国会議事録ボタン押下");
+
     const p = sourceMap[sourceSelect.value];
     if (!p) {
       writeLog("取得元が選択されていません");
