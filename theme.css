@@ -1,190 +1,204 @@
-/* css/theme.css */
 /* =========================================
-   SaaS 共通テーマ（ログインと同系の背景）
-   ========================================= */
+   共通
+========================================= */
 
-:root{
-  --bg-0: #020617;      /* base */
-  --bg-1: #071a3a;      /* deep blue */
-  --text: #e5e7eb;      /* text */
-  --muted: #9ca3af;     /* muted */
-
-  /* 修正: カード背景を見やすく */
-  --card-bg: #f1f5f9;
-  --card-border: #cbd5e1;
-
-  --input-bg: #6b7280;
-  --input-border: #94a3b8;
-  --focus: #3b82f6;     /* blue */
-  --btn-0: #2563eb;
-  --btn-1: #3b82f6;
-  --shadow: rgba(0,0,0,0.50);
-
-  /* 追加: カード上の文字色 */
-  --card-text: #0f172a;
-  --card-muted: #475569;
+* {
+  box-sizing: border-box;
 }
 
-/* page */
-* { box-sizing: border-box; }
-
-html, body {
-  height: 100%;
+body{
+  margin:0;
+  font-family: system-ui, sans-serif;
 }
 
-body {
-  margin: 0;
-  min-height: 100vh;
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-  color: var(--text);
+/* =========================================
+   レイアウト
+========================================= */
 
-  /* ログイン画面と同系の背景 */
-  background:
-    radial-gradient(circle at 20% 80%, rgba(0, 180, 255, 0.15), transparent 40%),
-    radial-gradient(circle at 80% 20%, rgba(0, 90, 255, 0.18), transparent 45%),
-    linear-gradient(135deg, var(--bg-0) 0%, var(--bg-0) 35%, var(--bg-1) 70%, var(--bg-0) 100%);
+.page{
+  max-width:1100px;
+  margin:auto;
+  padding:20px;
 }
 
-/* layout helpers */
-.container {
-  max-width: 980px;
-  margin: 0 auto;
-  padding: 24px;
+.card{
+  background:#f1f5f9;
+  border-radius:12px;
+  padding:20px;
+  border:1px solid #cbd5e1;
 }
 
-.center-wrap {
-  min-height: 100vh;
-  display: grid;
-  place-items: center;
-  padding: 24px;
+/* =========================================
+   ヘッダー
+========================================= */
+
+.header-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:16px;
 }
 
-/* card */
-.card {
-  width: min(980px, 100%);
-  border-radius: 14px;
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  box-shadow: 0 10px 30px var(--shadow);
-  padding: 22px;
-  color: var(--card-text);
+.header-actions{
+  display:flex;
+  gap:8px;
 }
 
-.card h1, .card h2, .card h3 {
-  margin: 0 0 12px;
-  color: var(--card-text);
+/* =========================================
+   共通パネル
+========================================= */
+
+.common-panel{
+  border:1px solid #cbd5e1;
+  border-radius:10px;
+  padding:12px;
+  background:#ffffff;
+  margin-bottom:12px;
 }
 
-.subtitle {
-  color: var(--card-muted);
-  font-size: 12px;
-  margin-top: 6px;
+.common-grid{
+  display:grid;
+  grid-template-columns:220px 1fr;
+  gap:12px;
 }
 
-/* form */
-label {
-  display: block;
-  font-size: 13px;
-  color: var(--card-text);
-  margin: 12px 0 6px;
+/* =========================================
+   作業パネル
+========================================= */
+
+.work-panel{
+  border:1px solid #cbd5e1;
+  border-radius:10px;
+  background:#ffffff;
+  padding:14px;
+  min-height:240px;
 }
 
-input, select, textarea {
-  width: 100%;
-  padding: 10px;
-  border-radius: 10px;
-  border: 1px solid var(--input-border);
-  background: var(--input-bg);
-  color: #ffffff;
-  font-size: 14px;
+.panel-title{
+  margin-top:0;
 }
 
-textarea {
-  min-height: 120px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+/* =========================================
+   ブロック
+========================================= */
+
+.section-block{
+  border:1px solid #cbd5e1;
+  border-radius:8px;
+  background:#e8eef7;
+  padding:12px;
+  margin-top:12px;
 }
 
-input:focus, select:focus, textarea:focus {
-  outline: none;
-  border-color: var(--focus);
+/* =========================================
+   リスト
+========================================= */
+
+.dataset-list-wrap,
+.resource-list-wrap{
+  border:1px solid #cbd5e1;
+  border-radius:8px;
+  background:#ffffff;
+  max-height:220px;
+  overflow:auto;
+  padding:8px;
 }
 
-/* grid */
-.row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-@media (max-width: 720px) {
-  .row { grid-template-columns: 1fr; }
-}
+/* =========================================
+   選択ボックス
+========================================= */
 
-/* buttons */
-.actions {
-  display: flex;
-  gap: 10px;
-  justify-content: flex-end;
-  margin-top: 16px;
+.selected-box{
+  border:1px solid #cbd5e1;
+  border-radius:8px;
+  background:#ffffff;
+  padding:10px;
+  margin-bottom:10px;
 }
 
-.btn {
-  padding: 10px 14px;
-  border-radius: 10px;
-  border: 1px solid rgba(255,255,255,0.18);
-  background: rgba(255,255,255,0.04);
-  color: var(--text);
-  cursor: pointer;
+/* =========================================
+   ボタン
+========================================= */
+
+.btn{
+  padding:8px 14px;
+  border-radius:8px;
+  border:1px solid #cbd5e1;
+  background:#ffffff;
+  cursor:pointer;
 }
 
-.btn:hover,
-.btn:focus {
-  background: rgba(255,255,255,0.10);
-  color: var(--text);
+.btn:hover{
+  background:#e2e8f0;
 }
 
-.btn-primary {
-  border: none;
-  background: linear-gradient(90deg, var(--btn-0), var(--btn-1));
-  color: #fff;
+.btn-primary{
+  background:#2563eb;
+  border:none;
+  color:white;
 }
 
-.btn-primary:hover,
-.btn-primary:focus {
-  background: linear-gradient(90deg, #1d4ed8, #2563eb);
-  color: #fff;
-  filter: none;
+.btn-primary:hover{
+  background:#1d4ed8;
 }
 
-.btn:disabled,
-.btn-primary:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
+/* =========================================
+   アクション
+========================================= */
+
+.compact-actions{
+  display:flex;
+  gap:10px;
+  margin-bottom:10px;
 }
 
-/* misc */
-.hidden { display: none; }
+/* =========================================
+   ログ
+========================================= */
 
-.badge {
-  display: inline-block;
-  padding: 2px 10px;
-  border: 1px solid rgba(255,255,255,0.12);
-  border-radius: 999px;
-  font-size: 12px;
-  color: var(--text);
-  margin-left: 8px;
+.log{
+  margin-top:16px;
+  border:1px solid #cbd5e1;
+  border-radius:8px;
+  overflow:hidden;
 }
 
-.log {
-  margin-top: 18px;
-  background: #e2e8f0;
-  border: 1px solid #cbd5e1;
-  border-radius: 10px;
-  padding: 12px;
+.log-head{
+  display:flex;
+  justify-content:space-between;
+  padding:8px 12px;
+  background:#e8eef7;
 }
 
-.log pre {
-  margin: 0;
-  white-space: pre-wrap;
-  font-size: 12px;
-  color: var(--card-text);
+.log pre{
+  margin:0;
+  padding:12px;
+  font-size:12px;
+  max-height:180px;
+  overflow:auto;
+}
+
+/* =========================================
+   その他
+========================================= */
+
+.placeholder{
+  padding:16px;
+  color:#64748b;
+}
+
+.hidden{
+  display:none;
+}
+
+label{
+  display:block;
+  margin-bottom:6px;
+  font-weight:600;
+}
+
+input,
+select{
+  width:100%;
+  padding:8px;
 }
