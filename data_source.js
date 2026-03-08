@@ -10,6 +10,8 @@ const panelOpenData = document.getElementById("panelOpenData");
 const panelUrl = document.getElementById("panelUrl");
 const panelApi = document.getElementById("panelApi");
 
+const publicUrlTarget = document.getElementById("publicUrlTarget");
+
 const logBox = document.getElementById("logBox");
 const logText = document.getElementById("logText");
 
@@ -20,6 +22,7 @@ const btnClearLog = document.getElementById("btnClearLog");
 const btnKokkaiRegister = document.getElementById("btnKokkaiRegister");
 const btnUploadRegister = document.getElementById("btnUploadRegister");
 const btnFetchDatasets = document.getElementById("btnFetchDatasets");
+const btnUrlRegister = document.getElementById("btnUrlRegister");
 
 const API_BASE = "https://ank-api-986862757498.asia-northeast1.run.app/v1";
 
@@ -135,12 +138,17 @@ function applySelection(key) {
   const p = sourceMap[key];
   if (!p) {
     if (sourceName) sourceName.value = "";
+    if (publicUrlTarget) publicUrlTarget.value = "";
     showPanelByKey("");
     return;
   }
 
   if (sourceName) {
     sourceName.value = p.name ?? p.label ?? "";
+  }
+
+  if (publicUrlTarget) {
+    publicUrlTarget.value = p.type === "public_url" ? (p.targetUrl ?? p.url ?? "") : "";
   }
 
   if (key === "api_datago" && window.DataSourceOpenData) {
@@ -287,8 +295,7 @@ if (btnFetchDatasets) {
                   writeLog(`row_skipped=${data.row_skipped}`);
                 }
 
-                // 分解後の状態を再取得して一覧を更新
-                const refresh = await window.DataSourceOpenData.fetchDatasets({
+                await window.DataSourceOpenData.fetchDatasets({
                   apiBase: API_BASE,
                   idToken,
                   writeLog,
@@ -311,49 +318,51 @@ if (btnFetchDatasets) {
                           if (typeof data2.row_skipped === "number") {
                             writeLog(`row_skipped=${data2.row_skipped}`);
                           }
-
-                          await window.DataSourceOpenData.fetchDatasets({
-                            apiBase: API_BASE,
-                            idToken,
-                            writeLog,
-                            onRender: (datasets3) => {
-                              window.DataSourceOpenData.renderDatasets(
-                                datasets3,
-                                {
-                                  onExpandDataset: async (datasetId3, datasetTitle3) => {
-                                    const data3 = await window.DataSourceOpenData.expandDataset({
-                                      apiBase: API_BASE,
-                                      idToken,
-                                      datasetId: datasetId3,
-                                      writeLog
-                                    });
-
-                                    writeLog(`dataset 分解完了: ${datasetTitle3}`);
-                                    if (typeof data3.row_inserted === "number") {
-                                      writeLog(`row_inserted=${data3.row_inserted}`);
-                                    }
-                                    if (typeof data3.row_skipped === "number") {
-                                      writeLog(`row_skipped=${data3.row_skipped}`);
-                                    }
-                                  }
-                                },
-                                writeLog
-                              );
-                            }
-                          });
                         }
                       },
                       writeLog
                     );
                   }
                 });
-
-                return refresh;
               }
             },
             writeLog
           );
         }
+      });
+    } catch (e) {
+      console.error(e);
+      writeLog(`処理失敗: ${e.message}`);
+    }
+  });
+}
+
+if (btnUrlRegister) {
+  btnUrlRegister.addEventListener("click", async () => {
+    writeLog("公開URL取得ボタン押下");
+
+    const p = sourceMap[sourceSelect.value];
+    if (!p) {
+      writeLog("取得元が選択されていません");
+      return;
+    }
+
+    const idToken = requireIdToken();
+    if (!idToken) return;
+
+    if (!window.DataSourceUrl || typeof window.DataSourceUrl.run !== "function") {
+      writeLog("data_source_url.js が読み込まれていません");
+      return;
+    }
+
+    try {
+      await window.DataSourceUrl.run({
+        apiBase: API_BASE,
+        url: p.url,
+        targetUrl: p.targetUrl ?? p.url,
+        method: p.method ?? "POST",
+        idToken,
+        writeLog
       });
     } catch (e) {
       console.error(e);
