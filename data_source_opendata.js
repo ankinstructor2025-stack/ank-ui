@@ -51,10 +51,7 @@ console.log("data_source_opendata.js loaded");
           <div class="choice-main">
             <div class="choice-title">${escapeHtml(item.title)}</div>
             <div class="choice-meta">
-              dataset_id: ${escapeHtml(item.dataset_id)}<br>
-              ext: ${escapeHtml(ext)}<br>
-              status: ${escapeHtml(status)}<br>
-              rows: ${escapeHtml(rowCount)}
+              dataset_id: ${escapeHtml(item.dataset_id)}, ext: ${escapeHtml(ext)}, status: ${escapeHtml(status)}, rows: ${escapeHtml(rowCount)}
             </div>
           </div>
           <div class="choice-actions">
