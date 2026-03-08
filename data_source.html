@@ -4,75 +4,452 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>データ取り込み（デモ）</title>
-  <link rel="stylesheet" href="theme.css">
+  <link rel="stylesheet" href="theme.css" />
+  <style>
+    :root {
+      --gap: 12px;
+      --border: #d9dfe8;
+      --bg-soft: #f7f9fc;
+      --text-sub: #5f6b7a;
+      --danger: #b42318;
+      --primary: #1d4ed8;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+    }
+
+    .page {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 16px;
+    }
+
+    .card {
+      padding: 16px;
+    }
+
+    .header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .subtitle {
+      color: var(--text-sub);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .common-panel {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      background: #fff;
+      margin-bottom: 12px;
+    }
+
+    .common-grid {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      gap: 12px;
+      align-items: end;
+    }
+
+    .work-panel {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #fff;
+      padding: 12px;
+      min-height: 280px;
+    }
+
+    .panel-title {
+      margin: 0 0 10px 0;
+      font-size: 16px;
+    }
+
+    .section-block {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg-soft);
+      padding: 12px;
+      margin-top: 10px;
+    }
+
+    .section-block:first-child {
+      margin-top: 0;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .row-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 600;
+    }
+
+    input,
+    select,
+    textarea,
+    button {
+      width: 100%;
+    }
+
+    textarea {
+      min-height: 110px;
+      resize: vertical;
+    }
+
+    .compact-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+
+    .compact-actions .btn {
+      width: auto;
+      min-width: 160px;
+    }
+
+    .dataset-list-wrap,
+    .resource-list-wrap,
+    .log {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .dataset-list-wrap,
+    .resource-list-wrap {
+      max-height: 220px;
+      overflow: auto;
+      padding: 8px;
+    }
+
+    .choice-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 8px 6px;
+      border-bottom: 1px solid #eef2f7;
+    }
+
+    .choice-item:last-child {
+      border-bottom: none;
+    }
+
+    .choice-main {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .choice-title {
+      font-weight: 600;
+      line-height: 1.4;
+      word-break: break-word;
+    }
+
+    .choice-meta {
+      margin-top: 3px;
+      font-size: 12px;
+      color: var(--text-sub);
+      line-height: 1.4;
+      word-break: break-word;
+    }
+
+    .selected-box {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #fff;
+      padding: 10px;
+      min-height: 56px;
+      color: var(--text-sub);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .danger-text {
+      color: var(--danger);
+    }
+
+    .log {
+      margin-top: 12px;
+      padding: 0;
+      overflow: hidden;
+    }
+
+    .log-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-soft);
+    }
+
+    .log-head strong {
+      font-size: 14px;
+    }
+
+    .log pre {
+      margin: 0;
+      padding: 12px;
+      max-height: 180px;
+      overflow: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .placeholder {
+      padding: 16px;
+      color: var(--text-sub);
+      line-height: 1.6;
+    }
+
+    @media (max-width: 900px) {
+      .common-grid,
+      .row,
+      .row-3 {
+        grid-template-columns: 1fr;
+      }
+
+      .compact-actions .btn {
+        width: 100%;
+      }
+
+      .work-panel {
+        min-height: auto;
+      }
+
+      .dataset-list-wrap,
+      .resource-list-wrap {
+        max-height: 180px;
+      }
+
+      .log pre {
+        max-height: 150px;
+      }
+    }
+  </style>
 </head>
 <body>
-  <div class="center-wrap">
+  <div class="page">
     <div class="card">
 
-      <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+      <div class="header-row">
         <h1 style="margin:0;">
           データ取り込み（デモ）<span class="badge">ソース固定</span>
         </h1>
 
-        <div style="display:flex; gap:8px;">
-          <button class="btn" id="btnMenu" type="button">
-            メニューに戻る
-          </button>
-          <button class="btn" id="btnLogout" type="button">
-            ログアウト
-          </button>
+        <div class="header-actions">
+          <button class="btn" id="btnMenu" type="button">メニューに戻る</button>
+          <button class="btn" id="btnLogout" type="button">ログアウト</button>
         </div>
       </div>
 
-      <label for="sourceSelect">データ取得元を選択</label>
-      <select id="sourceSelect">
-        <option value="" selected disabled>読み込み中...</option>
-      </select>
-      <div class="subtitle">選択すると下の設定フォームが切り替わります（デモ）。</div>
-
-      <div id="commonFields" class="hidden">
-        <label for="sourceName">名称（表示名）</label>
-        <input id="sourceName" placeholder="例）国会会議録（AI関連）" />
-      </div>
-
-      <div id="formApi" class="hidden">
-        <div class="row">
+      <div class="common-panel">
+        <div class="common-grid">
           <div>
-            <label for="apiEndpoint">パラメータ</label>
-            <input id="apiEndpoint" />
+            <label for="sourceSelect">データ取得元</label>
+            <select id="sourceSelect">
+              <option value="" selected disabled>読み込み中...</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="sourceName">名称（表示名）</label>
+            <input id="sourceName" placeholder="例）AI関連の国会議事録 / デジタル庁オープンデータ" />
           </div>
         </div>
 
-        <label for="apiParams">パラメータ（JSON）</label>
-        <textarea id="apiParams" placeholder='例）{"keyword":"AI","maximumRecords":200}'></textarea>
+        <div class="subtitle" style="margin-top:8px;">
+          上で種別を選ぶと、下の作業エリアが切り替わります。
+        </div>
       </div>
 
-      <div id="formUrl" class="hidden">
-        <label for="targetUrl">パラメータ</label>
-        <input id="targetUrl" placeholder="https://..." />
+      <div class="work-panel">
 
-        <label for="urlMode">取得タイプ（デモ）</label>
-        <select id="urlMode">
-          <option value="html">HTML</option>
-          <option value="json">JSON</option>
-        </select>
+        <div id="panelEmpty">
+          <div class="placeholder">
+            データ取得元を選択してください。
+          </div>
+        </div>
 
-        <label for="urlHint">抽出ヒント（任意）</label>
-        <input id="urlHint" placeholder="例）FAQ / 見出し / 章タイトル など" />
-      </div>
+        <!-- 国会議事録 -->
+        <div id="panelKokkai" class="hidden">
+          <h2 class="panel-title">国会議事録</h2>
 
-      <div id="formFile" class="hidden">
-        <label for="fileInput">ファイル</label>
-        <input id="uploadFileInput" type="file" accept=".csv,.txt,.json" />
-        <div class="subtitle">PDF/画像は対象外（現方針）。</div>
-      </div>
+          <div class="section-block">
+            <div class="subtitle">
+              template/kokkai.json の条件で取得して、そのまま row_data に登録します。
+            </div>
 
-      <div class="actions hidden" id="actions">
-        <button class="btn btn-primary" id="btnRegister" type="button">登録</button>
+            <div class="compact-actions">
+              <button class="btn btn-primary" id="btnKokkaiRegister" type="button">取得して登録</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- アップロード -->
+        <div id="panelUpload" class="hidden">
+          <h2 class="panel-title">ファイルアップロード</h2>
+
+          <div class="section-block">
+            <label for="uploadFileInput">ファイル</label>
+            <input id="uploadFileInput" type="file" accept=".csv,.txt,.json" />
+            <div class="subtitle" style="margin-top:8px;">
+              CSV / TXT / JSON を対象にします。PDF / 画像は対象外です。
+            </div>
+
+            <div class="compact-actions">
+              <button class="btn btn-primary" id="btnUploadRegister" type="button">アップロードして登録</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- オープンデータ -->
+        <div id="panelOpenData" class="hidden">
+          <h2 class="panel-title">オープンデータ</h2>
+
+          <div class="section-block">
+            <div class="subtitle">
+              1段階目でデータセット一覧を取得し、2段階目で選んだデータセットを分解して登録します。
+            </div>
+
+            <div class="compact-actions">
+              <button class="btn btn-primary" id="btnOpenDataFetchDatasets" type="button">データセット取得</button>
+            </div>
+          </div>
+
+          <div class="section-block">
+            <label>データセット一覧</label>
+            <div id="openDataDatasetList" class="dataset-list-wrap">
+              <div class="subtitle">まだ取得していません。</div>
+            </div>
+
+            <div style="margin-top:10px;">
+              <label>選択中のデータセット</label>
+              <div id="openDataSelectedDataset" class="selected-box">
+                未選択
+              </div>
+            </div>
+
+            <div class="compact-actions">
+              <button class="btn" id="btnOpenDataFetchResources" type="button">選択データセットを分解</button>
+            </div>
+          </div>
+
+          <div class="section-block">
+            <label>分解結果（resource 一覧）</label>
+            <div id="openDataResourceList" class="resource-list-wrap">
+              <div class="subtitle">まだ分解していません。</div>
+            </div>
+
+            <div style="margin-top:10px;">
+              <label>選択中の resource</label>
+              <div id="openDataSelectedResource" class="selected-box">
+                未選択
+              </div>
+            </div>
+
+            <div class="compact-actions">
+              <button class="btn btn-primary" id="btnOpenDataRegisterResource" type="button">選択 resource を登録</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- URL系 -->
+        <div id="panelUrl" class="hidden">
+          <h2 class="panel-title">公開URL</h2>
+
+          <div class="section-block">
+            <div class="row">
+              <div>
+                <label for="targetUrl">対象URL</label>
+                <input id="targetUrl" placeholder="https://..." />
+              </div>
+              <div>
+                <label for="urlMode">取得タイプ</label>
+                <select id="urlMode">
+                  <option value="html">HTML</option>
+                  <option value="json">JSON</option>
+                </select>
+              </div>
+            </div>
+
+            <div style="margin-top:10px;">
+              <label for="urlHint">抽出ヒント（任意）</label>
+              <input id="urlHint" placeholder="例）FAQ / 見出し / 章タイトル" />
+            </div>
+
+            <div class="compact-actions">
+              <button class="btn btn-primary" id="btnUrlRegister" type="button">取得して登録</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- API系（オープンデータ以外の予備） -->
+        <div id="panelApi" class="hidden">
+          <h2 class="panel-title">公開API</h2>
+
+          <div class="section-block">
+            <div class="row">
+              <div>
+                <label for="apiEndpoint">パラメータ</label>
+                <input id="apiEndpoint" />
+              </div>
+            </div>
+
+            <div style="margin-top:10px;">
+              <label for="apiParams">パラメータ（JSON）</label>
+              <textarea id="apiParams" placeholder='例）{"keyword":"AI","maximumRecords":200}'></textarea>
+            </div>
+
+            <div class="compact-actions">
+              <button class="btn btn-primary" id="btnApiRegister" type="button">取得して登録</button>
+            </div>
+          </div>
+        </div>
+
       </div>
 
       <div class="log hidden" id="logBox">
+        <div class="log-head">
+          <strong>ログ</strong>
+          <button class="btn" id="btnClearLog" type="button" style="width:auto;">クリア</button>
+        </div>
         <pre id="logText"></pre>
       </div>
 
