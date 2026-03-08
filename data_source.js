@@ -13,26 +13,53 @@ const btnRegister = document.getElementById("btnRegister");
 const btnLogout = document.getElementById("btnLogout");
 const btnMenu = document.getElementById("btnMenu");
 
+const API_BASE = "https://ank-api-986862757498.asia-northeast1.run.app/v1";
+
 let sourceList = [];
 let sourceMap = {};
 
 function showOnly(kind) {
-  commonFields.classList.remove("hidden");
-  actions.classList.remove("hidden");
+  if (commonFields) commonFields.classList.remove("hidden");
+  if (actions) actions.classList.remove("hidden");
 
-  formApi.classList.add("hidden");
-  formUrl.classList.add("hidden");
-  formFile.classList.add("hidden");
+  if (formApi) formApi.classList.add("hidden");
+  if (formUrl) formUrl.classList.add("hidden");
+  if (formFile) formFile.classList.add("hidden");
 
-  if (kind === "api") formApi.classList.remove("hidden");
-  if (kind === "url") formUrl.classList.remove("hidden");
-  if (kind === "file") formFile.classList.remove("hidden");
+  if (kind === "api" && formApi) formApi.classList.remove("hidden");
+  if (kind === "url" && formUrl) formUrl.classList.remove("hidden");
+  if (kind === "file" && formFile) formFile.classList.remove("hidden");
+}
+
+function resetForms() {
+  const sourceName = document.getElementById("sourceName");
+  const apiEndpoint = document.getElementById("apiEndpoint");
+  const apiParams = document.getElementById("apiParams");
+  const targetUrl = document.getElementById("targetUrl");
+  const urlMode = document.getElementById("urlMode");
+  const urlHint = document.getElementById("urlHint");
+  const uploadFileInput = document.getElementById("uploadFileInput");
+
+  if (sourceName) sourceName.value = "";
+  if (apiEndpoint) apiEndpoint.value = "";
+  if (apiParams) apiParams.value = "";
+  if (targetUrl) targetUrl.value = "";
+  if (urlMode) urlMode.value = "html";
+  if (urlHint) urlHint.value = "";
+  if (uploadFileInput) uploadFileInput.value = "";
+}
+
+function clearLog() {
+  if (logText) logText.textContent = "";
+  if (logBox) logBox.classList.add("hidden");
 }
 
 function writeLog(msg) {
+  if (!logBox || !logText) return;
   logBox.classList.remove("hidden");
   const now = new Date().toISOString();
   logText.textContent += `[${now}] ${msg}\n`;
+  logText.scrollTop = logText.scrollHeight;
 }
 
 function escapeHtml(value) {
@@ -42,6 +69,252 @@ function escapeHtml(value) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
+}
+
+function getIdToken() {
+  return sessionStorage.getItem("idToken");
+}
+
+function requireIdToken() {
+  const idToken = getIdToken();
+  if (!idToken) {
+    writeLog("idToken がありません（ログインからやり直してください）");
+    return null;
+  }
+  return idToken;
+}
+
+async function readErrorText(res) {
+  try {
+    const text = await res.text();
+    return text || `HTTP ${res.status}`;
+  } catch {
+    return `HTTP ${res.status}`;
+  }
+}
+
+async function callSimpleApi(p, idToken) {
+  const method = p.method ?? "POST";
+
+  const headers = {
+    Authorization: `Bearer ${idToken}`
+  };
+
+  if (method !== "GET") {
+    headers["Content-Type"] = "application/json";
+  }
+
+  const res = await fetch(p.url, {
+    method,
+    headers
+  });
+
+  if (res.status === 409) {
+    const text = await readErrorText(res);
+    writeLog(`登録済みまたは重複(409): ${text}`);
+    return;
+  }
+
+  if (res.status === 401) {
+    const text = await readErrorText(res);
+    writeLog(`認証エラー(401): ${text}`);
+    return;
+  }
+
+  if (res.status === 403) {
+    const text = await readErrorText(res);
+    writeLog(`権限エラー(403): ${text}`);
+    return;
+  }
+
+  if (!res.ok) {
+    const text = await readErrorText(res);
+    throw new Error(text);
+  }
+
+  const data = await res.json();
+
+  if (typeof data.count === "number") {
+    writeLog(`count=${data.count}`);
+  }
+  if (typeof data.fetched === "number") {
+    writeLog(`fetched=${data.fetched}`);
+  }
+  if (typeof data.inserted === "number") {
+    writeLog(`inserted=${data.inserted}`);
+  }
+  if (typeof data.skipped === "number") {
+    writeLog(`skipped=${data.skipped}`);
+  }
+  if (data.file_id) {
+    writeLog(`file_id=${data.file_id}`);
+  }
+  if (data.source_id) {
+    writeLog(`source_id=${data.source_id}`);
+  }
+}
+
+function renderSourceOptions(list) {
+  const groups = {};
+
+  list.forEach((item) => {
+    const groupName = item.group || "その他";
+    if (!groups[groupName]) {
+      groups[groupName] = [];
+    }
+    groups[groupName].push(item);
+  });
+
+  const html = [`<option value="" selected disabled>選択してください</option>`];
+
+  Object.keys(groups).forEach((groupName) => {
+    html.push(`<optgroup label="${escapeHtml(groupName)}">`);
+    groups[groupName].forEach((item) => {
+      html.push(
+        `<option value="${escapeHtml(item.key)}">${escapeHtml(item.label)}</option>`
+      );
+    });
+    html.push(`</optgroup>`);
+  });
+
+  sourceSelect.innerHTML = html.join("");
+}
+
+function applySelection(key) {
+  const p = sourceMap[key];
+  if (!p) return;
+
+  const sourceName = document.getElementById("sourceName");
+  const apiEndpoint = document.getElementById("apiEndpoint");
+  const apiParams = document.getElementById("apiParams");
+  const targetUrl = document.getElementById("targetUrl");
+  const urlMode = document.getElementById("urlMode");
+  const urlHint = document.getElementById("urlHint");
+
+  if (sourceName) {
+    sourceName.value = p.name ?? p.label ?? "";
+  }
+
+  if (p.type === "public_api") {
+    showOnly("api");
+    if (apiEndpoint) apiEndpoint.value = p.templatePath ?? "";
+    if (apiParams) apiParams.value = `params は ${p.templatePath ?? ""} を参照`;
+    return;
+  }
+
+  if (p.type === "public_url") {
+    showOnly("url");
+    if (targetUrl) targetUrl.value = p.templatePath ?? "";
+    if (urlMode) urlMode.value = p.mode ?? "html";
+    if (urlHint) urlHint.value = p.hint ?? "";
+    return;
+  }
+
+  if (p.type === "file") {
+    showOnly("file");
+    return;
+  }
+
+  showOnly("api");
+}
+
+async function loadSourceMaster() {
+  try {
+    const res = await fetch("./source_master.json");
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}`);
+    }
+
+    sourceList = await res.json();
+    sourceMap = Object.fromEntries(sourceList.map((item) => [item.key, item]));
+    renderSourceOptions(sourceList);
+  } catch (e) {
+    console.error(e);
+    sourceSelect.innerHTML = `<option value="" selected disabled>データ種別読込失敗</option>`;
+    writeLog(`データ種別読込失敗: ${e.message}`);
+  }
+}
+
+async function handleRegisterClick() {
+  const key = sourceSelect?.value;
+  const p = sourceMap[key];
+
+  writeLog(`key=${key || "(未選択)"}`);
+
+  if (!key || !p) {
+    writeLog("取得元が選択されていません");
+    return;
+  }
+
+  const idToken = requireIdToken();
+  if (!idToken) return;
+
+  try {
+    switch (key) {
+      case "file_upload": {
+        if (!window.DataSourceUpload || typeof window.DataSourceUpload.run !== "function") {
+          writeLog("data_source_upload.js が読み込まれていません");
+          return;
+        }
+        await window.DataSourceUpload.run({
+          apiBase: API_BASE,
+          idToken,
+          writeLog
+        });
+        return;
+      }
+
+      case "api_kokkai": {
+        if (!window.DataSourceKokkai || typeof window.DataSourceKokkai.run !== "function") {
+          writeLog("data_source_kokkai.js が読み込まれていません");
+          return;
+        }
+        await window.DataSourceKokkai.run({
+          url: p.url,
+          method: p.method ?? "POST",
+          idToken,
+          writeLog
+        });
+        return;
+      }
+
+      case "api_datago": {
+        if (!p.url) {
+          writeLog("オープンデータの url が未設定です");
+          return;
+        }
+        writeLog(`${p.label ?? p.name} は別画面または別ボタン対応に切り出す予定です`);
+        return;
+      }
+
+      case "url_egov":
+      case "url_caa": {
+        if (!p.url) {
+          writeLog("URL取得先の url が未設定です");
+          return;
+        }
+
+        writeLog(`${p.label ?? p.name} 登録開始`);
+        await callSimpleApi(p, idToken);
+        writeLog("登録完了");
+        return;
+      }
+
+      default: {
+        if (!p.url) {
+          writeLog(`未対応の取得元です: ${key}`);
+          return;
+        }
+
+        writeLog(`${p.label ?? p.name} 実行開始`);
+        await callSimpleApi(p, idToken);
+        writeLog("完了");
+      }
+    }
+  } catch (e) {
+    console.error(e);
+    writeLog(`処理失敗: ${e.message}`);
+  }
 }
 
 if (btnLogout) {
@@ -57,352 +330,20 @@ if (btnMenu) {
   });
 }
 
+if (sourceSelect) {
+  sourceSelect.addEventListener("change", () => {
+    clearLog();
+    applySelection(sourceSelect.value);
+  });
+}
+
+if (btnRegister) {
+  btnRegister.addEventListener("click", handleRegisterClick);
+} else {
+  console.warn("btnRegister not found");
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
+  resetForms();
   await loadSourceMaster();
 });
-
-async function loadSourceMaster() {
-  try {
-    const res = await fetch("./source_master.json");
-    if (!res.ok) {
-      throw new Error(`HTTP ${res.status}`);
-    }
-
-    sourceList = await res.json();
-    sourceMap = Object.fromEntries(sourceList.map(item => [item.key, item]));
-
-    renderSourceOptions(sourceList);
-  } catch (e) {
-    console.error(e);
-    sourceSelect.innerHTML = `<option value="" selected disabled>データ種別読込失敗</option>`;
-    writeLog(`データ種別読込失敗: ${e.message}`);
-  }
-}
-
-function renderSourceOptions(list) {
-  const groups = {};
-
-  list.forEach(item => {
-    if (!groups[item.group]) {
-      groups[item.group] = [];
-    }
-    groups[item.group].push(item);
-  });
-
-  const html = [`<option value="" selected disabled>選択してください</option>`];
-
-  Object.keys(groups).forEach(groupName => {
-    html.push(`<optgroup label="${escapeHtml(groupName)}">`);
-    groups[groupName].forEach(item => {
-      html.push(
-        `<option value="${escapeHtml(item.key)}">${escapeHtml(item.label)}<\/option>`
-      );
-    });
-    html.push(`</optgroup>`);
-  });
-
-  sourceSelect.innerHTML = html.join("");
-}
-
-sourceSelect.addEventListener("change", () => {
-  const key = sourceSelect.value;
-  const p = sourceMap[key];
-  if (!p) return;
-
-  document.getElementById("sourceName").value = p.name ?? p.label ?? "";
-
-  if (p.type === "public_api") {
-    showOnly("api");
-    document.getElementById("apiEndpoint").value = p.templatePath ?? "";
-    document.getElementById("apiParams").value = `params は ${p.templatePath ?? ""} を参照`;
-  }
-
-  if (p.type === "public_url") {
-    showOnly("url");
-    document.getElementById("targetUrl").value = p.templatePath ?? "";
-    document.getElementById("urlMode").value = p.mode ?? "html";
-    document.getElementById("urlHint").value = p.hint ?? "";
-  }
-
-  if (p.type === "file") {
-    showOnly("file");
-  }
-
-  logText.textContent = "";
-  logBox.classList.add("hidden");
-});
-
-if (!btnRegister) {
-  console.warn("btnRegister not found");
-} else {
-  btnRegister.addEventListener("click", async () => {
-    const key = sourceSelect.value;
-    const p = sourceMap[key];
-    const idToken = sessionStorage.getItem("idToken");
-
-    writeLog(`key=${key}`);
-    writeLog(`uploadFileInput exists=${!!document.getElementById("uploadFileInput")}`);
-    writeLog(`idToken exists=${!!idToken}`);
-
-    if (!key || !p) {
-      writeLog("取得テスト対象が選択されていません");
-      return;
-    }
-
-    switch (key) {
-      case "api_kokkai": {
-        if (!p.url) {
-          writeLog("取得テスト対象の url がありません");
-          return;
-        }
-
-        writeLog(`${p.label ?? p.name} 取得テスト開始`);
-
-        if (!idToken) {
-          writeLog("idToken がありません（ログインからやり直してください）");
-          return;
-        }
-
-        try {
-          const res = await fetch(p.url, {
-            method: p.method ?? "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${idToken}`
-            }
-          });
-
-          if (res.status === 409) {
-            const data = await res.json();
-            writeLog(`登録済み: ${data.detail ?? "既に登録されています"}`);
-            return;
-          }
-
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-          const data = await res.json();
-
-          if (typeof data.count === "number") {
-            writeLog(`取得成功 件数=${data.count}`);
-          } else {
-            writeLog("取得成功（countなし）");
-          }
-        } catch (e) {
-          console.error(e);
-          writeLog(`取得失敗: ${e.message}`);
-        }
-        return;
-      }
-
-      case "api_datago": {
-        if (!p.url) {
-          writeLog("取得テスト対象の url がありません");
-          return;
-        }
-
-        writeLog(`${p.label ?? p.name} 取得テスト開始`);
-
-        if (!idToken) {
-          writeLog("idToken がありません（ログインからやり直してください）");
-          return;
-        }
-
-        try {
-          const res = await fetch(p.url, {
-            method: p.method ?? "GET",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${idToken}`
-            }
-          });
-
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-          const data = await res.json();
-
-          if (typeof data.count === "number") {
-            writeLog(`取得成功 件数=${data.count}`);
-          } else {
-            writeLog("取得成功（countなし）");
-          }
-        } catch (e) {
-          console.error(e);
-          writeLog(`取得失敗: ${e.message}`);
-        }
-        return;
-      }
-
-      case "url_egov": {
-        if (!p.url) {
-          writeLog("e-Gov は url が未設定です");
-          return;
-        }
-
-        writeLog(`${p.label ?? p.name} 登録開始`);
-
-        if (!idToken) {
-          writeLog("idToken がありません（ログインからやり直してください）");
-          return;
-        }
-
-        try {
-          const res = await fetch(p.url, {
-            method: p.method ?? "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${idToken}`
-            }
-          });
-
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          const data = await res.json();
-
-          writeLog("登録完了");
-          writeLog(`fetched=${data.fetched ?? 0}`);
-          writeLog(`inserted=${data.inserted ?? 0}`);
-          writeLog(`skipped=${data.skipped ?? 0}`);
-          if (data.file_id) {
-            writeLog(`file_id=${data.file_id}`);
-          }
-        } catch (e) {
-          console.error(e);
-          writeLog(`登録失敗: ${e.message}`);
-        }
-        return;
-      }
-
-      case "url_caa": {
-        if (!p.url) {
-          writeLog("消費者庁は url が未設定です");
-          return;
-        }
-
-        writeLog(`${p.label ?? p.name} 登録開始`);
-
-        if (!idToken) {
-          writeLog("idToken がありません（ログインからやり直してください）");
-          return;
-        }
-
-        try {
-          const res = await fetch(p.url, {
-            method: p.method ?? "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${idToken}`
-            }
-          });
-
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          const data = await res.json();
-
-          writeLog("登録完了");
-          writeLog(`fetched=${data.fetched ?? 0}`);
-          writeLog(`inserted=${data.inserted ?? 0}`);
-          writeLog(`skipped=${data.skipped ?? 0}`);
-          if (data.file_id) {
-            writeLog(`file_id=${data.file_id}`);
-          }
-        } catch (e) {
-          console.error(e);
-          writeLog(`登録失敗: ${e.message}`);
-        }
-        return;
-      }
-
-      case "file_upload": {
-        const input = document.getElementById("uploadFileInput");
-
-        if (!input || !input.files || input.files.length === 0) {
-          writeLog("アップロードするファイルを選択してください");
-          return;
-        }
-
-        const API_BASE = "https://ank-api-986862757498.asia-northeast1.run.app/v1";
-
-        if (!idToken) {
-          writeLog("idToken がありません（ログインからやり直してください）");
-          return;
-        }
-
-        const file = input.files[0];
-
-        writeLog(`アップロード開始: ${file.name}`);
-
-        const formData = new FormData();
-        formData.append("file", file);
-
-        try {
-          const res = await fetch(`${API_BASE}/upload_and_register`, {
-            method: "POST",
-            headers: { Authorization: `Bearer ${idToken}` },
-            body: formData
-          });
-
-          if (res.status === 409) {
-            writeLog("同名ファイルはアップロードできません");
-            return;
-          }
-          if (res.status === 401) {
-            const t = await res.text();
-            writeLog(`認証エラー(401): ${t}`);
-            return;
-          }
-          if (res.status === 403) {
-            const t = await res.text();
-            writeLog(`権限エラー(403): ${t}`);
-            return;
-          }
-          if (!res.ok) {
-            const t = await res.text();
-            throw new Error(`HTTP ${res.status}: ${t}`);
-          }
-
-          const data = await res.json();
-
-          writeLog("アップロード成功");
-          writeLog(`file_id=${data.file_id}`);
-
-          writeLog("row_data 取り込み開始");
-
-          const res2 = await fetch(`${API_BASE}/ingest_uploaded_file/${data.file_id}`, {
-            method: "POST",
-            headers: { Authorization: `Bearer ${idToken}` }
-          });
-
-          if (res2.status === 409) {
-            const t = await res2.text();
-            writeLog(`取り込みスキップ(409): ${t}`);
-            return;
-          }
-          if (res2.status === 401) {
-            const t = await res2.text();
-            writeLog(`認証エラー(401): ${t}`);
-            return;
-          }
-          if (!res2.ok) {
-            const t = await res2.text();
-            throw new Error(`HTTP ${res2.status}: ${t}`);
-          }
-
-          const ingest = await res2.json();
-
-          writeLog("row_data 取り込み成功");
-          if (typeof ingest.row_count === "number") {
-            writeLog(`row_count=${ingest.row_count}`);
-          }
-
-          writeLog("完了");
-        } catch (e) {
-          console.error(e);
-          writeLog(`アップロード/取り込み失敗: ${e.message}`);
-        }
-        return;
-      }
-
-      default:
-        writeLog(`未対応の取得元です: ${key}`);
-        return;
-    }
-  });
-}
