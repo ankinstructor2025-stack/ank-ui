@@ -272,30 +272,83 @@ if (btnFetchDatasets) {
             datasets,
             {
               onExpandDataset: async (datasetId, datasetTitle) => {
-                const data = await window.DataSourceOpenData.fetchResources({
+                const data = await window.DataSourceOpenData.expandDataset({
                   apiBase: API_BASE,
                   idToken,
                   datasetId,
                   writeLog
                 });
 
-                window.DataSourceOpenData.renderResources(
-                  data.resources || [],
-                  datasetId,
-                  datasetTitle,
-                  {
-                    onRegisterResource: async (datasetId2, resourceId) => {
-                      await window.DataSourceOpenData.registerResource({
-                        apiBase: API_BASE,
-                        idToken,
-                        datasetId: datasetId2,
-                        resourceId,
-                        writeLog
-                      });
-                    }
-                  },
-                  writeLog
-                );
+                writeLog(`dataset 分解完了: ${datasetTitle}`);
+                if (typeof data.row_inserted === "number") {
+                  writeLog(`row_inserted=${data.row_inserted}`);
+                }
+                if (typeof data.row_skipped === "number") {
+                  writeLog(`row_skipped=${data.row_skipped}`);
+                }
+
+                // 分解後の状態を再取得して一覧を更新
+                const refresh = await window.DataSourceOpenData.fetchDatasets({
+                  apiBase: API_BASE,
+                  idToken,
+                  writeLog,
+                  onRender: (datasets2) => {
+                    window.DataSourceOpenData.renderDatasets(
+                      datasets2,
+                      {
+                        onExpandDataset: async (datasetId2, datasetTitle2) => {
+                          const data2 = await window.DataSourceOpenData.expandDataset({
+                            apiBase: API_BASE,
+                            idToken,
+                            datasetId: datasetId2,
+                            writeLog
+                          });
+
+                          writeLog(`dataset 分解完了: ${datasetTitle2}`);
+                          if (typeof data2.row_inserted === "number") {
+                            writeLog(`row_inserted=${data2.row_inserted}`);
+                          }
+                          if (typeof data2.row_skipped === "number") {
+                            writeLog(`row_skipped=${data2.row_skipped}`);
+                          }
+
+                          await window.DataSourceOpenData.fetchDatasets({
+                            apiBase: API_BASE,
+                            idToken,
+                            writeLog,
+                            onRender: (datasets3) => {
+                              window.DataSourceOpenData.renderDatasets(
+                                datasets3,
+                                {
+                                  onExpandDataset: async (datasetId3, datasetTitle3) => {
+                                    const data3 = await window.DataSourceOpenData.expandDataset({
+                                      apiBase: API_BASE,
+                                      idToken,
+                                      datasetId: datasetId3,
+                                      writeLog
+                                    });
+
+                                    writeLog(`dataset 分解完了: ${datasetTitle3}`);
+                                    if (typeof data3.row_inserted === "number") {
+                                      writeLog(`row_inserted=${data3.row_inserted}`);
+                                    }
+                                    if (typeof data3.row_skipped === "number") {
+                                      writeLog(`row_skipped=${data3.row_skipped}`);
+                                    }
+                                  }
+                                },
+                                writeLog
+                              );
+                            }
+                          });
+                        }
+                      },
+                      writeLog
+                    );
+                  }
+                });
+
+                return refresh;
               }
             },
             writeLog
