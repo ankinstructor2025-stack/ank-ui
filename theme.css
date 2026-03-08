@@ -8,14 +8,21 @@
   --bg-1: #071a3a;      /* deep blue */
   --text: #e5e7eb;      /* text */
   --muted: #9ca3af;     /* muted */
-  --card-bg: rgba(15, 23, 42, 0.70);
-  --card-border: rgba(255,255,255,0.08);
-  --input-bg: rgba(2,6,23,0.60);
-  --input-border: rgba(255,255,255,0.15);
+
+  /* 修正: カード背景を見やすく */
+  --card-bg: #f1f5f9;
+  --card-border: #cbd5e1;
+
+  --input-bg: #6b7280;
+  --input-border: #94a3b8;
   --focus: #3b82f6;     /* blue */
   --btn-0: #2563eb;
   --btn-1: #3b82f6;
   --shadow: rgba(0,0,0,0.50);
+
+  /* 追加: カード上の文字色 */
+  --card-text: #0f172a;
+  --card-muted: #475569;
 }
 
 /* page */
@@ -58,17 +65,18 @@ body {
   border-radius: 14px;
   background: var(--card-bg);
   border: 1px solid var(--card-border);
-  backdrop-filter: blur(12px);
   box-shadow: 0 10px 30px var(--shadow);
   padding: 22px;
+  color: var(--card-text);
 }
 
 .card h1, .card h2, .card h3 {
   margin: 0 0 12px;
+  color: var(--card-text);
 }
 
 .subtitle {
-  color: var(--muted);
+  color: var(--card-muted);
   font-size: 12px;
   margin-top: 6px;
 }
@@ -77,7 +85,7 @@ body {
 label {
   display: block;
   font-size: 13px;
-  color: var(--text);
+  color: var(--card-text);
   margin: 12px 0 6px;
 }
 
@@ -87,7 +95,7 @@ input, select, textarea {
   border-radius: 10px;
   border: 1px solid var(--input-border);
   background: var(--input-bg);
-  color: var(--text);
+  color: #ffffff;
   font-size: 14px;
 }
 
@@ -128,8 +136,10 @@ input:focus, select:focus, textarea:focus {
   cursor: pointer;
 }
 
-.btn:hover {
-  background: rgba(255,255,255,0.07);
+.btn:hover,
+.btn:focus {
+  background: rgba(255,255,255,0.10);
+  color: var(--text);
 }
 
 .btn-primary {
@@ -138,8 +148,17 @@ input:focus, select:focus, textarea:focus {
   color: #fff;
 }
 
-.btn-primary:hover {
-  filter: brightness(1.05);
+.btn-primary:hover,
+.btn-primary:focus {
+  background: linear-gradient(90deg, #1d4ed8, #2563eb);
+  color: #fff;
+  filter: none;
+}
+
+.btn:disabled,
+.btn-primary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 /* misc */
@@ -157,8 +176,8 @@ input:focus, select:focus, textarea:focus {
 
 .log {
   margin-top: 18px;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.08);
+  background: #e2e8f0;
+  border: 1px solid #cbd5e1;
   border-radius: 10px;
   padding: 12px;
 }
@@ -167,5 +186,5 @@ input:focus, select:focus, textarea:focus {
   margin: 0;
   white-space: pre-wrap;
   font-size: 12px;
-  color: var(--text);
+  color: var(--card-text);
 }
