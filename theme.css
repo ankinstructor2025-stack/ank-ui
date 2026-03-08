@@ -1,204 +1,432 @@
+/* theme.css */
 /* =========================================
-   共通
-========================================= */
+   SaaS 共通テーマ
+   ========================================= */
 
-* {
-  box-sizing: border-box;
+:root{
+  --bg-0: #020617;
+  --bg-1: #071a3a;
+  --text: #e5e7eb;
+  --muted: #9ca3af;
+
+  --card-bg: rgba(15, 23, 42, 0.78);
+  --card-border: rgba(255,255,255,0.10);
+
+  --panel-bg: #f1f5f9;
+  --panel-border: #cbd5e1;
+  --section-bg: #e8eef7;
+  --box-bg: #ffffff;
+
+  --panel-text: #0f172a;
+  --panel-muted: #475569;
+
+  --input-bg: #6b7280;
+  --input-border: #94a3b8;
+  --focus: #3b82f6;
+
+  --btn-0: #2563eb;
+  --btn-1: #3b82f6;
+  --shadow: rgba(0,0,0,0.50);
 }
 
-body{
-  margin:0;
-  font-family: system-ui, sans-serif;
+/* base */
+* { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
 }
 
-/* =========================================
-   レイアウト
-========================================= */
-
-.page{
-  max-width:1100px;
-  margin:auto;
-  padding:20px;
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: var(--text);
+  background:
+    radial-gradient(circle at 20% 80%, rgba(0, 180, 255, 0.15), transparent 40%),
+    radial-gradient(circle at 80% 20%, rgba(0, 90, 255, 0.18), transparent 45%),
+    linear-gradient(135deg, var(--bg-0) 0%, var(--bg-0) 35%, var(--bg-1) 70%, var(--bg-0) 100%);
 }
 
-.card{
-  background:#f1f5f9;
-  border-radius:12px;
-  padding:20px;
-  border:1px solid #cbd5e1;
+/* layout */
+.page,
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px;
 }
 
-/* =========================================
-   ヘッダー
-========================================= */
-
-.header-row{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  margin-bottom:16px;
+.center-wrap {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
 }
 
-.header-actions{
-  display:flex;
-  gap:8px;
+/* card */
+.card {
+  width: 100%;
+  border-radius: 14px;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 10px 30px var(--shadow);
+  padding: 22px;
 }
 
-/* =========================================
-   共通パネル
-========================================= */
-
-.common-panel{
-  border:1px solid #cbd5e1;
-  border-radius:10px;
-  padding:12px;
-  background:#ffffff;
-  margin-bottom:12px;
+.card h1,
+.card h2,
+.card h3 {
+  margin: 0 0 12px;
 }
 
-.common-grid{
-  display:grid;
-  grid-template-columns:220px 1fr;
-  gap:12px;
+.subtitle {
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 6px;
+  line-height: 1.5;
 }
 
-/* =========================================
-   作業パネル
-========================================= */
-
-.work-panel{
-  border:1px solid #cbd5e1;
-  border-radius:10px;
-  background:#ffffff;
-  padding:14px;
-  min-height:240px;
-}
-
-.panel-title{
-  margin-top:0;
-}
-
-/* =========================================
-   ブロック
-========================================= */
-
-.section-block{
-  border:1px solid #cbd5e1;
-  border-radius:8px;
-  background:#e8eef7;
-  padding:12px;
-  margin-top:12px;
-}
-
-/* =========================================
-   リスト
-========================================= */
-
-.dataset-list-wrap,
-.resource-list-wrap{
-  border:1px solid #cbd5e1;
-  border-radius:8px;
-  background:#ffffff;
-  max-height:220px;
-  overflow:auto;
-  padding:8px;
-}
-
-/* =========================================
-   選択ボックス
-========================================= */
-
-.selected-box{
-  border:1px solid #cbd5e1;
-  border-radius:8px;
-  background:#ffffff;
-  padding:10px;
-  margin-bottom:10px;
-}
-
-/* =========================================
-   ボタン
-========================================= */
-
-.btn{
-  padding:8px 14px;
-  border-radius:8px;
-  border:1px solid #cbd5e1;
-  background:#ffffff;
-  cursor:pointer;
-}
-
-.btn:hover{
-  background:#e2e8f0;
-}
-
-.btn-primary{
-  background:#2563eb;
-  border:none;
-  color:white;
-}
-
-.btn-primary:hover{
-  background:#1d4ed8;
-}
-
-/* =========================================
-   アクション
-========================================= */
-
-.compact-actions{
-  display:flex;
-  gap:10px;
-  margin-bottom:10px;
-}
-
-/* =========================================
-   ログ
-========================================= */
-
-.log{
-  margin-top:16px;
-  border:1px solid #cbd5e1;
-  border-radius:8px;
-  overflow:hidden;
-}
-
-.log-head{
-  display:flex;
-  justify-content:space-between;
-  padding:8px 12px;
-  background:#e8eef7;
-}
-
-.log pre{
-  margin:0;
-  padding:12px;
-  font-size:12px;
-  max-height:180px;
-  overflow:auto;
-}
-
-/* =========================================
-   その他
-========================================= */
-
-.placeholder{
-  padding:16px;
-  color:#64748b;
-}
-
-.hidden{
-  display:none;
-}
-
-label{
-  display:block;
-  margin-bottom:6px;
-  font-weight:600;
+/* form */
+label {
+  display: block;
+  font-size: 13px;
+  color: inherit;
+  margin: 12px 0 6px;
 }
 
 input,
-select{
-  width:100%;
-  padding:8px;
+select,
+textarea {
+  width: 100%;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid var(--input-border);
+  background: var(--input-bg);
+  color: #ffffff;
+  font-size: 14px;
+}
+
+textarea {
+  min-height: 120px;
+  resize: vertical;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--focus);
+}
+
+/* grid */
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 720px) {
+  .row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* buttons */
+.actions,
+.header-actions,
+.compact-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.actions,
+.header-actions {
+  justify-content: flex-end;
+}
+
+.btn {
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(255,255,255,0.04);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.btn:hover,
+.btn:focus {
+  background: rgba(255,255,255,0.10);
+  color: var(--text);
+}
+
+.btn-primary {
+  border: none;
+  background: linear-gradient(90deg, var(--btn-0), var(--btn-1));
+  color: #fff;
+}
+
+.btn-primary:hover,
+.btn-primary:focus {
+  background: linear-gradient(90deg, #1d4ed8, #2563eb);
+  color: #fff;
+  filter: none;
+}
+
+.btn:disabled,
+.btn-primary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* misc */
+.hidden { display: none !important; }
+
+.badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 999px;
+  font-size: 12px;
+  color: var(--text);
+  margin-left: 8px;
+}
+
+/* log */
+.log {
+  margin-top: 18px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.log-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.04);
+}
+
+.log pre {
+  margin: 0;
+  padding: 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 12px;
+  color: var(--text);
+  max-height: 180px;
+  overflow: auto;
+}
+
+/* =========================================
+   data_source.html 用
+   ========================================= */
+
+.header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.common-panel {
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  padding: 12px;
+  background: var(--panel-bg);
+  color: var(--panel-text);
+  margin-bottom: 12px;
+}
+
+.common-grid {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 12px;
+  align-items: end;
+}
+
+.work-panel {
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  background: var(--panel-bg);
+  color: var(--panel-text);
+  padding: 14px;
+  min-height: 280px;
+}
+
+.panel-title {
+  margin-top: 0;
+  color: var(--panel-text);
+}
+
+.section-block {
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  background: var(--section-bg);
+  color: var(--panel-text);
+  padding: 12px;
+  margin-top: 12px;
+}
+
+.dataset-list-wrap,
+.resource-list-wrap {
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  background: var(--box-bg);
+  color: var(--panel-text);
+  max-height: 220px;
+  overflow: auto;
+  padding: 8px;
+}
+
+.selected-box {
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  background: var(--box-bg);
+  color: var(--panel-muted);
+  padding: 10px;
+  margin-bottom: 10px;
+  min-height: 56px;
+  line-height: 1.5;
+}
+
+.placeholder {
+  padding: 16px;
+  color: var(--panel-muted);
+  line-height: 1.6;
+}
+
+/* data_source 内のラベルは濃色 */
+.common-panel label,
+.work-panel label,
+.section-block label {
+  color: var(--panel-text);
+}
+
+/* =========================================
+   data_view.html 用
+   ========================================= */
+
+.page-header {
+  margin-bottom: 16px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.filter-wrap {
+  margin: 16px 0 20px 0;
+}
+
+.table-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 12px 0 8px 0;
+}
+
+.pager {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.table-wrap {
+  overflow-x: auto;
+  margin-top: 8px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+th, td {
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  padding: 10px 8px;
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  color: var(--muted);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+td.content-cell {
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.5;
+}
+
+.kokkai-row {
+  cursor: pointer;
+}
+
+.kokkai-row:hover {
+  background-color: rgba(255,255,255,0.04);
+}
+
+.kokkai-row.selected {
+  background-color: rgba(255,255,255,0.08);
+}
+
+.detail-card {
+  margin-top: 16px;
+}
+
+.detail-meta {
+  margin-bottom: 12px;
+}
+
+.detail-speech {
+  white-space: pre-wrap;
+  line-height: 1.7;
+  word-break: break-word;
+}
+
+@media (max-width: 900px) {
+  .common-grid,
+  .page-header,
+  .table-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .header-actions,
+  .compact-actions,
+  .pager {
+    width: 100%;
+  }
+
+  .header-actions .btn,
+  .compact-actions .btn,
+  .pager .btn,
+  .compact-actions .btn-primary {
+    width: 100%;
+  }
+
+  .dataset-list-wrap,
+  .resource-list-wrap {
+    max-height: 180px;
+  }
+
+  .work-panel {
+    min-height: auto;
+  }
+
+  .page-header,
+  .table-toolbar {
+    display: block;
+  }
 }
