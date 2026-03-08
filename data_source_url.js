@@ -27,7 +27,70 @@ console.log("data_source_url.js loaded");
     }
   }
 
-  async function run({ apiBase, url, targetUrl, method = "POST", idToken, writeLog }) {
+  function escapeHtml(value) {
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function renderPages(pages, targetEl) {
+    if (!targetEl) return;
+
+    if (!Array.isArray(pages) || pages.length === 0) {
+      targetEl.innerHTML = `<div class="placeholder">子URLはありません</div>`;
+      return;
+    }
+
+    const rows = pages.map((page, index) => {
+      const no = index + 1;
+      const pageUrl = escapeHtml(page.page_url ?? "");
+      const status = escapeHtml(page.status ?? "");
+      const createdAt = escapeHtml(page.created_at ?? "");
+
+      return `
+        <tr>
+          <td>${no}</td>
+          <td class="url-cell">${pageUrl}</td>
+          <td>${status}</td>
+          <td>${createdAt}</td>
+        </tr>
+      `;
+    }).join("");
+
+    targetEl.innerHTML = `
+      <table class="simple-table">
+        <thead>
+          <tr>
+            <th style="width: 60px;">No</th>
+            <th>子URL</th>
+            <th style="width: 120px;">status</th>
+            <th style="width: 220px;">created_at</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows}
+        </tbody>
+      </table>
+    `;
+  }
+
+  function resetPages(targetEl) {
+    if (!targetEl) return;
+    targetEl.innerHTML = `<div class="placeholder">まだ取得していません</div>`;
+  }
+
+  async function run({
+    apiBase,
+    url,
+    targetUrl,
+    method = "POST",
+    idToken,
+    writeLog,
+    pagesContainer
+  }) {
     if (!targetUrl) {
       throw new Error("targetUrl が指定されていません");
     }
@@ -56,18 +119,27 @@ console.log("data_source_url.js loaded");
 
     writeLog("公開URL取得完了");
 
-    if (data.source_id) writeLog(`source_id=${data.source_id}`);
-    if (data.source_type) writeLog(`source_type=${data.source_type}`);
+    if (data.root_id) writeLog(`root_id=${data.root_id}`);
     if (data.target_url) writeLog(`target_url=${data.target_url}`);
+    if (data.requested_url) writeLog(`requested_url=${data.requested_url}`);
     if (data.page_count != null) writeLog(`page_count=${data.page_count}`);
     if (data.row_inserted != null) writeLog(`row_inserted=${data.row_inserted}`);
     if (data.row_skipped != null) writeLog(`row_skipped=${data.row_skipped}`);
     if (data.message) writeLog(data.message);
 
+    if (Array.isArray(data.pages)) {
+      writeLog(`pages=${data.pages.length}`);
+      renderPages(data.pages, pagesContainer);
+    } else {
+      resetPages(pagesContainer);
+    }
+
     return data;
   }
 
   window.DataSourceUrl = {
-    run
+    run,
+    renderPages,
+    resetPages
   };
 })();

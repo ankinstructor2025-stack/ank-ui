@@ -11,6 +11,7 @@ const panelUrl = document.getElementById("panelUrl");
 const panelApi = document.getElementById("panelApi");
 
 const publicUrlTarget = document.getElementById("publicUrlTarget");
+const publicUrlPageList = document.getElementById("publicUrlPageList");
 
 const logBox = document.getElementById("logBox");
 const logText = document.getElementById("logText");
@@ -139,6 +140,9 @@ function applySelection(key) {
   if (!p) {
     if (sourceName) sourceName.value = "";
     if (publicUrlTarget) publicUrlTarget.value = "";
+    if (window.DataSourceUrl && typeof window.DataSourceUrl.resetPages === "function") {
+      window.DataSourceUrl.resetPages(publicUrlPageList);
+    }
     showPanelByKey("");
     return;
   }
@@ -149,6 +153,10 @@ function applySelection(key) {
 
   if (publicUrlTarget) {
     publicUrlTarget.value = p.type === "public_url" ? (p.targetUrl ?? p.url ?? "") : "";
+  }
+
+  if (window.DataSourceUrl && typeof window.DataSourceUrl.resetPages === "function") {
+    window.DataSourceUrl.resetPages(publicUrlPageList);
   }
 
   if (key === "api_datago" && window.DataSourceOpenData) {
@@ -362,7 +370,8 @@ if (btnUrlRegister) {
         targetUrl: p.targetUrl ?? p.url,
         method: p.method ?? "POST",
         idToken,
-        writeLog
+        writeLog,
+        pagesContainer: publicUrlPageList
       });
     } catch (e) {
       console.error(e);
@@ -374,5 +383,10 @@ if (btnUrlRegister) {
 document.addEventListener("DOMContentLoaded", async () => {
   hideAllPanels();
   if (panelEmpty) panelEmpty.classList.remove("hidden");
+
+  if (window.DataSourceUrl && typeof window.DataSourceUrl.resetPages === "function") {
+    window.DataSourceUrl.resetPages(publicUrlPageList);
+  }
+
   await loadSourceMaster();
 });
