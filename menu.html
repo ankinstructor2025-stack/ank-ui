@@ -7,29 +7,60 @@
 <link rel="stylesheet" href="theme.css">
 
 <style>
+
+.menu-container{
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.menu-header{
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.menu-header h2{
+  margin: 0 0 6px 0;
+}
+
 .menu-layout{
-  display:grid;
-  grid-template-columns:220px 1fr;
-  gap:32px;
-  max-width:900px;
-  margin:0 auto;
-  align-items:start;
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 48px;
+  align-items: start;
 }
 
 .menu-buttons{
-  display:flex;
-  flex-direction:column;
-  gap:10px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .menu-buttons button{
-  width:100%;
+  width: 100%;
 }
 
 .menu-description{
-  font-size:14px;
-  line-height:1.8;
+  max-width: 520px;
+  font-size: 14px;
+  line-height: 1.9;
 }
+
+.menu-description h3{
+  margin: 0 0 20px 0;
+}
+
+@media (max-width: 900px){
+
+  .menu-layout{
+    grid-template-columns: 1fr;
+  }
+
+  .menu-description{
+    max-width: none;
+  }
+
+}
+
 </style>
 
 </head>
@@ -37,55 +68,42 @@
 <body>
 
 <div class="center-wrap">
+  <div class="card">
 
-<div class="card">
+    <div class="menu-container">
 
-<h2>機能メニュー</h2>
-<div class="subtitle">使用する機能を選択してください</div>
+      <div class="menu-header">
+        <h2>機能メニュー</h2>
+        <div class="subtitle">使用する機能を選択してください</div>
+      </div>
 
-<div class="menu-layout">
+      <div class="menu-layout">
 
-<!-- 左メニュー -->
-<div class="menu-buttons">
+        <div class="menu-buttons">
+          <button class="btn btn-primary">データ取込</button>
+          <button class="btn btn-primary">データ照会</button>
+          <button class="btn">ナレッジ作成</button>
+          <button class="btn">QA検索</button>
+        </div>
 
-<button class="btn btn-primary" id="btn-import">
-データ取込
-</button>
+        <div class="menu-description">
+          <h3>データ取込</h3>
 
-<button class="btn btn-primary" id="btn-view">
-データ照会
-</button>
+          <p>
+            公開API、公開URL、アップロードファイルからデータを取り込みます。
+          </p>
 
-<button class="btn">
-ナレッジ作成
-</button>
+          <p>
+            取り込んだデータはナレッジ作成やQA検索に利用されます。
+          </p>
 
-<button class="btn">
-QA検索
-</button>
+        </div>
 
-</div>
+      </div>
 
+    </div>
 
-<!-- 右説明 -->
-<div class="menu-description">
-
-<h3>データ取込</h3>
-
-<p>
-公開API、公開URL、アップロードファイルからデータを取り込みます。
-</p>
-
-<p>
-取り込んだデータはナレッジ作成やQA検索に利用されます。
-</p>
-
-</div>
-
-</div>
-
-</div>
-
+  </div>
 </div>
 
 <script src="menu.js"></script>
