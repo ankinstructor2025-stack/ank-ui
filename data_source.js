@@ -298,70 +298,43 @@ if (btnFetchDatasets) {
       return;
     }
 
-    try {
-      await window.DataSourceOpenData.fetchDatasets({
+    const loadDatasets = async () => {
+      const data = await window.DataSourceOpenData.fetchDatasets({
         apiBase: API_BASE,
         sourceKey: p.key,
         idToken,
-        writeLog,
-        onRender: (datasets) => {
-          window.DataSourceOpenData.renderDatasets(
-            datasets,
-            {
-              onExpandDataset: async (datasetId, datasetTitle) => {
-                const data = await window.DataSourceOpenData.expandDataset({
-                  apiBase: API_BASE,
-                  sourceKey: p.key,
-                  idToken,
-                  datasetId,
-                  writeLog
-                });
-
-                writeLog(`dataset 分解完了: ${datasetTitle}`);
-                if (typeof data.row_inserted === "number") {
-                  writeLog(`row_inserted=${data.row_inserted}`);
-                }
-                if (typeof data.row_skipped === "number") {
-                  writeLog(`row_skipped=${data.row_skipped}`);
-                }
-
-                await window.DataSourceOpenData.fetchDatasets({
-                  apiBase: API_BASE,
-                  sourceKey: p.key,
-                  idToken,
-                  writeLog,
-                  onRender: (datasets2) => {
-                    window.DataSourceOpenData.renderDatasets(
-                      datasets2,
-                      {
-                        onExpandDataset: async (datasetId2, datasetTitle2) => {
-                          const data2 = await window.DataSourceOpenData.expandDataset({
-                            apiBase: API_BASE,
-                            sourceKey: p.key,
-                            idToken,
-                            datasetId: datasetId2,
-                            writeLog
-                          });
-
-                          writeLog(`dataset 分解完了: ${datasetTitle2}`);
-                          if (typeof data2.row_inserted === "number") {
-                            writeLog(`row_inserted=${data2.row_inserted}`);
-                          }
-                          if (typeof data2.row_skipped === "number") {
-                            writeLog(`row_skipped=${data2.row_skipped}`);
-                          }
-                        }
-                      },
-                      writeLog
-                    );
-                  }
-                });
-              }
-            },
-            writeLog
-          );
-        }
+        writeLog
       });
+
+      window.DataSourceOpenData.renderDatasets(
+        data.datasets || [],
+        {
+          onExpandDataset: async (datasetId, datasetTitle) => {
+            const result = await window.DataSourceOpenData.expandDataset({
+              apiBase: API_BASE,
+              sourceKey: p.key,
+              idToken,
+              datasetId,
+              writeLog
+            });
+
+            writeLog(`dataset 分解完了: ${datasetTitle}`);
+            if (typeof result.row_inserted === "number") {
+              writeLog(`row_inserted=${result.row_inserted}`);
+            }
+            if (typeof result.row_skipped === "number") {
+              writeLog(`row_skipped=${result.row_skipped}`);
+            }
+
+            await loadDatasets();
+          }
+        },
+        writeLog
+      );
+    };
+
+    try {
+      await loadDatasets();
     } catch (e) {
       console.error(e);
       writeLog(`処理失敗: ${e.message}`);

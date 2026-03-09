@@ -57,7 +57,7 @@ console.log("data_source_opendata.js loaded");
           <div class="choice-actions">
             ${
               done
-                ? `<button type="button" class="btn" disabled>分解済</button>`
+                ? ``
                 : `
                   <button
                     type="button"
