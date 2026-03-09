@@ -40,344 +40,271 @@ function hideAllPanels() {
 }
 
 function showPanelByKey(key) {
+
   hideAllPanels();
 
   const p = sourceMap[key];
+
   if (!p) {
-    if (panelEmpty) panelEmpty.classList.remove("hidden");
+    panelEmpty.classList.remove("hidden");
     return;
   }
 
   if (key === "api_kokkai") {
-    if (panelKokkai) panelKokkai.classList.remove("hidden");
+    panelKokkai.classList.remove("hidden");
     return;
   }
 
   if (key === "file_upload") {
-    if (panelUpload) panelUpload.classList.remove("hidden");
+    panelUpload.classList.remove("hidden");
     return;
   }
 
   if (key === "api_datago") {
-    if (panelOpenData) panelOpenData.classList.remove("hidden");
+    panelOpenData.classList.remove("hidden");
     return;
   }
 
   if (p.type === "public_url") {
-    if (panelUrl) panelUrl.classList.remove("hidden");
+    panelUrl.classList.remove("hidden");
     return;
   }
 
   if (p.type === "public_api") {
-    if (panelApi) panelApi.classList.remove("hidden");
+    panelApi.classList.remove("hidden");
     return;
   }
 
-  if (panelEmpty) panelEmpty.classList.remove("hidden");
+  panelEmpty.classList.remove("hidden");
 }
 
 function clearLog() {
+
   if (logText) logText.textContent = "";
   if (logBox) logBox.classList.add("hidden");
+
 }
 
 function writeLog(msg) {
-  if (!logBox || !logText) return;
-  logBox.classList.remove("hidden");
-  const now = new Date().toISOString();
-  logText.textContent += `[${now}] ${msg}\n`;
-  logText.scrollTop = logText.scrollHeight;
-}
 
-function escapeHtml(value) {
-  return String(value ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
+  logBox.classList.remove("hidden");
+
+  const now = new Date().toISOString();
+
+  logText.textContent += `[${now}] ${msg}\n`;
+
+  logText.scrollTop = logText.scrollHeight;
+
 }
 
 function getIdToken() {
+
   return sessionStorage.getItem("idToken");
+
 }
 
 function requireIdToken() {
+
   const idToken = getIdToken();
+
   if (!idToken) {
+
     writeLog("idToken がありません（ログインからやり直してください）");
+
     return null;
+
   }
+
   return idToken;
+
 }
 
 function renderSourceOptions(list) {
+
   const groups = {};
 
   list.forEach((item) => {
+
     const groupName = item.group || "その他";
+
     if (!groups[groupName]) groups[groupName] = [];
+
     groups[groupName].push(item);
+
   });
 
   const html = [`<option value="" selected disabled>選択してください</option>`];
 
   Object.keys(groups).forEach((groupName) => {
-    html.push(`<optgroup label="${escapeHtml(groupName)}">`);
+
+    html.push(`<optgroup label="${groupName}">`);
+
     groups[groupName].forEach((item) => {
-      html.push(
-        `<option value="${escapeHtml(item.key)}">${escapeHtml(item.label)}</option>`
-      );
+
+      html.push(`<option value="${item.key}">${item.label}</option>`);
+
     });
+
     html.push(`</optgroup>`);
+
   });
 
   sourceSelect.innerHTML = html.join("");
-}
 
-function resetPublicUrlArea() {
-  if (publicUrlTarget) {
-    publicUrlTarget.value = "";
-  }
-
-  if (window.DataSourceUrl && typeof window.DataSourceUrl.resetPages === "function") {
-    window.DataSourceUrl.resetPages(publicUrlPageList);
-  }
-}
-
-function applySelection(key) {
-  const p = sourceMap[key];
-
-  if (!p) {
-    if (sourceName) sourceName.value = "";
-    resetPublicUrlArea();
-    showPanelByKey("");
-    return;
-  }
-
-  if (sourceName) {
-    sourceName.value = p.label ?? "";
-  }
-
-  if (p.type === "public_url") {
-    if (publicUrlTarget) {
-      publicUrlTarget.value = "JSON定義を使用";
-    }
-  } else {
-    if (publicUrlTarget) {
-      publicUrlTarget.value = "";
-    }
-  }
-
-  if (window.DataSourceUrl && typeof window.DataSourceUrl.resetPages === "function") {
-    window.DataSourceUrl.resetPages(publicUrlPageList);
-  }
-
-  if (key === "api_datago" && window.DataSourceOpenData) {
-    window.DataSourceOpenData.resetOpenDataArea();
-  }
-
-  showPanelByKey(key);
 }
 
 async function loadSourceMaster() {
+
   try {
+
     const res = await fetch("./source_master.json", { cache: "no-store" });
-    if (!res.ok) {
-      throw new Error(`HTTP ${res.status}`);
-    }
 
     sourceList = await res.json();
-    sourceMap = Object.fromEntries(sourceList.map((item) => [item.key, item]));
+
+    sourceMap = Object.fromEntries(
+
+      sourceList.map((item) => [item.key, item])
+
+    );
+
     renderSourceOptions(sourceList);
-  } catch (e) {
-    console.error(e);
-    if (sourceSelect) {
-      sourceSelect.innerHTML = `<option value="" selected disabled>データ種別読込失敗</option>`;
-    }
-    writeLog(`データ種別読込失敗: ${e.message}`);
+
   }
+
+  catch (e) {
+
+    console.error(e);
+
+    writeLog(`データ種別読込失敗: ${e.message}`);
+
+  }
+
 }
 
-if (btnLogout) {
-  btnLogout.addEventListener("click", () => {
-    sessionStorage.removeItem("idToken");
-    window.location.href = "index.html";
-  });
-}
+function applySelection(key) {
 
-if (btnMenu) {
-  btnMenu.addEventListener("click", () => {
-    window.location.href = "menu.html";
-  });
-}
+  const p = sourceMap[key];
 
-if (btnClearLog) {
-  btnClearLog.addEventListener("click", clearLog);
+  if (!p) {
+
+    sourceName.value = "";
+
+    showPanelByKey("");
+
+    return;
+
+  }
+
+  sourceName.value = p.label ?? "";
+
+  if (key === "api_datago" && window.DataSourceOpenData) {
+
+    window.DataSourceOpenData.resetOpenDataArea();
+
+  }
+
+  showPanelByKey(key);
+
 }
 
 if (sourceSelect) {
+
   sourceSelect.addEventListener("change", () => {
+
     clearLog();
+
     applySelection(sourceSelect.value);
+
   });
+
 }
 
-if (btnKokkaiRegister) {
-  btnKokkaiRegister.addEventListener("click", async () => {
-    writeLog("国会議事録ボタン押下");
-
-    const p = sourceMap[sourceSelect.value];
-    if (!p) {
-      writeLog("取得元が選択されていません");
-      return;
-    }
-
-    const idToken = requireIdToken();
-    if (!idToken) return;
-
-    if (!window.DataSourceKokkai || typeof window.DataSourceKokkai.run !== "function") {
-      writeLog("data_source_kokkai.js が読み込まれていません");
-      return;
-    }
-
-    try {
-      await window.DataSourceKokkai.run({
-        apiBase: API_BASE,
-        sourceKey: p.key,
-        idToken,
-        writeLog
-      });
-    } catch (e) {
-      console.error(e);
-      writeLog(`処理失敗: ${e.message}`);
-    }
-  });
-}
-
-if (btnUploadRegister) {
-  btnUploadRegister.addEventListener("click", async () => {
-    writeLog("アップロードボタン押下");
-
-    const idToken = requireIdToken();
-    if (!idToken) return;
-
-    if (!window.DataSourceUpload || typeof window.DataSourceUpload.run !== "function") {
-      writeLog("data_source_upload.js が読み込まれていません");
-      return;
-    }
-
-    try {
-      await window.DataSourceUpload.run({
-        apiBase: API_BASE,
-        idToken,
-        writeLog
-      });
-    } catch (e) {
-      console.error(e);
-      writeLog(`処理失敗: ${e.message}`);
-    }
-  });
-}
+/* ---------------------------------
+   OpenData
+--------------------------------- */
 
 if (btnFetchDatasets) {
+
   btnFetchDatasets.addEventListener("click", async () => {
-    writeLog("データセット取得ボタン押下");
+
+    writeLog("データセット取得");
 
     const p = sourceMap[sourceSelect.value];
-    if (!p) {
-      writeLog("取得元が選択されていません");
-      return;
-    }
 
     const idToken = requireIdToken();
+
     if (!idToken) return;
 
-    if (!window.DataSourceOpenData) {
-      writeLog("data_source_opendata.js が読み込まれていません");
-      return;
-    }
-
     const loadDatasets = async () => {
+
       const data = await window.DataSourceOpenData.fetchDatasets({
+
         apiBase: API_BASE,
-        sourceKey: p.key,
+
         idToken,
+
         writeLog
+
       });
 
       window.DataSourceOpenData.renderDatasets(
+
         data.datasets || [],
+
         {
+
           onExpandDataset: async (datasetId, datasetTitle) => {
-            const result = await window.DataSourceOpenData.expandDataset({
+
+            writeLog(`dataset 分解開始: ${datasetTitle}`);
+
+            await window.DataSourceOpenData.expandDataset({
+
               apiBase: API_BASE,
-              sourceKey: p.key,
+
               idToken,
+
               datasetId,
+
               writeLog
+
             });
 
-            writeLog(`dataset 分解完了: ${datasetTitle}`);
-            if (typeof result.row_inserted === "number") {
-              writeLog(`row_inserted=${result.row_inserted}`);
-            }
-            if (typeof result.row_skipped === "number") {
-              writeLog(`row_skipped=${result.row_skipped}`);
-            }
-
             await loadDatasets();
+
           }
+
         },
+
         writeLog
+
       );
+
     };
 
     try {
+
       await loadDatasets();
-    } catch (e) {
+
+    }
+
+    catch (e) {
+
       console.error(e);
+
       writeLog(`処理失敗: ${e.message}`);
+
     }
+
   });
-}
 
-if (btnUrlRegister) {
-  btnUrlRegister.addEventListener("click", async () => {
-    writeLog("公開URL取得ボタン押下");
-
-    const p = sourceMap[sourceSelect.value];
-    if (!p) {
-      writeLog("取得元が選択されていません");
-      return;
-    }
-
-    const idToken = requireIdToken();
-    if (!idToken) return;
-
-    if (!window.DataSourceUrl || typeof window.DataSourceUrl.run !== "function") {
-      writeLog("data_source_url.js が読み込まれていません");
-      return;
-    }
-
-    try {
-      await window.DataSourceUrl.run({
-        apiBase: API_BASE,
-        sourceKey: p.key,
-        idToken,
-        writeLog,
-        pagesContainer: publicUrlPageList
-      });
-    } catch (e) {
-      console.error(e);
-      writeLog(`処理失敗: ${e.message}`);
-    }
-  });
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
+
   hideAllPanels();
-  if (panelEmpty) panelEmpty.classList.remove("hidden");
-  resetPublicUrlArea();
+
+  panelEmpty.classList.remove("hidden");
+
   await loadSourceMaster();
+
 });
