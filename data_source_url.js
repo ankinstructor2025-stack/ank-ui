@@ -27,8 +27,40 @@ console.log("data_source_url.js loaded");
       .replace(/'/g, "&#39;");
   }
 
-  function renderPages(pages, targetEl) {
+  async function decomposePage({ apiBase, idToken, pageUrl, writeLog }) {
+    const requestUrl = buildRequestUrl(apiBase, "/public-url/decompose");
+
+    const headers = {
+      "Content-Type": "application/json"
+    };
+
+    if (idToken) {
+      headers.Authorization = `Bearer ${idToken}`;
+    }
+
+    const res = await fetch(requestUrl, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        page_url: pageUrl
+      })
+    });
+
+    if (!res.ok) {
+      throw new Error(`分解APIエラー (HTTP ${res.status})`);
+    }
+
+    return await res.json();
+  }
+
+  function renderPages(pages, targetEl, options = {}) {
     if (!targetEl) return;
+
+    const {
+      apiBase,
+      idToken,
+      writeLog
+    } = options;
 
     if (!Array.isArray(pages) || pages.length === 0) {
       targetEl.innerHTML = `<div class="placeholder">子URLはありません</div>`;
@@ -43,9 +75,21 @@ console.log("data_source_url.js loaded");
       return `
         <tr>
           <td>${i + 1}</td>
-          <td>${url}</td>
+          <td>
+            <a href="${url}" target="_blank" rel="noopener noreferrer">
+              ${url}
+            </a>
+          </td>
           <td>${status}</td>
           <td>${createdAt}</td>
+          <td>
+            <button
+              type="button"
+              class="btn btn-primary btn-decompose"
+              data-page-url="${url}">
+              分解
+            </button>
+          </td>
         </tr>
       `;
     }).join("");
@@ -58,6 +102,7 @@ console.log("data_source_url.js loaded");
             <th>URL</th>
             <th style="width:120px;">Status</th>
             <th style="width:220px;">created_at</th>
+            <th style="width:100px;">操作</th>
           </tr>
         </thead>
         <tbody>
@@ -65,6 +110,40 @@ console.log("data_source_url.js loaded");
         </tbody>
       </table>
     `;
+
+    targetEl.querySelectorAll(".btn-decompose").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const pageUrl = btn.dataset.pageUrl;
+        if (!pageUrl) return;
+
+        const originalText = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = "分解中";
+
+        try {
+          writeLog?.(`分解開始: ${pageUrl}`);
+
+          const data = await decomposePage({
+            apiBase,
+            idToken,
+            pageUrl,
+            writeLog
+          });
+
+          writeLog?.(`分解完了: ${pageUrl}`);
+
+          if (data.row_count != null) writeLog?.(`row_count=${data.row_count}`);
+          if (data.qa_count != null) writeLog?.(`qa_count=${data.qa_count}`);
+          if (data.text_count != null) writeLog?.(`text_count=${data.text_count}`);
+        } catch (e) {
+          console.error(e);
+          writeLog?.(`分解失敗: ${pageUrl} / ${e.message}`);
+        } finally {
+          btn.disabled = false;
+          btn.textContent = originalText;
+        }
+      });
+    });
   }
 
   function resetPages(targetEl) {
@@ -116,7 +195,11 @@ console.log("data_source_url.js loaded");
     }
 
     if (Array.isArray(data.pages)) {
-      renderPages(data.pages, pagesContainer);
+      renderPages(data.pages, pagesContainer, {
+        apiBase,
+        idToken,
+        writeLog
+      });
     } else {
       resetPages(pagesContainer);
     }
