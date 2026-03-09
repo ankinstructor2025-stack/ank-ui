@@ -2,8 +2,8 @@ console.log("data_source_url.js loaded");
 
 (function () {
   const CONFIG_PATH_MAP = {
-    egov: "/config/egov.json",
-    caa: "/config/caa.json"
+    url_egov: "/config/egov.json",
+    url_caa: "/config/caa.json"
   };
 
   function buildRequestUrl(apiBase, url) {
