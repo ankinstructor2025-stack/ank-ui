@@ -8,55 +8,81 @@
 
 <style>
 
-.menu-container{
-  max-width: 900px;
+.menu-shell{
+  max-width: 920px;
   margin: 0 auto;
 }
 
+/* header */
+
 .menu-header{
-  text-align: center;
-  margin-bottom: 32px;
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  max-width:760px;
+  margin:0 auto 28px auto;
 }
 
-.menu-header h2{
-  margin: 0 0 6px 0;
+.menu-title h2{
+  margin:0 0 6px 0;
 }
+
+/* layout */
 
 .menu-layout{
-  display: grid;
-  grid-template-columns: 260px 1fr;
-  gap: 48px;
-  align-items: start;
+  display:grid;
+  grid-template-columns:240px minmax(0,1fr);
+  gap:36px;
+  max-width:760px;
+  margin:0 auto;
+  align-items:start;
 }
 
+/* buttons */
+
 .menu-buttons{
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
 }
 
 .menu-buttons button{
-  width: 100%;
+  width:100%;
 }
 
+/* description */
+
 .menu-description{
-  max-width: 520px;
-  font-size: 14px;
-  line-height: 1.9;
+  font-size:14px;
+  line-height:1.8;
+  padding-top:4px;
 }
 
 .menu-description h3{
-  margin: 0 0 20px 0;
+  margin:0 0 18px 0;
 }
 
-@media (max-width: 900px){
+.menu-description p{
+  margin:0 0 14px 0;
+}
+
+/* logout */
+
+.logout-btn{
+  white-space:nowrap;
+}
+
+/* mobile */
+
+@media (max-width:900px){
 
   .menu-layout{
-    grid-template-columns: 1fr;
+    grid-template-columns:1fr;
   }
 
-  .menu-description{
-    max-width: none;
+  .menu-header,
+  .menu-layout{
+    max-width:none;
   }
 
 }
@@ -68,42 +94,66 @@
 <body>
 
 <div class="center-wrap">
-  <div class="card">
+<div class="card">
 
-    <div class="menu-container">
+<div class="menu-shell">
 
-      <div class="menu-header">
-        <h2>機能メニュー</h2>
-        <div class="subtitle">使用する機能を選択してください</div>
-      </div>
+<div class="menu-header">
 
-      <div class="menu-layout">
+<div class="menu-title">
+<h2>機能メニュー</h2>
+<div class="subtitle">使用する機能を選択してください</div>
+</div>
 
-        <div class="menu-buttons">
-          <button class="btn btn-primary">データ取込</button>
-          <button class="btn btn-primary">データ照会</button>
-          <button class="btn">ナレッジ作成</button>
-          <button class="btn">QA検索</button>
-        </div>
+<button class="btn logout-btn" id="btn-logout" type="button">
+ログアウト
+</button>
 
-        <div class="menu-description">
-          <h3>データ取込</h3>
+</div>
 
-          <p>
-            公開API、公開URL、アップロードファイルからデータを取り込みます。
-          </p>
 
-          <p>
-            取り込んだデータはナレッジ作成やQA検索に利用されます。
-          </p>
+<div class="menu-layout">
 
-        </div>
+<div class="menu-buttons">
 
-      </div>
+<button class="btn btn-primary" id="btn-import" type="button">
+データ取込
+</button>
 
-    </div>
+<button class="btn btn-primary" id="btn-view" type="button">
+データ照会
+</button>
 
-  </div>
+<button class="btn" type="button">
+ナレッジ作成
+</button>
+
+<button class="btn" type="button">
+QA検索
+</button>
+
+</div>
+
+
+<div class="menu-description">
+
+<h3>データ取込</h3>
+
+<p>
+公開API、公開URL、アップロードファイルからデータを取り込みます。
+</p>
+
+<p>
+取り込んだデータはナレッジ作成やQA検索に利用されます。
+</p>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
 </div>
 
 <script src="menu.js"></script>
