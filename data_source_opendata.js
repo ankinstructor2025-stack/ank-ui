@@ -91,7 +91,7 @@ console.log("data_source_opendata.js loaded");
     });
   }
 
-  async function fetchDatasets({ apiBase, idToken, writeLog, onRender }) {
+  async function fetchDatasets({ apiBase, idToken, writeLog, onRender, silent = false }) {
     const res = await fetch(`${apiBase}/opendata/fetch_datasets`, {
       method: "POST",
       headers: {
@@ -105,7 +105,10 @@ console.log("data_source_opendata.js loaded");
     }
 
     const data = await res.json();
-    writeLog(`データセット取得完了: ${data.dataset_count ?? 0}件`);
+
+    if (!silent) {
+      writeLog(`データセット取得完了: ${data.dataset_count ?? 0}件`);
+    }
 
     if (typeof onRender === "function") {
       onRender(data.datasets || []);
