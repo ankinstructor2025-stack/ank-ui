@@ -1,78 +1,82 @@
 console.log("data_source_kokkai.js loaded");
 
 (function () {
+
+  const TEMPLATE_BASE_URL =
+    "https://storage.googleapis.com/ank-bucket/template";
+
   const CONFIG_PATH_MAP = {
-    api_kokkai: "/config/kokkai.json"
+    api_kokkai: "kokkai.json"
   };
 
-  function buildRequestUrl(apiBase, url) {
-    if (!url) {
-      throw new Error("url が指定されていません");
-    }
-
-    if (/^https?:\/\//i.test(url)) {
-      return url;
-    }
-
-    if (url.startsWith("/")) {
-      return `${apiBase}${url}`;
-    }
-
-    return `${apiBase}/${url}`;
-  }
-
-  async function readErrorText(res) {
-    try {
-      const text = await res.text();
-      return text || `HTTP ${res.status}`;
-    } catch {
-      return `HTTP ${res.status}`;
-    }
-  }
-
-  function getConfigPath(sourceKey) {
-    const path = CONFIG_PATH_MAP[sourceKey];
-    if (!path) {
+  function getConfigFileName(sourceKey) {
+    const fileName = CONFIG_PATH_MAP[sourceKey];
+    if (!fileName) {
       throw new Error(`未対応の sourceKey です: ${sourceKey}`);
     }
-    return path;
+    return fileName;
+  }
+
+  function getConfigUrl(sourceKey) {
+    return `${TEMPLATE_BASE_URL}/${getConfigFileName(sourceKey)}`;
   }
 
   async function loadSourceConfig(sourceKey) {
-    const configPath = getConfigPath(sourceKey);
+    const configUrl = getConfigUrl(sourceKey);
 
-    const res = await fetch(configPath, {
+    const res = await fetch(configUrl, {
       method: "GET",
       cache: "no-store"
     });
 
     if (!res.ok) {
-      const text = await readErrorText(res);
-      throw new Error(`設定JSON取得失敗: ${configPath} / ${text}`);
+      throw new Error(`設定JSON取得失敗: ${configUrl} (HTTP ${res.status})`);
     }
 
     return await res.json();
   }
 
+  function buildRequestUrl(apiBase, path) {
+    if (!path) {
+      throw new Error("path が指定されていません");
+    }
+
+    if (/^https?:\/\//i.test(path)) {
+      return path;
+    }
+
+    if (path.startsWith("/")) {
+      return `${apiBase}${path}`;
+    }
+
+    return `${apiBase}/${path}`;
+  }
+
   async function run({ apiBase, sourceKey, idToken, writeLog }) {
+
     if (!sourceKey) {
       throw new Error("sourceKey が指定されていません");
     }
 
+    writeLog?.("国会議事録取得開始");
+
     const config = await loadSourceConfig(sourceKey);
 
-    writeLog?.("国会議事録 取得開始");
-    writeLog?.(`source_key=${sourceKey}`);
-    writeLog?.(`config_file=${getConfigPath(sourceKey)}`);
+    writeLog?.(`config_url=${getConfigUrl(sourceKey)}`);
 
     const requestUrl = buildRequestUrl(apiBase, "/kokkai/fetch_and_register");
 
+    const headers = {
+      "Content-Type": "application/json"
+    };
+
+    if (idToken) {
+      headers.Authorization = `Bearer ${idToken}`;
+    }
+
     const res = await fetch(requestUrl, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${idToken}`
-      },
+      headers,
       body: JSON.stringify({
         source_key: sourceKey,
         config
@@ -80,42 +84,26 @@ console.log("data_source_kokkai.js loaded");
     });
 
     if (res.status === 409) {
-      const text = await readErrorText(res);
-      writeLog?.(`重複または登録済み(409): ${text}`);
-      return;
-    }
-
-    if (res.status === 401) {
-      const text = await readErrorText(res);
-      writeLog?.(`認証エラー(401): ${text}`);
-      return;
-    }
-
-    if (res.status === 403) {
-      const text = await readErrorText(res);
-      writeLog?.(`権限エラー(403): ${text}`);
+      writeLog?.("既に登録済みです (409)");
       return;
     }
 
     if (!res.ok) {
-      const text = await readErrorText(res);
-      throw new Error(`取得失敗: ${text}`);
+      throw new Error(`APIエラー (HTTP ${res.status})`);
     }
 
     const data = await res.json();
 
     writeLog?.("登録完了");
 
-    if (typeof data.fetched === "number") writeLog?.(`fetched=${data.fetched}`);
-    if (typeof data.count === "number") writeLog?.(`count=${data.count}`);
-    if (typeof data.inserted === "number") writeLog?.(`inserted=${data.inserted}`);
-    if (typeof data.skipped === "number") writeLog?.(`skipped=${data.skipped}`);
+    if (data.fetched != null) writeLog?.(`fetched=${data.fetched}`);
+    if (data.inserted != null) writeLog?.(`inserted=${data.inserted}`);
+    if (data.skipped != null) writeLog?.(`skipped=${data.skipped}`);
     if (data.file_id) writeLog?.(`file_id=${data.file_id}`);
-    if (data.source_key) writeLog?.(`source_key=${data.source_key}`);
-    if (data.requested_url) writeLog?.(`requested_url=${data.requested_url}`);
   }
 
   window.DataSourceKokkai = {
     run
   };
+
 })();

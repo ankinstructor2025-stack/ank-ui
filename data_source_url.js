@@ -1,34 +1,58 @@
 console.log("data_source_url.js loaded");
 
 (function () {
+
+  const TEMPLATE_BASE_URL =
+    "https://storage.googleapis.com/ank-bucket/template";
+
   const CONFIG_PATH_MAP = {
-    url_egov: "/config/egov.json",
-    url_caa: "/config/caa.json"
+    url_egov: "egov.json",
+    url_caa: "caa.json"
   };
 
-  function buildRequestUrl(apiBase, url) {
-    if (!url) {
-      throw new Error("url が指定されていません");
+  function getConfigFileName(sourceKey) {
+    const fileName = CONFIG_PATH_MAP[sourceKey];
+    if (!fileName) {
+      throw new Error(`未対応の sourceKey です: ${sourceKey}`);
     }
-
-    if (/^https?:\/\//i.test(url)) {
-      return url;
-    }
-
-    if (url.startsWith("/")) {
-      return `${apiBase}${url}`;
-    }
-
-    return `${apiBase}/${url}`;
+    return fileName;
   }
 
-  async function readErrorText(res) {
-    try {
-      const text = await res.text();
-      return text || `HTTP ${res.status}`;
-    } catch {
-      return `HTTP ${res.status}`;
+  function getConfigUrl(sourceKey) {
+    return `${TEMPLATE_BASE_URL}/${getConfigFileName(sourceKey)}`;
+  }
+
+  async function loadSourceConfig(sourceKey) {
+
+    const configUrl = getConfigUrl(sourceKey);
+
+    const res = await fetch(configUrl, {
+      method: "GET",
+      cache: "no-store"
+    });
+
+    if (!res.ok) {
+      throw new Error(`設定JSON取得失敗: ${configUrl} (HTTP ${res.status})`);
     }
+
+    return await res.json();
+  }
+
+  function buildRequestUrl(apiBase, path) {
+
+    if (!path) {
+      throw new Error("path が指定されていません");
+    }
+
+    if (/^https?:\/\//i.test(path)) {
+      return path;
+    }
+
+    if (path.startsWith("/")) {
+      return `${apiBase}${path}`;
+    }
+
+    return `${apiBase}/${path}`;
   }
 
   function escapeHtml(value) {
@@ -41,107 +65,68 @@ console.log("data_source_url.js loaded");
   }
 
   function renderPages(pages, targetEl) {
+
     if (!targetEl) return;
 
     if (!Array.isArray(pages) || pages.length === 0) {
-      targetEl.innerHTML = `<div class="placeholder">子URLはありません</div>`;
+      targetEl.innerHTML = `<div>子URLなし</div>`;
       return;
     }
 
-    const rows = pages
-      .map((page, index) => {
-        const no = index + 1;
-        const pageUrl = escapeHtml(page.page_url ?? "");
-        const status = escapeHtml(page.status ?? "");
-        const createdAt = escapeHtml(page.created_at ?? "");
+    const rows = pages.map((p, i) => {
 
-        return `
-        <tr>
-          <td>${no}</td>
-          <td class="url-cell">${pageUrl}</td>
-          <td>${status}</td>
-          <td>${createdAt}</td>
-        </tr>
+      const url = escapeHtml(p.page_url ?? "");
+      const status = escapeHtml(p.status ?? "");
+
+      return `
+      <tr>
+        <td>${i + 1}</td>
+        <td>${url}</td>
+        <td>${status}</td>
+      </tr>
       `;
-      })
-      .join("");
+    }).join("");
 
     targetEl.innerHTML = `
-      <table class="simple-table">
-        <thead>
-          <tr>
-            <th style="width:60px;">No</th>
-            <th>子URL</th>
-            <th style="width:120px;">status</th>
-            <th style="width:220px;">created_at</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${rows}
-        </tbody>
-      </table>
+    <table>
+      <thead>
+        <tr>
+          <th>No</th>
+          <th>URL</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows}
+      </tbody>
+    </table>
     `;
   }
 
   function resetPages(targetEl) {
     if (!targetEl) return;
-    targetEl.innerHTML = `<div class="placeholder">まだ取得していません</div>`;
-  }
-
-  function getConfigPath(sourceKey) {
-    const path = CONFIG_PATH_MAP[sourceKey];
-    if (!path) {
-      throw new Error(`未対応の sourceKey です: ${sourceKey}`);
-    }
-    return path;
-  }
-
-  async function loadSourceConfig(sourceKey) {
-    const configPath = getConfigPath(sourceKey);
-
-    const res = await fetch(configPath, {
-      method: "GET",
-      cache: "no-store"
-    });
-
-    if (!res.ok) {
-      const text = await readErrorText(res);
-      throw new Error(`設定JSON取得失敗: ${configPath} / ${text}`);
-    }
-
-    return await res.json();
+    targetEl.innerHTML = "";
   }
 
   async function run({
     apiBase,
-    url,
     sourceKey,
-    method = "POST",
     idToken,
     writeLog,
     pagesContainer
   }) {
+
     if (!sourceKey) {
       throw new Error("sourceKey が指定されていません");
     }
 
+    writeLog?.("公開URL取得開始");
+
     const config = await loadSourceConfig(sourceKey);
-    const actualTargetUrl = config?.request?.url ?? "";
 
-    if (!actualTargetUrl) {
-      throw new Error("config.request.url が指定されていません");
-    }
+    writeLog?.(`config_url=${getConfigUrl(sourceKey)}`);
 
-    const requestUrl = buildRequestUrl(apiBase, url);
-
-    writeLog?.(`公開URL取得開始: ${actualTargetUrl}`);
-    writeLog?.(`source_key=${sourceKey}`);
-    writeLog?.(`config_file=${getConfigPath(sourceKey)}`);
-
-    const payload = {
-      source_key: sourceKey,
-      config
-    };
+    const requestUrl = buildRequestUrl(apiBase, "/public_url/fetch_and_register");
 
     const headers = {
       "Content-Type": "application/json"
@@ -152,33 +137,28 @@ console.log("data_source_url.js loaded");
     }
 
     const res = await fetch(requestUrl, {
-      method,
+      method: "POST",
       headers,
-      body: JSON.stringify(payload)
+      body: JSON.stringify({
+        source_key: sourceKey,
+        config
+      })
     });
 
     if (!res.ok) {
-      const text = await readErrorText(res);
-      throw new Error(`公開URL取得失敗: ${text}`);
+      throw new Error(`APIエラー (HTTP ${res.status})`);
     }
 
     const data = await res.json();
 
     writeLog?.("公開URL取得完了");
-    if (data.root_id) writeLog?.(`root_id=${data.root_id}`);
-    if (data.source_key) writeLog?.(`source_key=${data.source_key}`);
-    if (data.target_url) writeLog?.(`target_url=${data.target_url}`);
-    if (data.requested_url) writeLog?.(`requested_url=${data.requested_url}`);
-    if (data.page_count != null) writeLog?.(`page_count=${data.page_count}`);
-    if (data.row_inserted != null) writeLog?.(`row_inserted=${data.row_inserted}`);
-    if (data.row_skipped != null) writeLog?.(`row_skipped=${data.row_skipped}`);
-    if (data.message) writeLog?.(data.message);
+
+    if (data.page_count != null) {
+      writeLog?.(`page_count=${data.page_count}`);
+    }
 
     if (Array.isArray(data.pages)) {
-      writeLog?.(`pages=${data.pages.length}`);
       renderPages(data.pages, pagesContainer);
-    } else {
-      resetPages(pagesContainer);
     }
 
     return data;
@@ -187,7 +167,7 @@ console.log("data_source_url.js loaded");
   window.DataSourceUrl = {
     run,
     renderPages,
-    resetPages,
-    loadSourceConfig
+    resetPages
   };
+
 })();
