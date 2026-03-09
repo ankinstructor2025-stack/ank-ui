@@ -90,7 +90,7 @@ function writeLog(msg) {
 }
 
 function escapeHtml(value) {
-  return String(value)
+  return String(value ?? "")
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
@@ -135,26 +135,36 @@ function renderSourceOptions(list) {
   sourceSelect.innerHTML = html.join("");
 }
 
+function resetPublicUrlArea() {
+  if (publicUrlTarget) {
+    publicUrlTarget.value = "";
+  }
+
+  if (window.DataSourceUrl && typeof window.DataSourceUrl.resetPages === "function") {
+    window.DataSourceUrl.resetPages(publicUrlPageList);
+  }
+}
+
 function applySelection(key) {
   const p = sourceMap[key];
+
   if (!p) {
     if (sourceName) sourceName.value = "";
-    if (publicUrlTarget) publicUrlTarget.value = "";
-    if (window.DataSourceUrl && typeof window.DataSourceUrl.resetPages === "function") {
-      window.DataSourceUrl.resetPages(publicUrlPageList);
-    }
+    resetPublicUrlArea();
     showPanelByKey("");
     return;
   }
 
   if (sourceName) {
-    sourceName.value = p.name ?? p.label ?? "";
+    sourceName.value = p.label ?? "";
   }
 
-  if (publicUrlTarget) {
-    if (p.type === "public_url") {
+  if (p.type === "public_url") {
+    if (publicUrlTarget) {
       publicUrlTarget.value = "JSON定義を使用";
-    } else {
+    }
+  } else {
+    if (publicUrlTarget) {
       publicUrlTarget.value = "";
     }
   }
@@ -172,7 +182,7 @@ function applySelection(key) {
 
 async function loadSourceMaster() {
   try {
-    const res = await fetch("./source_master.json");
+    const res = await fetch("./source_master.json", { cache: "no-store" });
     if (!res.ok) {
       throw new Error(`HTTP ${res.status}`);
     }
@@ -233,8 +243,8 @@ if (btnKokkaiRegister) {
 
     try {
       await window.DataSourceKokkai.run({
-        url: p.url,
-        method: p.method ?? "POST",
+        apiBase: API_BASE,
+        sourceKey: p.key,
         idToken,
         writeLog
       });
@@ -274,6 +284,12 @@ if (btnFetchDatasets) {
   btnFetchDatasets.addEventListener("click", async () => {
     writeLog("データセット取得ボタン押下");
 
+    const p = sourceMap[sourceSelect.value];
+    if (!p) {
+      writeLog("取得元が選択されていません");
+      return;
+    }
+
     const idToken = requireIdToken();
     if (!idToken) return;
 
@@ -285,6 +301,7 @@ if (btnFetchDatasets) {
     try {
       await window.DataSourceOpenData.fetchDatasets({
         apiBase: API_BASE,
+        sourceKey: p.key,
         idToken,
         writeLog,
         onRender: (datasets) => {
@@ -294,6 +311,7 @@ if (btnFetchDatasets) {
               onExpandDataset: async (datasetId, datasetTitle) => {
                 const data = await window.DataSourceOpenData.expandDataset({
                   apiBase: API_BASE,
+                  sourceKey: p.key,
                   idToken,
                   datasetId,
                   writeLog
@@ -309,6 +327,7 @@ if (btnFetchDatasets) {
 
                 await window.DataSourceOpenData.fetchDatasets({
                   apiBase: API_BASE,
+                  sourceKey: p.key,
                   idToken,
                   writeLog,
                   onRender: (datasets2) => {
@@ -318,6 +337,7 @@ if (btnFetchDatasets) {
                         onExpandDataset: async (datasetId2, datasetTitle2) => {
                           const data2 = await window.DataSourceOpenData.expandDataset({
                             apiBase: API_BASE,
+                            sourceKey: p.key,
                             idToken,
                             datasetId: datasetId2,
                             writeLog
@@ -370,9 +390,7 @@ if (btnUrlRegister) {
     try {
       await window.DataSourceUrl.run({
         apiBase: API_BASE,
-        url: p.url,
-        sourceKey: p.source_key ?? p.key,
-        method: p.method ?? "POST",
+        sourceKey: p.key,
         idToken,
         writeLog,
         pagesContainer: publicUrlPageList
@@ -387,10 +405,6 @@ if (btnUrlRegister) {
 document.addEventListener("DOMContentLoaded", async () => {
   hideAllPanels();
   if (panelEmpty) panelEmpty.classList.remove("hidden");
-
-  if (window.DataSourceUrl && typeof window.DataSourceUrl.resetPages === "function") {
-    window.DataSourceUrl.resetPages(publicUrlPageList);
-  }
-
+  resetPublicUrlArea();
   await loadSourceMaster();
 });
