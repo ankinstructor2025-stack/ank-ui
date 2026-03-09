@@ -85,7 +85,7 @@ console.log("data_source_url.js loaded");
 
     writeLog?.("公開URL取得開始");
 
-    const requestUrl = buildRequestUrl(apiBase, "/public_url/fetch_and_register");
+    const requestUrl = buildRequestUrl(apiBase, "/public_url/register");
 
     const headers = {
       "Content-Type": "application/json"
