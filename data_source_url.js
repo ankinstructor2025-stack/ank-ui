@@ -90,11 +90,9 @@ console.log("data_source_url.js loaded");
 
   function getConfigPath(sourceKey) {
     const path = CONFIG_PATH_MAP[sourceKey];
-
     if (!path) {
       throw new Error(`未対応の sourceKey です: ${sourceKey}`);
     }
-
     return path;
   }
 
@@ -118,7 +116,6 @@ console.log("data_source_url.js loaded");
     apiBase,
     url,
     sourceKey,
-    targetUrl,
     method = "POST",
     idToken,
     writeLog,
@@ -129,12 +126,10 @@ console.log("data_source_url.js loaded");
     }
 
     const config = await loadSourceConfig(sourceKey);
-
-    const jsonTargetUrl = config?.request?.url ?? "";
-    const actualTargetUrl = jsonTargetUrl || targetUrl;
+    const actualTargetUrl = config?.request?.url ?? "";
 
     if (!actualTargetUrl) {
-      throw new Error("targetUrl が指定されていません");
+      throw new Error("config.request.url が指定されていません");
     }
 
     const requestUrl = buildRequestUrl(apiBase, url);
@@ -145,8 +140,7 @@ console.log("data_source_url.js loaded");
 
     const payload = {
       source_key: sourceKey,
-      target_url: actualTargetUrl,
-      config: config
+      config
     };
 
     const headers = {
@@ -171,7 +165,6 @@ console.log("data_source_url.js loaded");
     const data = await res.json();
 
     writeLog?.("公開URL取得完了");
-
     if (data.root_id) writeLog?.(`root_id=${data.root_id}`);
     if (data.source_key) writeLog?.(`source_key=${data.source_key}`);
     if (data.target_url) writeLog?.(`target_url=${data.target_url}`);

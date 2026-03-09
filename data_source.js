@@ -152,7 +152,11 @@ function applySelection(key) {
   }
 
   if (publicUrlTarget) {
-    publicUrlTarget.value = p.type === "public_url" ? (p.targetUrl ?? p.url ?? "") : "";
+    if (p.type === "public_url") {
+      publicUrlTarget.value = "JSON定義を使用";
+    } else {
+      publicUrlTarget.value = "";
+    }
   }
 
   if (window.DataSourceUrl && typeof window.DataSourceUrl.resetPages === "function") {
@@ -367,7 +371,7 @@ if (btnUrlRegister) {
       await window.DataSourceUrl.run({
         apiBase: API_BASE,
         url: p.url,
-        targetUrl: p.targetUrl ?? p.url,
+        sourceKey: p.source_key ?? p.key,
         method: p.method ?? "POST",
         idToken,
         writeLog,
