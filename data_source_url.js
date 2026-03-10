@@ -46,6 +46,31 @@ console.log("data_source_url.js loaded");
     return Number(isUsable) === 1 ? "○" : "×";
   }
 
+  function canDecompose(page) {
+    if (!page) return false;
+    if (Number(page.is_usable) !== 1) return false;
+    if (page.page_type === "list") return false;
+    if (page.page_type === "notice") return false;
+    if (page.status === "fetch_error") return false;
+    return true;
+  }
+
+  function buildTreeUrlHtml(pageUrl, depth) {
+    const safeUrl = escapeHtml(pageUrl ?? "");
+    const d = Number(depth || 0);
+    const indentPx = Math.max(0, (d - 1) * 20);
+    const marker = d > 1 ? "└ " : "";
+
+    return `
+      <div style="padding-left:${indentPx}px; white-space:nowrap;">
+        <span>${escapeHtml(marker)}</span>
+        <a href="${safeUrl}" target="_blank" rel="noopener noreferrer">
+          ${safeUrl}
+        </a>
+      </div>
+    `;
+  }
+
   async function decomposePage({ apiBase, idToken, pageUrl, writeLog }) {
     const requestUrl = buildRequestUrl(apiBase, "/public-url/decompose");
 
@@ -88,7 +113,6 @@ console.log("data_source_url.js loaded");
 
     const rows = pages.map((p, i) => {
       const urlRaw = p.page_url ?? "";
-      const url = escapeHtml(urlRaw);
       const depth = escapeHtml(p.depth ?? "");
       const pageType = escapeHtml(toPageTypeLabel(p.page_type));
       const score = escapeHtml(p.score ?? 0);
@@ -97,29 +121,29 @@ console.log("data_source_url.js loaded");
       const status = escapeHtml(p.status ?? "");
       const createdAt = escapeHtml(p.created_at ?? "");
 
+      const actionHtml = canDecompose(p)
+        ? `
+          <button
+            type="button"
+            class="btn btn-primary btn-decompose"
+            data-page-url="${escapeHtml(urlRaw)}">
+            分解
+          </button>
+        `
+        : `<span style="color:#666;">対象外</span>`;
+
       return `
         <tr>
           <td>${i + 1}</td>
           <td>${depth}</td>
-          <td>
-            <a href="${url}" target="_blank" rel="noopener noreferrer">
-              ${url}
-            </a>
-          </td>
+          <td>${buildTreeUrlHtml(urlRaw, p.depth)}</td>
           <td>${pageType}</td>
           <td>${score}</td>
           <td>${usable}</td>
           <td>${judgeReason}</td>
           <td>${status}</td>
           <td>${createdAt}</td>
-          <td>
-            <button
-              type="button"
-              class="btn btn-primary btn-decompose"
-              data-page-url="${url}">
-              分解
-            </button>
-          </td>
+          <td>${actionHtml}</td>
         </tr>
       `;
     }).join("");
@@ -227,6 +251,12 @@ console.log("data_source_url.js loaded");
 
     if (data.page_count != null) {
       writeLog?.(`page_count=${data.page_count}`);
+    }
+    if (data.row_inserted != null) {
+      writeLog?.(`row_inserted=${data.row_inserted}`);
+    }
+    if (data.row_skipped != null) {
+      writeLog?.(`row_skipped=${data.row_skipped}`);
     }
 
     if (Array.isArray(data.pages)) {
