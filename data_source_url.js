@@ -27,6 +27,25 @@ console.log("data_source_url.js loaded");
       .replace(/'/g, "&#39;");
   }
 
+  function toPageTypeLabel(pageType) {
+    switch (pageType) {
+      case "faq":
+        return "QA";
+      case "guide":
+        return "説明";
+      case "notice":
+        return "お知らせ";
+      case "list":
+        return "一覧";
+      default:
+        return "不明";
+    }
+  }
+
+  function toUsableLabel(isUsable) {
+    return Number(isUsable) === 1 ? "○" : "×";
+  }
+
   async function decomposePage({ apiBase, idToken, pageUrl, writeLog }) {
     const requestUrl = buildRequestUrl(apiBase, "/public-url/decompose");
 
@@ -68,18 +87,29 @@ console.log("data_source_url.js loaded");
     }
 
     const rows = pages.map((p, i) => {
-      const url = escapeHtml(p.page_url ?? "");
+      const urlRaw = p.page_url ?? "";
+      const url = escapeHtml(urlRaw);
+      const depth = escapeHtml(p.depth ?? "");
+      const pageType = escapeHtml(toPageTypeLabel(p.page_type));
+      const score = escapeHtml(p.score ?? 0);
+      const usable = escapeHtml(toUsableLabel(p.is_usable));
+      const judgeReason = escapeHtml(p.judge_reason ?? "");
       const status = escapeHtml(p.status ?? "");
       const createdAt = escapeHtml(p.created_at ?? "");
 
       return `
         <tr>
           <td>${i + 1}</td>
+          <td>${depth}</td>
           <td>
             <a href="${url}" target="_blank" rel="noopener noreferrer">
               ${url}
             </a>
           </td>
+          <td>${pageType}</td>
+          <td>${score}</td>
+          <td>${usable}</td>
+          <td>${judgeReason}</td>
           <td>${status}</td>
           <td>${createdAt}</td>
           <td>
@@ -99,7 +129,12 @@ console.log("data_source_url.js loaded");
         <thead>
           <tr>
             <th style="width:60px;">No</th>
+            <th style="width:70px;">階層</th>
             <th>URL</th>
+            <th style="width:90px;">種別</th>
+            <th style="width:90px;">評価点</th>
+            <th style="width:70px;">採用</th>
+            <th style="width:180px;">判定理由</th>
             <th style="width:120px;">Status</th>
             <th style="width:220px;">created_at</th>
             <th style="width:100px;">操作</th>
