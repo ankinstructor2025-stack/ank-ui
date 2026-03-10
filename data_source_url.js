@@ -55,14 +55,19 @@ console.log("data_source_url.js loaded");
     return true;
   }
 
+  function formatCreatedAt(value) {
+    if (!value) return "";
+    return String(value).replace("T", " ").replace("+00:00", "");
+  }
+
   function buildTreeUrlHtml(pageUrl, depth) {
     const safeUrl = escapeHtml(pageUrl ?? "");
     const d = Number(depth || 0);
-    const indentPx = Math.max(0, (d - 1) * 20);
+    const indentPx = Math.max(0, (d - 1) * 18);
     const marker = d > 1 ? "└ " : "";
 
     return `
-      <div style="padding-left:${indentPx}px; white-space:normal; word-break:break-all; line-height:1.5;">
+      <div style="padding-left:${indentPx}px; line-height:1.5; word-break:break-all;">
         <span>${escapeHtml(marker)}</span>
         <a href="${safeUrl}" target="_blank" rel="noopener noreferrer">
           ${safeUrl}
@@ -71,9 +76,9 @@ console.log("data_source_url.js loaded");
     `;
   }
 
-  function buildMetaLine(label, value) {
+  function buildMetaCell(label, value) {
     return `
-      <span style="display:inline-block; margin-right:16px; white-space:nowrap;">
+      <span style="display:inline-block; margin-right:14px; white-space:nowrap;">
         <span style="color:#666;">${escapeHtml(label)}:</span>
         <span>${escapeHtml(value)}</span>
       </span>
@@ -126,9 +131,8 @@ console.log("data_source_url.js loaded");
       const pageType = toPageTypeLabel(p.page_type);
       const score = p.score ?? 0;
       const usable = toUsableLabel(p.is_usable);
-      const judgeReason = p.judge_reason ?? "";
       const status = p.status ?? "";
-      const createdAt = p.created_at ?? "";
+      const createdAt = formatCreatedAt(p.created_at ?? "");
 
       const actionHtml = canDecompose(p)
         ? `
@@ -143,25 +147,19 @@ console.log("data_source_url.js loaded");
 
       return `
         <tr>
-          <td style="width:60px; vertical-align:top;">${i + 1}</td>
-          <td style="width:70px; vertical-align:top;">${escapeHtml(depth)}</td>
-          <td style="vertical-align:top;">
+          <td style="width:56px; vertical-align:top; padding-top:10px;">${i + 1}</td>
+          <td style="width:56px; vertical-align:top; padding-top:10px;">${escapeHtml(depth)}</td>
+          <td style="vertical-align:top; padding-top:10px;">
             ${buildTreeUrlHtml(urlRaw, depth)}
 
-            <div style="margin-top:8px; font-size:13px; line-height:1.8; white-space:normal; word-break:break-word;">
-              ${buildMetaLine("種別", pageType)}
-              ${buildMetaLine("評価点", score)}
-              ${buildMetaLine("採用", usable)}
-              ${buildMetaLine("Status", status)}
-              ${buildMetaLine("created_at", createdAt)}
-              <span style="display:inline-block; margin-right:16px;">
-                <span style="color:#666;">操作:</span>
-                <span style="margin-left:4px;">${actionHtml}</span>
-              </span>
-              <div style="margin-top:4px;">
-                <span style="color:#666;">判定理由:</span>
-                <span>${escapeHtml(judgeReason)}</span>
-              </div>
+            <div style="margin-top:6px; font-size:13px; line-height:1.6; color:#222;">
+              ${buildMetaCell("種別", pageType)}
+              ${buildMetaCell("評価点", score)}
+              ${buildMetaCell("採用", usable)}
+              ${buildMetaCell("Status", status)}
+              ${buildMetaCell("操作", "")}
+              <span style="margin-left:-10px;">${actionHtml}</span>
+              ${buildMetaCell("created_at", createdAt)}
             </div>
           </td>
         </tr>
@@ -172,8 +170,8 @@ console.log("data_source_url.js loaded");
       <table class="simple-table">
         <thead>
           <tr>
-            <th style="width:60px;">No</th>
-            <th style="width:70px;">階層</th>
+            <th style="width:56px;">No</th>
+            <th style="width:56px;">階層</th>
             <th>URL / 評価結果</th>
           </tr>
         </thead>
