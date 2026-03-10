@@ -86,6 +86,7 @@ console.log("data_source_url.js loaded");
   }
 
   async function decomposePage({ apiBase, idToken, pageUrl, writeLog }) {
+
     const requestUrl = buildRequestUrl(apiBase, "/public-url/decompose");
 
     const headers = {
@@ -112,6 +113,7 @@ console.log("data_source_url.js loaded");
   }
 
   function renderPages(pages, targetEl, options = {}) {
+
     if (!targetEl) return;
 
     const {
@@ -126,13 +128,14 @@ console.log("data_source_url.js loaded");
     }
 
     const rows = pages.map((p, i) => {
+
       const urlRaw = p.page_url ?? "";
       const depth = p.depth ?? "";
       const pageType = toPageTypeLabel(p.page_type);
       const score = p.score ?? 0;
       const usable = toUsableLabel(p.is_usable);
       const status = p.status ?? "";
-      const createdAt = formatCreatedAt(p.created_at ?? "");
+      const createdAt = formatCreatedAt(p.created_at ?? "").split(" ")[0];
 
       const actionHtml = canDecompose(p)
         ? `
@@ -147,34 +150,40 @@ console.log("data_source_url.js loaded");
 
       return `
         <tr>
-          <td style="width:56px; vertical-align:top; padding-top:10px;">${i + 1}</td>
-          <td style="width:56px; vertical-align:top; padding-top:10px;">${escapeHtml(depth)}</td>
-          <td style="vertical-align:top; padding-top:10px;">
+          <td style="padding:8px 6px; border-bottom:1px solid #eee;">
+
+            <div style="font-size:14px;">
+              <b>No:</b> ${i + 1}
+              &nbsp;&nbsp;
+              <b>階層:</b> ${escapeHtml(depth)}
+            </div>
+
+            <div style="margin-top:4px;">
+              <b>URL:</b>
+            </div>
+
             ${buildTreeUrlHtml(urlRaw, depth)}
 
-            <div style="margin-top:6px; font-size:13px; line-height:1.6; color:#222;">
+            <div style="margin-top:6px; font-size:13px; line-height:1.6;">
               ${buildMetaCell("種別", pageType)}
               ${buildMetaCell("評価点", score)}
               ${buildMetaCell("採用", usable)}
               ${buildMetaCell("Status", status)}
-              ${buildMetaCell("操作", "")}
-              <span style="margin-left:-10px;">${actionHtml}</span>
-              ${buildMetaCell("created_at", createdAt)}
+              ${buildMetaCell("作成日", createdAt)}
+              <span style="margin-left:10px;">
+                <span style="color:#666;">操作:</span>
+                ${actionHtml}
+              </span>
             </div>
+
           </td>
         </tr>
       `;
+
     }).join("");
 
     targetEl.innerHTML = `
       <table class="simple-table">
-        <thead>
-          <tr>
-            <th style="width:56px;">No</th>
-            <th style="width:56px;">階層</th>
-            <th>URL / 評価結果</th>
-          </tr>
-        </thead>
         <tbody>
           ${rows}
         </tbody>
@@ -182,15 +191,19 @@ console.log("data_source_url.js loaded");
     `;
 
     targetEl.querySelectorAll(".btn-decompose").forEach((btn) => {
+
       btn.addEventListener("click", async () => {
+
         const pageUrl = btn.dataset.pageUrl;
         if (!pageUrl) return;
 
         const originalText = btn.textContent;
+
         btn.disabled = true;
         btn.textContent = "分解中";
 
         try {
+
           writeLog?.(`分解開始: ${pageUrl}`);
 
           const data = await decomposePage({
@@ -205,20 +218,31 @@ console.log("data_source_url.js loaded");
           if (data.row_count != null) writeLog?.(`row_count=${data.row_count}`);
           if (data.qa_count != null) writeLog?.(`qa_count=${data.qa_count}`);
           if (data.text_count != null) writeLog?.(`text_count=${data.text_count}`);
+
         } catch (e) {
+
           console.error(e);
           writeLog?.(`分解失敗: ${pageUrl} / ${e.message}`);
+
         } finally {
+
           btn.disabled = false;
           btn.textContent = originalText;
+
         }
+
       });
+
     });
+
   }
 
   function resetPages(targetEl) {
+
     if (!targetEl) return;
+
     targetEl.innerHTML = `<div class="placeholder">まだ取得していません</div>`;
+
   }
 
   async function run({
@@ -228,6 +252,7 @@ console.log("data_source_url.js loaded");
     writeLog,
     pagesContainer
   }) {
+
     if (!sourceKey) {
       throw new Error("sourceKey が指定されていません");
     }
@@ -263,24 +288,31 @@ console.log("data_source_url.js loaded");
     if (data.page_count != null) {
       writeLog?.(`page_count=${data.page_count}`);
     }
+
     if (data.row_inserted != null) {
       writeLog?.(`row_inserted=${data.row_inserted}`);
     }
+
     if (data.row_skipped != null) {
       writeLog?.(`row_skipped=${data.row_skipped}`);
     }
 
     if (Array.isArray(data.pages)) {
+
       renderPages(data.pages, pagesContainer, {
         apiBase,
         idToken,
         writeLog
       });
+
     } else {
+
       resetPages(pagesContainer);
+
     }
 
     return data;
+
   }
 
   window.DataSourceUrl = {
