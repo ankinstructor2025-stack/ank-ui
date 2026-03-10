@@ -62,12 +62,21 @@ console.log("data_source_url.js loaded");
     const marker = d > 1 ? "└ " : "";
 
     return `
-      <div style="padding-left:${indentPx}px; white-space:nowrap;">
+      <div style="padding-left:${indentPx}px; white-space:normal; word-break:break-all; line-height:1.5;">
         <span>${escapeHtml(marker)}</span>
         <a href="${safeUrl}" target="_blank" rel="noopener noreferrer">
           ${safeUrl}
         </a>
       </div>
+    `;
+  }
+
+  function buildMetaLine(label, value) {
+    return `
+      <span style="display:inline-block; margin-right:16px; white-space:nowrap;">
+        <span style="color:#666;">${escapeHtml(label)}:</span>
+        <span>${escapeHtml(value)}</span>
+      </span>
     `;
   }
 
@@ -113,13 +122,13 @@ console.log("data_source_url.js loaded");
 
     const rows = pages.map((p, i) => {
       const urlRaw = p.page_url ?? "";
-      const depth = escapeHtml(p.depth ?? "");
-      const pageType = escapeHtml(toPageTypeLabel(p.page_type));
-      const score = escapeHtml(p.score ?? 0);
-      const usable = escapeHtml(toUsableLabel(p.is_usable));
-      const judgeReason = escapeHtml(p.judge_reason ?? "");
-      const status = escapeHtml(p.status ?? "");
-      const createdAt = escapeHtml(p.created_at ?? "");
+      const depth = p.depth ?? "";
+      const pageType = toPageTypeLabel(p.page_type);
+      const score = p.score ?? 0;
+      const usable = toUsableLabel(p.is_usable);
+      const judgeReason = p.judge_reason ?? "";
+      const status = p.status ?? "";
+      const createdAt = p.created_at ?? "";
 
       const actionHtml = canDecompose(p)
         ? `
@@ -134,16 +143,27 @@ console.log("data_source_url.js loaded");
 
       return `
         <tr>
-          <td>${i + 1}</td>
-          <td>${depth}</td>
-          <td>${buildTreeUrlHtml(urlRaw, p.depth)}</td>
-          <td>${pageType}</td>
-          <td>${score}</td>
-          <td>${usable}</td>
-          <td>${judgeReason}</td>
-          <td>${status}</td>
-          <td>${createdAt}</td>
-          <td>${actionHtml}</td>
+          <td style="width:60px; vertical-align:top;">${i + 1}</td>
+          <td style="width:70px; vertical-align:top;">${escapeHtml(depth)}</td>
+          <td style="vertical-align:top;">
+            ${buildTreeUrlHtml(urlRaw, depth)}
+
+            <div style="margin-top:8px; font-size:13px; line-height:1.8; white-space:normal; word-break:break-word;">
+              ${buildMetaLine("種別", pageType)}
+              ${buildMetaLine("評価点", score)}
+              ${buildMetaLine("採用", usable)}
+              ${buildMetaLine("Status", status)}
+              ${buildMetaLine("created_at", createdAt)}
+              <span style="display:inline-block; margin-right:16px;">
+                <span style="color:#666;">操作:</span>
+                <span style="margin-left:4px;">${actionHtml}</span>
+              </span>
+              <div style="margin-top:4px;">
+                <span style="color:#666;">判定理由:</span>
+                <span>${escapeHtml(judgeReason)}</span>
+              </div>
+            </div>
+          </td>
         </tr>
       `;
     }).join("");
@@ -154,14 +174,7 @@ console.log("data_source_url.js loaded");
           <tr>
             <th style="width:60px;">No</th>
             <th style="width:70px;">階層</th>
-            <th>URL</th>
-            <th style="width:90px;">種別</th>
-            <th style="width:90px;">評価点</th>
-            <th style="width:70px;">採用</th>
-            <th style="width:180px;">判定理由</th>
-            <th style="width:120px;">Status</th>
-            <th style="width:220px;">created_at</th>
-            <th style="width:100px;">操作</th>
+            <th>URL / 評価結果</th>
           </tr>
         </thead>
         <tbody>
