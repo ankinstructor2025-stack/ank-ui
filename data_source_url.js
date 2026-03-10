@@ -3,6 +3,7 @@ console.log("data_source_url.js loaded");
 (function () {
 
   function buildRequestUrl(apiBase, path) {
+
     if (!path) {
       throw new Error("path が指定されていません");
     }
@@ -19,6 +20,7 @@ console.log("data_source_url.js loaded");
   }
 
   function escapeHtml(value) {
+
     return String(value ?? "")
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
@@ -28,6 +30,7 @@ console.log("data_source_url.js loaded");
   }
 
   function toPageTypeLabel(pageType) {
+
     switch (pageType) {
       case "faq":
         return "QA";
@@ -47,36 +50,27 @@ console.log("data_source_url.js loaded");
   }
 
   function canDecompose(page) {
+
     if (!page) return false;
     if (Number(page.is_usable) !== 1) return false;
     if (page.page_type === "list") return false;
     if (page.page_type === "notice") return false;
     if (page.status === "fetch_error") return false;
+
     return true;
   }
 
   function formatCreatedAt(value) {
+
     if (!value) return "";
-    return String(value).replace("T", " ").replace("+00:00", "");
-  }
 
-  function buildTreeUrlHtml(pageUrl, depth) {
-    const safeUrl = escapeHtml(pageUrl ?? "");
-    const d = Number(depth || 0);
-    const indentPx = Math.max(0, (d - 1) * 18);
-    const marker = d > 1 ? "└ " : "";
-
-    return `
-      <div style="padding-left:${indentPx}px; line-height:1.5; word-break:break-all;">
-        <span>${escapeHtml(marker)}</span>
-        <a href="${safeUrl}" target="_blank" rel="noopener noreferrer">
-          ${safeUrl}
-        </a>
-      </div>
-    `;
+    return String(value)
+      .replace("T", " ")
+      .replace("+00:00", "");
   }
 
   function buildMetaCell(label, value) {
+
     return `
       <span style="display:inline-block; margin-right:14px; white-space:nowrap;">
         <span style="color:#666;">${escapeHtml(label)}:</span>
@@ -152,17 +146,16 @@ console.log("data_source_url.js loaded");
         <tr>
           <td style="padding:8px 6px; border-bottom:1px solid #eee;">
 
-            <div style="font-size:14px;">
+            <div style="font-size:14px; line-height:1.6; word-break:break-all;">
               <b>No:</b> ${i + 1}
               &nbsp;&nbsp;
               <b>階層:</b> ${escapeHtml(depth)}
-            </div>
-
-            <div style="margin-top:4px;">
+              &nbsp;&nbsp;
               <b>URL:</b>
+              <a href="${escapeHtml(urlRaw)}" target="_blank" rel="noopener noreferrer">
+                ${escapeHtml(urlRaw)}
+              </a>
             </div>
-
-            ${buildTreeUrlHtml(urlRaw, depth)}
 
             <div style="margin-top:6px; font-size:13px; line-height:1.6;">
               ${buildMetaCell("種別", pageType)}
@@ -170,7 +163,8 @@ console.log("data_source_url.js loaded");
               ${buildMetaCell("採用", usable)}
               ${buildMetaCell("Status", status)}
               ${buildMetaCell("作成日", createdAt)}
-              <span style="margin-left:10px;">
+
+              <span style="display:inline-block; margin-left:14px; white-space:nowrap;">
                 <span style="color:#666;">操作:</span>
                 ${actionHtml}
               </span>
@@ -242,7 +236,6 @@ console.log("data_source_url.js loaded");
     if (!targetEl) return;
 
     targetEl.innerHTML = `<div class="placeholder">まだ取得していません</div>`;
-
   }
 
   async function run({
@@ -312,7 +305,6 @@ console.log("data_source_url.js loaded");
     }
 
     return data;
-
   }
 
   window.DataSourceUrl = {
