@@ -128,7 +128,8 @@ console.log("data_source_url.js loaded");
       const pageType = toPageTypeLabel(p.page_type);
       const score = p.score ?? 0;
       const usable = toUsableLabel(p.is_usable);
-      const status = p.status ?? "";
+      const rawStatus = String(p.status ?? "");
+      const displayStatus = rawStatus === "done" ? "done" : "new";
       const createdAt = formatCreatedAt(p.created_at ?? "").split(" ")[0];
 
       const actionHtml = canDecompose(p)
@@ -161,7 +162,7 @@ console.log("data_source_url.js loaded");
               ${buildMetaCell("種別", pageType)}
               ${buildMetaCell("評価点", score)}
               ${buildMetaCell("採用", usable)}
-              ${buildMetaCell("Status", status)}
+              ${buildMetaCell("状態", displayStatus)}
               ${buildMetaCell("作成日", createdAt)}
 
               <span style="display:inline-block; margin-left:14px; white-space:nowrap;">
