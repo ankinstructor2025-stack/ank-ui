@@ -56,6 +56,7 @@ console.log("data_source_url.js loaded");
     if (page.page_type === "list") return false;
     if (page.page_type === "notice") return false;
     if (page.status === "fetch_error") return false;
+    if (page.status === "done") return false;
 
     return true;
   }
@@ -129,11 +130,16 @@ console.log("data_source_url.js loaded");
       const score = p.score ?? 0;
       const usable = toUsableLabel(p.is_usable);
       const rawStatus = String(p.status ?? "");
-      const displayStatus = rawStatus === "done" ? "done" : "new";
+      const displayStatus =
+        rawStatus === "done" ? "分解済" :
+        rawStatus === "fetch_error" ? "取得失敗" :
+        "new";
       const createdAt = formatCreatedAt(p.created_at ?? "").split(" ")[0];
 
-      const actionHtml = canDecompose(p)
-        ? `
+      const actionHtml = rawStatus === "done"
+        ? `<span style="color:#666;">分解済</span>`
+        : canDecompose(p)
+          ? `
           <button
             type="button"
             class="btn btn-primary btn-decompose"
@@ -141,7 +147,7 @@ console.log("data_source_url.js loaded");
             分解
           </button>
         `
-        : `<span style="color:#666;">対象外</span>`;
+          : `<span style="color:#666;">対象外</span>`;
 
       return `
         <tr>
