@@ -1,17 +1,10 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
   <title>データ照会</title>
-  <link rel="stylesheet" href="./theme.css" />
+  <link rel="stylesheet" href="./theme.css">
   <style>
-    .page-note {
-      margin: 0 0 12px 0;
-      color: #ffffff;
-      font-size: 14px;
-    }
-
     .split-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -40,67 +33,32 @@
       font-size: 13px;
     }
 
-    .table-cell-link a {
-      color: #bfdbfe;
-      text-decoration: underline;
-      word-break: break-all;
+    .table-wrap {
+      max-height: 420px;
+      overflow: auto;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
     }
 
-    .status-pill {
-      display: inline-block;
-      padding: 2px 8px;
-      border-radius: 9999px;
-      font-size: 12px;
-      font-weight: 700;
-      line-height: 1.5;
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
     }
 
-    .status-new {
-      background: rgba(59, 130, 246, 0.18);
-      color: #bfdbfe;
+    .data-table th,
+    .data-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      text-align: left;
+      vertical-align: top;
+      font-size: 14px;
     }
 
-    .status-done {
-      background: rgba(34, 197, 94, 0.18);
-      color: #bbf7d0;
-    }
-
-    .status-error {
-      background: rgba(239, 68, 68, 0.18);
-      color: #fecaca;
-    }
-
-    .selected-row {
-      background: rgba(59, 130, 246, 0.12);
-    }
-
-    .clickable-row {
-      cursor: pointer;
-    }
-
-    .clickable-row:hover {
-      background: rgba(255, 255, 255, 0.04);
-    }
-
-    .placeholder-row td {
-      color: #9ca3af;
-      text-align: center;
-      padding: 16px;
-    }
-
-    .detail-pre {
-      white-space: pre-wrap;
-      word-break: break-word;
-      line-height: 1.65;
-      margin: 0;
-      font-family: inherit;
-    }
-
-    .toolbar-right {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-      justify-content: flex-end;
+    .data-table th {
+      background: rgba(255,255,255,0.04);
+      position: sticky;
+      top: 0;
+      z-index: 1;
     }
 
     .checkbox-cell {
@@ -116,18 +74,68 @@
       width: 140px;
     }
 
-    .name-display {
-      width: 100%;
-      box-sizing: border-box;
-      background: rgba(255,255,255,0.12);
-      color: #fff;
-      border: 1px solid rgba(255,255,255,0.18);
+    .clickable-row {
+      cursor: pointer;
+    }
+
+    .clickable-row:hover {
+      background: rgba(255,255,255,0.04);
+    }
+
+    .selected-row {
+      background: rgba(59,130,246,0.12);
+    }
+
+    .placeholder-row td {
+      color: #9ca3af;
+      text-align: center;
+      padding: 16px;
+    }
+
+    .status-pill {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1.5;
+    }
+
+    .status-new {
+      background: rgba(59,130,246,0.18);
+      color: #bfdbfe;
+    }
+
+    .status-done {
+      background: rgba(34,197,94,0.18);
+      color: #bbf7d0;
+    }
+
+    .status-error {
+      background: rgba(239,68,68,0.18);
+      color: #fecaca;
+    }
+
+    .table-cell-link a {
+      color: #bfdbfe;
+      text-decoration: underline;
+      word-break: break-all;
+    }
+
+    .detail-wrap {
+      border: 1px solid rgba(255,255,255,0.08);
       border-radius: 12px;
-      padding: 10px 12px;
-      font-size: 14px;
-      min-height: 42px;
-      display: flex;
-      align-items: center;
+      padding: 16px;
+      min-height: 200px;
+      background: rgba(255,255,255,0.02);
+    }
+
+    .detail-pre {
+      white-space: pre-wrap;
+      word-break: break-word;
+      line-height: 1.65;
+      margin: 0;
+      font-family: inherit;
     }
 
     @media (max-width: 960px) {
@@ -138,84 +146,89 @@
   </style>
 </head>
 <body>
-  <div class="container">
 
-    <div class="page-header">
-      <div>
-        <h1>データ照会</h1>
-        <p>親一覧 → 子一覧 → 詳細表示</p>
-      </div>
+<div class="page">
+  <div class="card">
+
+    <div class="header-row">
+      <h2>データ照会</h2>
+
       <div class="header-actions">
-        <button id="btnBack" class="btn secondary">メニューに戻る</button>
-        <button id="btnLogout" class="btn secondary">ログアウト</button>
+        <button id="btnMenu" class="btn" type="button">メニューに戻る</button>
+        <button id="btnLogout" class="btn" type="button">ログアウト</button>
       </div>
     </div>
 
-    <div class="card">
-      <div class="filter-wrap">
-        <div class="form-group">
+    <div class="page-note">
+      親一覧 → 子一覧 → 詳細表示
+    </div>
+
+    <div class="common-panel">
+      <div class="common-grid">
+        <div>
           <label for="sourceSelect">データ種別</label>
-          <select id="sourceSelect">
-            <option value="">読み込み中...</option>
-          </select>
+          <select id="sourceSelect"></select>
         </div>
 
-        <div class="form-group">
+        <div>
           <label for="sourceName">名称</label>
-          <div id="sourceName" class="name-display"></div>
+          <input id="sourceName" readonly>
+        </div>
+      </div>
+    </div>
+
+    <div class="work-panel">
+
+      <div class="summary-row">
+        <div>
+          <span id="summaryText">0 件</span>
+          <span id="selectionSummary" class="muted-text" style="margin-left:12px;">選択 0 件</span>
+        </div>
+
+        <div>
+          <span id="contextSummary" class="muted-text">親一覧</span>
+          <button id="btnReload" class="btn" type="button" style="margin-left:12px;">再読込</button>
+          <button id="btnKnowledge" class="btn btn-primary" type="button" disabled style="margin-left:8px;">
+            選択対象をナレッジ化
+          </button>
         </div>
       </div>
 
-      <div class="table-toolbar">
-        <div class="summary-row" style="margin:0;">
-          <div>
-            <span id="summaryText">0 件</span>
-            <span id="selectionSummary" class="muted-text" style="margin-left:12px;">選択 0 件</span>
+      <div class="split-grid">
+        <div>
+          <h3 class="panel-title">親一覧</h3>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead id="parentTableHead"></thead>
+              <tbody id="parentTableBody"></tbody>
+            </table>
           </div>
-          <div id="contextSummary" class="muted-text">親一覧</div>
         </div>
 
-        <div class="toolbar-right">
-          <button id="btnReload" class="btn secondary" type="button">再読込</button>
-          <button id="btnKnowledge" class="btn primary" type="button" disabled>選択対象をナレッジ化</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="split-grid">
-      <div class="card">
-        <h2 class="panel-title">親一覧</h2>
-        <div class="table-wrap">
-          <table class="data-table">
-            <thead id="parentTableHead"></thead>
-            <tbody id="parentTableBody"></tbody>
-          </table>
+        <div>
+          <h3 class="panel-title">子一覧</h3>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead id="childTableHead"></thead>
+              <tbody id="childTableBody"></tbody>
+            </table>
+          </div>
         </div>
       </div>
 
-      <div class="card">
-        <h2 class="panel-title">子一覧</h2>
-        <div class="table-wrap">
-          <table class="data-table">
-            <thead id="childTableHead"></thead>
-            <tbody id="childTableBody"></tbody>
-          </table>
+      <div style="margin-top:16px;">
+        <h3 class="panel-title">詳細表示</h3>
+        <div class="detail-wrap">
+          <pre id="detailPre" class="detail-pre">データ種別を選択してください。</pre>
         </div>
       </div>
-    </div>
 
-    <div class="card">
-      <h2 class="panel-title">詳細表示</h2>
-      <div class="detail-card">
-        <pre id="detailPre" class="detail-pre">データ種別を選択してください。</pre>
-      </div>
     </div>
 
   </div>
+</div>
 
-  <script src="./env.js"></script>
-  <script src="./ank_firebase.js"></script>
-  <script src="./firebase_auth.js"></script>
-  <script src="./data_view.js"></script>
+<script src="./data_view.js"></script>
+
 </body>
 </html>
