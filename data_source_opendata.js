@@ -79,7 +79,6 @@ console.log("data_source_opendata.js loaded");
       btn.addEventListener("click", async () => {
         const datasetId = btn.dataset.datasetId;
         const datasetTitle = btn.dataset.datasetTitle;
-        writeLog(`dataset 分解開始: ${datasetTitle}`);
 
         try {
           await handlers.onExpandDataset(datasetId, datasetTitle);
