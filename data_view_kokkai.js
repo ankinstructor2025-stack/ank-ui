@@ -173,13 +173,15 @@ function renderChildTable(rows, parentRow) {
 }
 
 async function loadChildren(parentRow) {
-  const parentId = getParentIdentity(parentRow);
-
-  if (!parentId) {
-    throw new Error("親データに識別子がありません。");
+  if (!parentRow?.name_of_house || !parentRow?.name_of_meeting) {
+    throw new Error("親データに院名または会議名がありません。");
   }
 
-  const data = await ctx.apiGet(`/kokkai/documents/${encodeURIComponent(parentId)}/rows`);
+  const data = await ctx.apiGet("/kokkai/rows", {
+    name_of_house: parentRow.name_of_house,
+    name_of_meeting: parentRow.name_of_meeting
+  });
+
   const rows = extractRowsFromResponse(data);
 
   if (!Array.isArray(rows)) {
