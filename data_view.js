@@ -1,185 +1,110 @@
-document.addEventListener("DOMContentLoaded", async () => {
-  const tableHead = document.getElementById("data-table-head");
-  const tableBody = document.getElementById("data-table-body");
-  const sourceTypeSelect = document.getElementById("sourceTypeSelect");
+console.log("data_view.js loaded");
 
-  const btnMenu = document.getElementById("btnMenu");
-  const btnLogout = document.getElementById("btnLogout");
+(function () {
+  const API_BASE = window.API_BASE || "";
+  const NEXT_KNOWLEDGE_PAGE = "./knowledge_build.html";
 
-  const prevPageBtn = document.getElementById("prevPageBtn");
-  const nextPageBtn = document.getElementById("nextPageBtn");
-  const pageInfo = document.getElementById("pageInfo");
-  const resultInfo = document.getElementById("resultInfo");
+  let state = {
+    sourceType: "kokkai",
+    parentRows: [],
+    childRows: [],
+    selectedParentKey: null,
+    selectedChildKey: null,
+    checkedParents: new Set()
+  };
 
-  const detailCard = document.getElementById("detailCard");
-  const detailMeta = document.getElementById("detailMeta");
-  const detailSpeech = document.getElementById("detailSpeech");
+  const el = {};
 
-  let sourceList = [];
-  let sourceMap = {};
+  document.addEventListener("DOMContentLoaded", init);
 
-  let currentSourceType = "";
-  let currentRows = [];
-  let currentPage = 1;
-  let totalCount = 0;
-  const pageSize = 10;
-
-  await loadSourceMaster();
-
-  renderDefaultHeader();
-  renderMessageRow("データ種別を選択してください", 5);
-  updatePager();
-
-  if (btnMenu) {
-    btnMenu.addEventListener("click", () => {
-      window.location.href = "menu.html";
-    });
+  async function init() {
+    bindElements();
+    bindEvents();
+    await refreshParentList();
   }
 
-  if (btnLogout) {
-    btnLogout.addEventListener("click", () => {
-      sessionStorage.removeItem("idToken");
-      window.location.href = "index.html";
-    });
+  function bindElements() {
+    el.sourceType = document.getElementById("sourceType");
+    el.sourceHint = document.getElementById("sourceHint");
+    el.btnReload = document.getElementById("btnReload");
+    el.btnKnowledge = document.getElementById("btnKnowledge");
+    el.btnBack = document.getElementById("btnBack");
+    el.btnLogout = document.getElementById("btnLogout");
+
+    el.summaryText = document.getElementById("summaryText");
+    el.selectionSummary = document.getElementById("selectionSummary");
+    el.contextSummary = document.getElementById("contextSummary");
+
+    el.parentTableHead = document.getElementById("parentTableHead");
+    el.parentTableBody = document.getElementById("parentTableBody");
+    el.childTableHead = document.getElementById("childTableHead");
+    el.childTableBody = document.getElementById("childTableBody");
+
+    el.detailCard = document.getElementById("detailCard");
   }
 
-  if (prevPageBtn) {
-    prevPageBtn.addEventListener("click", async () => {
-      if (currentPage <= 1) return;
-      currentPage -= 1;
-      await reloadCurrentPage();
-    });
-  }
-
-  if (nextPageBtn) {
-    nextPageBtn.addEventListener("click", async () => {
-      const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
-      if (currentPage >= totalPages) return;
-      currentPage += 1;
-      await reloadCurrentPage();
-    });
-  }
-
-  tableBody.addEventListener("click", (event) => {
-    const rowEl = event.target.closest(".data-row");
-    if (!rowEl) return;
-
-    const index = Number(rowEl.dataset.index);
-    const row = currentRows[index];
-    if (!row) return;
-
-    tableBody.querySelectorAll(".data-row").forEach(el => {
-      el.classList.remove("selected");
+  function bindEvents() {
+    el.sourceType.addEventListener("change", async () => {
+      state.sourceType = el.sourceType.value;
+      state.parentRows = [];
+      state.childRows = [];
+      state.selectedParentKey = null;
+      state.selectedChildKey = null;
+      state.checkedParents = new Set();
+      updateSourceHint();
+      await refreshParentList();
     });
 
-    rowEl.classList.add("selected");
-    showDetail(row);
-  });
+    el.btnReload.addEventListener("click", async () => {
+      await refreshParentList();
+    });
 
-  sourceTypeSelect.addEventListener("change", async () => {
-    const selected = sourceTypeSelect.value;
-    currentSourceType = selected;
-    currentPage = 1;
-    totalCount = 0;
-    currentRows = [];
+    el.btnKnowledge.addEventListener("click", () => {
+      handleKnowledge();
+    });
 
-    hideDetail();
+    el.btnBack.addEventListener("click", () => {
+      location.href = "./index.html";
+    });
 
-    if (!selected) {
-      renderDefaultHeader();
-      renderMessageRow("データ種別を選択してください", 5);
-      updatePager();
-      return;
-    }
-
-    const p = sourceMap[selected];
-    if (!p) {
-      renderDefaultHeader();
-      renderMessageRow("データ種別が不正です", 5);
-      updatePager();
-      return;
-    }
-
-    await reloadCurrentPage();
-  });
-
-  async function reloadCurrentPage() {
-    try {
-      const offset = (currentPage - 1) * pageSize;
-      const data = await fetchRowsBySourceType(currentSourceType, pageSize, offset);
-
-      totalCount = Number(data.total_count || 0);
-      currentRows = (data.rows || [])
-        .map(row => parseRowBySourceType(currentSourceType, row))
-        .filter(row => row !== null);
-
-      renderCurrentPage();
-    } catch (e) {
-      console.error(e);
-      currentRows = [];
-      totalCount = 0;
-      renderHeaderBySourceType(currentSourceType);
-      renderMessageRow(`読込失敗: ${e.message}`, 5);
-      hideDetail();
-      updatePager();
-    }
-  }
-
-  async function loadSourceMaster() {
-    try {
-      const res = await fetch("./source_master.json");
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}`);
+    el.btnLogout.addEventListener("click", async () => {
+      if (window.firebaseAuth && typeof window.firebaseAuth.signOut === "function") {
+        await window.firebaseAuth.signOut();
       }
+      location.href = "./login.html";
+    });
 
-      sourceList = await res.json();
-      sourceMap = Object.fromEntries(sourceList.map(item => [item.key, item]));
-      renderSourceOptions(sourceList);
-    } catch (e) {
-      console.error(e);
-      sourceTypeSelect.innerHTML = `<option value="">データ種別読込失敗</option>`;
-    }
+    updateSourceHint();
   }
 
-  function renderSourceOptions(list) {
-    const groups = {};
+  function updateSourceHint() {
+    const map = {
+      kokkai: "国会議事録: 親一覧（院 + 会議名）",
+      opendata: "オープンデータ: 親一覧（opendata_documents）",
+      public_url: "公開URL: 親一覧（url_roots）",
+      upload: "アップロード: 親一覧（uploaded_files）"
+    };
+    el.sourceHint.value = map[state.sourceType] || "親一覧を表示します";
+  }
 
-    list.forEach(item => {
-      if (!groups[item.group]) {
-        groups[item.group] = [];
+  async function getIdToken() {
+    if (!window.firebaseAuth || !window.firebaseAuth.currentUser) {
+      throw new Error("ログイン情報が見つかりません");
+    }
+    return await window.firebaseAuth.currentUser.getIdToken(true);
+  }
+
+  async function apiGet(path, query = {}) {
+    const idToken = await getIdToken();
+    const url = new URL(`${API_BASE}${path}`);
+
+    Object.entries(query).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && v !== "") {
+        url.searchParams.set(k, String(v));
       }
-      groups[item.group].push(item);
     });
 
-    const html = [`<option value="">選択してください</option>`];
-
-    Object.keys(groups).forEach(groupName => {
-      html.push(`<optgroup label="${escapeHtml(groupName)}">`);
-      groups[groupName].forEach(item => {
-        html.push(
-          `<option value="${escapeHtml(item.key)}">${escapeHtml(item.label)}</option>`
-        );
-      });
-      html.push(`</optgroup>`);
-    });
-
-    sourceTypeSelect.innerHTML = html.join("");
-  }
-
-  async function fetchRowsBySourceType(sourceType, limit, offset) {
-    const idToken = sessionStorage.getItem("idToken");
-    if (!idToken) {
-      throw new Error("idToken がありません");
-    }
-
-    const API_BASE = "https://ank-api-986862757498.asia-northeast1.run.app/v1";
-    const url =
-      `${API_BASE}/row_data` +
-      `?source_type=${encodeURIComponent(sourceType)}` +
-      `&limit=${encodeURIComponent(limit)}` +
-      `&offset=${encodeURIComponent(offset)}`;
-
-    const res = await fetch(url, {
+    const res = await fetch(url.toString(), {
       method: "GET",
       headers: {
         Authorization: `Bearer ${idToken}`
@@ -187,286 +112,525 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
 
     if (!res.ok) {
-      const text = await res.text();
-      throw new Error(`HTTP ${res.status}: ${text}`);
+      let detail = `APIエラー (HTTP ${res.status})`;
+      try {
+        const data = await res.json();
+        if (data && data.detail) detail = data.detail;
+      } catch (_) {}
+      throw new Error(detail);
     }
 
     return await res.json();
   }
 
-  function parseRowBySourceType(sourceType, row) {
-    if (sourceType === "api_kokkai") {
-      return parseKokkaiRow(row);
-    }
-
-    if (sourceType === "api_datago") {
-      return parseOpendataRow(row);
-    }
-
-    return parseGenericRow(row);
-  }
-
-  function parseKokkaiRow(row) {
+  async function refreshParentList() {
     try {
-      const obj = typeof row.content === "string"
-        ? JSON.parse(row.content)
-        : row.content;
+      clearChildArea();
+      renderDetailText("親一覧を読み込み中です...");
 
-      return {
-        viewType: "kokkai",
-        date: normalizeText(obj.date),
-        house: normalizeText(obj.nameOfHouse),
-        meeting: normalizeText(obj.nameOfMeeting),
-        speaker: normalizeText(obj.speaker),
-        speech: shortenText(normalizeText(obj.speech), 160),
-        speech_full: normalizeText(obj.speech),
-      };
+      const rows = await fetchParentRows(state.sourceType);
+      state.parentRows = rows;
+      state.childRows = [];
+      state.selectedParentKey = null;
+      state.selectedChildKey = null;
+      state.checkedParents = new Set();
+
+      renderParentTable();
+      renderChildTable();
+      renderDetailText("親一覧から1件選択すると、子一覧と詳細が表示されます。");
+      updateSummaries();
+      updateKnowledgeButton();
+
     } catch (e) {
-      return null;
+      console.error(e);
+      state.parentRows = [];
+      state.childRows = [];
+      renderParentError(e.message);
+      renderChildTable();
+      renderDetailText(e.message);
+      updateSummaries();
+      updateKnowledgeButton();
     }
   }
 
-  function parseOpendataRow(row) {
-    try {
-      const obj = typeof row.content === "string"
-        ? JSON.parse(row.content)
-        : row.content;
-
-      const datasetId = normalizeText(obj.dataset_id);
-      const title = normalizeText(obj.title);
-      const sourcePath = normalizeText(obj.source_path);
-
-      const data = obj.data || {};
-      const organization = normalizeText(
-        (data.organization && (data.organization.title || data.organization.name)) || ""
-      );
-      const notes = normalizeText(data.notes);
-      const resources = Array.isArray(data.resources) ? data.resources : [];
-
-      return {
-        viewType: "opendata",
-        dataset_id: datasetId,
-        title: title,
-        organization: organization,
-        source_path: sourcePath,
-        notes: shortenText(notes, 160),
-        notes_full: notes,
-        resource_count: resources.length,
-        data_full: obj,
-      };
-    } catch (e) {
-      return null;
+  async function fetchParentRows(sourceType) {
+    if (sourceType === "kokkai") {
+      const data = await apiGet("/v1/kokkai/documents");
+      return Array.isArray(data.rows) ? data.rows : [];
     }
+
+    if (sourceType === "opendata") {
+      const data = await apiGet("/v1/opendata/documents");
+      return Array.isArray(data.rows) ? data.rows : [];
+    }
+
+    if (sourceType === "public_url") {
+      const data = await apiGet("/v1/public-url/roots");
+      return Array.isArray(data.rows) ? data.rows : [];
+    }
+
+    if (sourceType === "upload") {
+      const data = await apiGet("/v1/uploaded-files");
+      return Array.isArray(data.rows) ? data.rows : [];
+    }
+
+    return [];
   }
 
-  function parseGenericRow(row) {
-    try {
-      const obj = typeof row.content === "string"
-        ? JSON.parse(row.content)
-        : row.content;
+  async function fetchChildRows(sourceType, parentRow) {
+    if (!parentRow) return [];
 
-      return {
-        viewType: "generic",
-        title: normalizeText(obj.title || row.source_item_id || ""),
-        col2: normalizeText(obj.source_path || ""),
-        col3: shortenText(normalizeText(JSON.stringify(obj)), 160),
-        full: JSON.stringify(obj, null, 2),
-      };
-    } catch (e) {
-      return {
-        viewType: "generic",
-        title: normalizeText(row.source_item_id || ""),
-        col2: "",
-        col3: shortenText(normalizeText(row.content || ""), 160),
-        full: normalizeText(row.content || ""),
-      };
+    if (sourceType === "kokkai") {
+      const data = await apiGet("/v1/kokkai/rows", {
+        name_of_house: parentRow.name_of_house,
+        name_of_meeting: parentRow.name_of_meeting
+      });
+      return Array.isArray(data.rows) ? data.rows : [];
     }
+
+    if (sourceType === "opendata") {
+      const data = await apiGet("/v1/row_data/by_file", {
+        file_id: parentRow.source_id
+      });
+      return Array.isArray(data.rows) ? data.rows : [];
+    }
+
+    if (sourceType === "public_url") {
+      const data = await apiGet("/v1/public-url/pages", {
+        root_id: parentRow.root_id
+      });
+      return Array.isArray(data.rows) ? data.rows : [];
+    }
+
+    if (sourceType === "upload") {
+      const data = await apiGet("/v1/row_data/by_file", {
+        file_id: parentRow.file_id
+      });
+      return Array.isArray(data.rows) ? data.rows : [];
+    }
+
+    return [];
   }
 
-  function renderCurrentPage() {
-    renderHeaderBySourceType(currentSourceType);
+  async function fetchGrandChildRowsForPublicUrl(pageRow) {
+    if (!pageRow) return [];
+    const data = await apiGet("/v1/row_data/by_file", {
+      file_id: pageRow.page_id
+    });
+    return Array.isArray(data.rows) ? data.rows : [];
+  }
 
-    if (!currentRows || currentRows.length === 0) {
-      renderMessageRow("データがありません", 5);
-      hideDetail();
-      updatePager();
+  function renderParentError(message) {
+    el.parentTableHead.innerHTML = "";
+    el.parentTableBody.innerHTML = `
+      <tr>
+        <td class="placeholder">${escapeHtml(message)}</td>
+      </tr>
+    `;
+  }
+
+  function clearChildArea() {
+    el.childTableHead.innerHTML = "";
+    el.childTableBody.innerHTML = `
+      <tr><td class="placeholder">親一覧から1件選択してください。</td></tr>
+    `;
+  }
+
+  function renderParentTable() {
+    if (!state.parentRows.length) {
+      el.parentTableHead.innerHTML = "";
+      el.parentTableBody.innerHTML = `
+        <tr><td class="placeholder">データがありません。</td></tr>
+      `;
       return;
     }
 
-    if (currentSourceType === "api_kokkai") {
-      renderKokkaiRows();
-    } else if (currentSourceType === "api_datago") {
-      renderOpendataRows();
-    } else {
-      renderGenericRows();
+    const columns = getParentColumns(state.sourceType);
+
+    el.parentTableHead.innerHTML = `
+      <tr>
+        ${columns.map(col => `<th style="${col.width ? `width:${col.width};` : ""}">${escapeHtml(col.label)}</th>`).join("")}
+      </tr>
+    `;
+
+    el.parentTableBody.innerHTML = state.parentRows.map((row) => {
+      const rowKey = getParentRowKey(state.sourceType, row);
+      const checked = state.checkedParents.has(rowKey) ? "checked" : "";
+      const selectedClass = state.selectedParentKey === rowKey ? "is-selected" : "is-clickable";
+
+      return `
+        <tr class="${selectedClass}" data-parent-key="${escapeHtml(rowKey)}">
+          ${columns.map(col => {
+            if (col.type === "checkbox") {
+              return `
+                <td>
+                  <input
+                    type="checkbox"
+                    class="parent-checkbox"
+                    data-parent-key="${escapeHtml(rowKey)}"
+                    ${checked}
+                  />
+                </td>
+              `;
+            }
+
+            const value = col.render ? col.render(row) : row[col.key];
+            return `<td>${value == null ? "" : value}</td>`;
+          }).join("")}
+        </tr>
+      `;
+    }).join("");
+
+    el.parentTableBody.querySelectorAll("tr[data-parent-key]").forEach((tr) => {
+      tr.addEventListener("click", async (event) => {
+        if (event.target && event.target.classList.contains("parent-checkbox")) {
+          return;
+        }
+
+        const rowKey = tr.dataset.parentKey;
+        const row = state.parentRows.find(x => getParentRowKey(state.sourceType, x) === rowKey);
+        if (!row) return;
+
+        state.selectedParentKey = rowKey;
+        state.selectedChildKey = null;
+        renderParentTable();
+        await loadChildRows(row);
+      });
+    });
+
+    el.parentTableBody.querySelectorAll(".parent-checkbox").forEach((checkbox) => {
+      checkbox.addEventListener("click", (event) => {
+        event.stopPropagation();
+      });
+
+      checkbox.addEventListener("change", () => {
+        const rowKey = checkbox.dataset.parentKey;
+        if (!rowKey) return;
+
+        if (checkbox.checked) {
+          state.checkedParents.add(rowKey);
+        } else {
+          state.checkedParents.delete(rowKey);
+        }
+
+        updateSummaries();
+        updateKnowledgeButton();
+      });
+    });
+  }
+
+  async function loadChildRows(parentRow) {
+    try {
+      renderChildLoading();
+      renderDetailText("子一覧を読み込み中です...");
+
+      const rows = await fetchChildRows(state.sourceType, parentRow);
+      state.childRows = rows;
+      renderChildTable();
+      renderDetailText("子一覧から1件選択すると詳細が表示されます。");
+      updateSummaries();
+
+    } catch (e) {
+      console.error(e);
+      state.childRows = [];
+      el.childTableHead.innerHTML = "";
+      el.childTableBody.innerHTML = `
+        <tr><td class="placeholder">${escapeHtml(e.message)}</td></tr>
+      `;
+      renderDetailText(e.message);
     }
-
-    hideDetail();
-    updatePager();
   }
 
-  function renderKokkaiRows() {
-    tableBody.innerHTML = currentRows.map((row, index) => `
-      <tr class="data-row" data-index="${index}">
-        <td>${escapeHtml(row.date)}</td>
-        <td>${escapeHtml(row.house)}</td>
-        <td>${escapeHtml(row.meeting)}</td>
-        <td>${escapeHtml(row.speaker)}</td>
-        <td class="content-cell">${escapeHtml(row.speech)}</td>
-      </tr>
-    `).join("");
+  function renderChildLoading() {
+    el.childTableHead.innerHTML = "";
+    el.childTableBody.innerHTML = `
+      <tr><td class="placeholder">子一覧を読み込み中です...</td></tr>
+    `;
   }
 
-  function renderOpendataRows() {
-    tableBody.innerHTML = currentRows.map((row, index) => `
-      <tr class="data-row" data-index="${index}">
-        <td>${escapeHtml(row.dataset_id)}</td>
-        <td>${escapeHtml(row.title)}</td>
-        <td>${escapeHtml(row.organization)}</td>
-        <td>${escapeHtml(String(row.resource_count))}</td>
-        <td class="content-cell">${escapeHtml(row.notes)}</td>
-      </tr>
-    `).join("");
-  }
-
-  function renderGenericRows() {
-    tableBody.innerHTML = currentRows.map((row, index) => `
-      <tr class="data-row" data-index="${index}">
-        <td>${escapeHtml(row.title)}</td>
-        <td>${escapeHtml(row.col2)}</td>
-        <td colspan="3" class="content-cell">${escapeHtml(row.col3)}</td>
-      </tr>
-    `).join("");
-  }
-
-  function showDetail(row) {
-    if (!detailCard || !detailMeta || !detailSpeech) {
-      console.error("detailCard / detailMeta / detailSpeech が見つかりません");
+  function renderChildTable() {
+    if (!state.childRows.length) {
+      el.childTableHead.innerHTML = "";
+      el.childTableBody.innerHTML = `
+        <tr><td class="placeholder">子一覧はありません。</td></tr>
+      `;
       return;
     }
 
-    detailCard.style.display = "block";
+    const columns = getChildColumns(state.sourceType);
 
-    if (row.viewType === "kokkai") {
-      detailMeta.textContent =
-        `${row.date} / ${row.house} / ${row.meeting} / ${row.speaker}`;
-      detailSpeech.textContent = row.speech_full || "";
+    el.childTableHead.innerHTML = `
+      <tr>
+        ${columns.map(col => `<th style="${col.width ? `width:${col.width};` : ""}">${escapeHtml(col.label)}</th>`).join("")}
+      </tr>
+    `;
+
+    el.childTableBody.innerHTML = state.childRows.map((row) => {
+      const rowKey = getChildRowKey(state.sourceType, row);
+      const selectedClass = state.selectedChildKey === rowKey ? "is-selected" : "is-clickable";
+
+      return `
+        <tr class="${selectedClass}" data-child-key="${escapeHtml(rowKey)}">
+          ${columns.map(col => {
+            const value = col.render ? col.render(row) : row[col.key];
+            return `<td>${value == null ? "" : value}</td>`;
+          }).join("")}
+        </tr>
+      `;
+    }).join("");
+
+    el.childTableBody.querySelectorAll("tr[data-child-key]").forEach((tr) => {
+      tr.addEventListener("click", async () => {
+        const rowKey = tr.dataset.childKey;
+        const row = state.childRows.find(x => getChildRowKey(state.sourceType, x) === rowKey);
+        if (!row) return;
+
+        state.selectedChildKey = rowKey;
+        renderChildTable();
+
+        if (state.sourceType === "public_url") {
+          await handlePublicUrlChildClick(row);
+          return;
+        }
+
+        renderDetailFromRow(row);
+      });
+    });
+  }
+
+  async function handlePublicUrlChildClick(pageRow) {
+    try {
+      renderDetailText("公開URLの row_data を読み込み中です...");
+      const rows = await fetchGrandChildRowsForPublicUrl(pageRow);
+
+      if (!rows.length) {
+        renderDetailText("このページには row_data がありません。");
+        return;
+      }
+
+      const text = rows.map((r) => {
+        const title = `row_index: ${r.row_index ?? ""}`;
+        const body = extractContentText(r);
+        return `${title}\n${body}`;
+      }).join("\n\n----------------\n\n");
+
+      renderDetailText(text);
+
+    } catch (e) {
+      console.error(e);
+      renderDetailText(e.message);
+    }
+  }
+
+  function renderDetailFromRow(row) {
+    renderDetailText(extractContentText(row));
+  }
+
+  function extractContentText(row) {
+    const content = row && row.content != null ? row.content : "";
+
+    if (typeof content !== "string") {
+      try {
+        return JSON.stringify(content, null, 2);
+      } catch (_) {
+        return String(content);
+      }
+    }
+
+    try {
+      const parsed = JSON.parse(content);
+      return JSON.stringify(parsed, null, 2);
+    } catch (_) {
+      return content;
+    }
+  }
+
+  function renderDetailText(text) {
+    el.detailCard.textContent = text || "";
+  }
+
+  function updateSummaries() {
+    el.summaryText.textContent = `${state.parentRows.length} 件`;
+    el.selectionSummary.textContent = `選択 ${state.checkedParents.size} 件`;
+
+    const contextMap = {
+      kokkai: "親一覧: 院 + 会議名",
+      opendata: "親一覧: データセット",
+      public_url: "親一覧: ルートURL",
+      upload: "親一覧: アップロードファイル"
+    };
+    el.contextSummary.textContent = contextMap[state.sourceType] || "親一覧";
+  }
+
+  function updateKnowledgeButton() {
+    el.btnKnowledge.disabled = state.checkedParents.size === 0;
+  }
+
+  function handleKnowledge() {
+    const selected = state.parentRows.filter((row) => {
+      const key = getParentRowKey(state.sourceType, row);
+      return state.checkedParents.has(key);
+    });
+
+    if (!selected.length) {
+      alert("親一覧から対象を選択してください。");
       return;
     }
 
-    if (row.viewType === "opendata") {
-      detailMeta.textContent =
-        `${row.dataset_id} / ${row.title} / ${row.organization} / resource=${row.resource_count}`;
+    const payload = {
+      source_type: state.sourceType,
+      selected_parents: selected,
+      created_at: new Date().toISOString()
+    };
 
-      const lines = [
-        `source_path: ${row.source_path || ""}`,
-        "",
-        `notes:`,
-        row.notes_full || "",
+    sessionStorage.setItem("knowledge_targets", JSON.stringify(payload));
+    alert("選択対象を保存しました。次のナレッジ化処理画面で利用してください。");
+    location.href = NEXT_KNOWLEDGE_PAGE;
+  }
+
+  function getParentColumns(sourceType) {
+    if (sourceType === "kokkai") {
+      return [
+        { type: "checkbox", label: "" , width: "52px" },
+        { key: "name_of_house", label: "院", width: "120px" },
+        { key: "name_of_meeting", label: "会議名" },
+        { key: "row_count", label: "件数", width: "90px" },
+        { key: "status", label: "状態", width: "100px", render: (row) => renderStatus(row.status) }
       ];
-
-      detailSpeech.textContent = lines.join("\n");
-      return;
     }
 
-    detailMeta.textContent = row.title || "詳細";
-    detailSpeech.textContent = row.full || "";
-  }
-
-  function hideDetail() {
-    if (!detailCard || !detailMeta || !detailSpeech) return;
-
-    detailCard.style.display = "none";
-    detailMeta.textContent = "行を選択してください";
-    detailSpeech.textContent = "";
-  }
-
-  function renderHeaderBySourceType(sourceType) {
-    if (sourceType === "api_kokkai") {
-      renderKokkaiHeader();
-      return;
+    if (sourceType === "opendata") {
+      return [
+        { type: "checkbox", label: "" , width: "52px" },
+        { key: "logical_name", label: "タイトル" },
+        { key: "ext", label: "ext", width: "90px" },
+        { key: "row_count", label: "件数", width: "90px" },
+        { key: "status", label: "状態", width: "100px", render: (row) => renderStatus(row.status) }
+      ];
     }
 
-    if (sourceType === "api_datago") {
-      renderOpendataHeader();
-      return;
+    if (sourceType === "public_url") {
+      return [
+        { type: "checkbox", label: "" , width: "52px" },
+        { key: "root_url", label: "ルートURL" },
+        { key: "source_type", label: "種別", width: "120px" },
+        { key: "created_at", label: "作成日", width: "130px", render: (row) => escapeHtml(toDate(row.created_at)) }
+      ];
     }
 
-    renderDefaultHeader();
+    return [
+      { type: "checkbox", label: "" , width: "52px" },
+      { key: "logical_name", label: "ファイル名" },
+      { key: "ext", label: "ext", width: "90px" },
+      { key: "created_at", label: "作成日", width: "130px", render: (row) => escapeHtml(toDate(row.created_at)) }
+    ];
   }
 
-  function renderKokkaiHeader() {
-    tableHead.innerHTML = `
-      <tr>
-        <th style="width: 120px;">日付</th>
-        <th style="width: 90px;">院</th>
-        <th style="width: 180px;">会議名</th>
-        <th style="width: 140px;">発言者</th>
-        <th>発言内容</th>
-      </tr>
-    `;
-  }
-
-  function renderOpendataHeader() {
-    tableHead.innerHTML = `
-      <tr>
-        <th style="width: 180px;">dataset_id</th>
-        <th style="width: 280px;">タイトル</th>
-        <th style="width: 180px;">組織</th>
-        <th style="width: 100px;">資源数</th>
-        <th>概要</th>
-      </tr>
-    `;
-  }
-
-  function renderDefaultHeader() {
-    tableHead.innerHTML = `
-      <tr>
-        <th style="width: 220px;">項目1</th>
-        <th style="width: 220px;">項目2</th>
-        <th colspan="3">内容</th>
-      </tr>
-    `;
-  }
-
-  function renderMessageRow(message, colspan) {
-    tableBody.innerHTML = `
-      <tr>
-        <td colspan="${colspan}">${escapeHtml(message)}</td>
-      </tr>
-    `;
-  }
-
-  function updatePager() {
-    const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
-    pageInfo.textContent = `${currentPage} / ${totalPages}`;
-    resultInfo.textContent = `${totalCount} 件`;
-
-    if (prevPageBtn) {
-      prevPageBtn.disabled = currentPage <= 1;
+  function getChildColumns(sourceType) {
+    if (sourceType === "kokkai") {
+      return [
+        { key: "row_index", label: "No", width: "70px" },
+        { key: "speaker", label: "発言者", width: "140px", render: (row) => escapeHtml(extractSpeaker(row)) },
+        { key: "speech", label: "内容", render: (row) => escapeHtml(shorten(extractSpeech(row), 120)) }
+      ];
     }
 
-    if (nextPageBtn) {
-      nextPageBtn.disabled = totalCount === 0 || currentPage >= totalPages;
+    if (sourceType === "opendata") {
+      return [
+        { key: "row_index", label: "No", width: "70px" },
+        { key: "content", label: "概要", render: (row) => escapeHtml(shorten(extractContentText(row), 120)) }
+      ];
+    }
+
+    if (sourceType === "public_url") {
+      return [
+        { key: "depth", label: "階層", width: "70px" },
+        { key: "page_type", label: "種別", width: "90px", render: (row) => escapeHtml(row.page_type || "") },
+        { key: "score", label: "評価", width: "80px" },
+        { key: "status", label: "状態", width: "100px", render: (row) => renderStatus(row.status) },
+        { key: "page_url", label: "ページURL", render: (row) => renderLink(row.page_url) }
+      ];
+    }
+
+    return [
+      { key: "row_index", label: "No", width: "70px" },
+      { key: "content", label: "概要", render: (row) => escapeHtml(shorten(extractContentText(row), 120)) }
+    ];
+  }
+
+  function getParentRowKey(sourceType, row) {
+    if (sourceType === "kokkai") {
+      return `${row.name_of_house}__${row.name_of_meeting}`;
+    }
+    if (sourceType === "opendata") {
+      return String(row.source_id);
+    }
+    if (sourceType === "public_url") {
+      return String(row.root_id);
+    }
+    return String(row.file_id);
+  }
+
+  function getChildRowKey(sourceType, row) {
+    if (sourceType === "public_url") {
+      return String(row.page_id);
+    }
+    return String(row.row_id || `${row.file_id}_${row.row_index}`);
+  }
+
+  function renderStatus(status) {
+    const s = String(status || "").toLowerCase();
+
+    if (s === "done") {
+      return `<span class="status-pill status-done">done</span>`;
+    }
+    if (s === "error" || s === "fetch_error") {
+      return `<span class="status-pill status-error">error</span>`;
+    }
+    return `<span class="status-pill status-new">new</span>`;
+  }
+
+  function renderLink(url) {
+    const v = String(url || "");
+    return `<a href="${escapeHtml(v)}" target="_blank" rel="noopener noreferrer">${escapeHtml(v)}</a>`;
+  }
+
+  function extractSpeaker(row) {
+    const content = parseContent(row && row.content);
+    return content && (content.speaker || content.speakerName || content.nameOfSpeaker) || "";
+  }
+
+  function extractSpeech(row) {
+    const content = parseContent(row && row.content);
+    return content && (content.speech || content.speechText || content.body) || extractContentText(row);
+  }
+
+  function parseContent(content) {
+    if (!content || typeof content !== "string") return null;
+    try {
+      return JSON.parse(content);
+    } catch (_) {
+      return null;
     }
   }
 
-  function shortenText(text, maxLength) {
-    if (!text) return "";
-    if (text.length <= maxLength) return text;
-    return text.slice(0, maxLength) + " ...";
+  function shorten(text, maxLen) {
+    const s = String(text || "").replace(/\s+/g, " ").trim();
+    if (s.length <= maxLen) return s;
+    return s.slice(0, maxLen) + "...";
   }
 
-  function normalizeText(value) {
-    return String(value || "").replace(/\s+/g, " ").trim();
+  function toDate(value) {
+    if (!value) return "";
+    return String(value).slice(0, 10);
   }
 
-  function escapeHtml(value) {
-    return String(value)
+  function escapeHtml(str) {
+    return String(str ?? "")
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#39;");
   }
-});
+})();

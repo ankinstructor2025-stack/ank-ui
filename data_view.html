@@ -1,166 +1,346 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>データ照会</title>
-  <link rel="stylesheet" href="theme.css">
+  <link rel="stylesheet" href="./theme.css" />
   <style>
+    .page-wrap {
+      max-width: 1280px;
+      margin: 8px auto;
+      padding: 16px;
+      color: #fff;
+    }
+
     .page-header {
-      margin-bottom: 16px;
       display: flex;
+      justify-content: space-between;
       align-items: flex-start;
-      justify-content: space-between;
-      gap: 12px;
+      margin-bottom: 16px;
     }
 
-    .filter-wrap {
-      margin: 16px 0 20px 0;
+    .page-title {
+      font-size: 40px;
+      font-weight: 700;
+      margin: 0;
+      line-height: 1.1;
     }
 
-    .table-toolbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      margin: 12px 0 8px 0;
-    }
-
-    .pager {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    }
-
-    .table-wrap {
-      overflow-x: auto;
+    .page-subtitle {
       margin-top: 8px;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
       font-size: 14px;
-    }
-
-    th, td {
-      border-bottom: 1px solid rgba(255,255,255,0.08);
-      padding: 10px 8px;
-      text-align: left;
-      vertical-align: top;
-    }
-
-    th {
-      color: var(--muted);
-      font-weight: 600;
-      white-space: nowrap;
-    }
-
-    td.content-cell {
-      white-space: normal;
-      word-break: break-word;
-      line-height: 1.5;
+      color: rgba(255,255,255,0.72);
     }
 
     .header-actions {
       display: flex;
-      gap: 8px;
-      flex-shrink: 0;
+      gap: 12px;
+      align-items: center;
     }
 
-    .kokkai-row {
+    .btn {
+      appearance: none;
+      border: 1px solid rgba(255,255,255,0.18);
+      background: rgba(255,255,255,0.08);
+      color: #fff;
+      border-radius: 12px;
+      padding: 10px 16px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .btn:hover {
+      background: rgba(255,255,255,0.14);
+    }
+
+    .btn-primary {
+      background: #3b82f6;
+      border-color: #3b82f6;
+    }
+
+    .btn-primary:hover {
+      background: #2563eb;
+    }
+
+    .btn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .panel {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 18px;
+      padding: 18px;
+      margin-bottom: 16px;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.16);
+    }
+
+    .panel-title {
+      margin: 0 0 14px 0;
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .toolbar {
+      display: grid;
+      grid-template-columns: 260px 1fr auto;
+      gap: 14px;
+      align-items: end;
+      margin-bottom: 10px;
+    }
+
+    .field label {
+      display: block;
+      font-size: 13px;
+      color: rgba(255,255,255,0.78);
+      margin-bottom: 6px;
+    }
+
+    .field select,
+    .field input {
+      width: 100%;
+      box-sizing: border-box;
+      background: rgba(255,255,255,0.12);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-size: 14px;
+    }
+
+    .field select option {
+      color: #111827;
+    }
+
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-top: 8px;
+      margin-bottom: 10px;
+      font-size: 14px;
+      color: rgba(255,255,255,0.86);
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1.1fr 1fr;
+      gap: 16px;
+    }
+
+    .table-wrap {
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 14px;
+      overflow: hidden;
+      background: rgba(0,0,0,0.12);
+      min-height: 420px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .table-scroll {
+      overflow: auto;
+      flex: 1;
+    }
+
+    .simple-table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+
+    .simple-table th,
+    .simple-table td {
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      padding: 10px 12px;
+      text-align: left;
+      vertical-align: top;
+      font-size: 14px;
+      word-break: break-word;
+    }
+
+    .simple-table th {
+      position: sticky;
+      top: 0;
+      background: rgba(15,23,42,0.95);
+      z-index: 1;
+      font-weight: 700;
+      color: rgba(255,255,255,0.86);
+    }
+
+    .simple-table tr.is-selected {
+      background: rgba(59,130,246,0.18);
+    }
+
+    .simple-table tr.is-clickable {
       cursor: pointer;
     }
 
-    .kokkai-row:hover {
-      background-color: rgba(255,255,255,0.04);
+    .simple-table tr.is-clickable:hover {
+      background: rgba(255,255,255,0.06);
     }
 
-    .kokkai-row.selected {
-      background-color: rgba(255,255,255,0.08);
+    .placeholder {
+      padding: 18px;
+      color: rgba(255,255,255,0.68);
+      font-size: 14px;
     }
 
     .detail-card {
-      margin-top: 16px;
-    }
-
-    .detail-meta {
-      margin-bottom: 12px;
-    }
-
-    .detail-speech {
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 14px;
+      background: rgba(0,0,0,0.12);
+      padding: 16px;
+      min-height: 180px;
       white-space: pre-wrap;
-      line-height: 1.7;
       word-break: break-word;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .muted {
+      color: rgba(255,255,255,0.64);
+    }
+
+    .status-pill {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      background: rgba(255,255,255,0.1);
+    }
+
+    .status-done {
+      background: rgba(34,197,94,0.2);
+      color: #bbf7d0;
+    }
+
+    .status-new {
+      background: rgba(59,130,246,0.22);
+      color: #bfdbfe;
+    }
+
+    .status-error {
+      background: rgba(239,68,68,0.2);
+      color: #fecaca;
+    }
+
+    .mini-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    @media (max-width: 960px) {
+      .toolbar {
+        grid-template-columns: 1fr;
+      }
+
+      .grid-2 {
+        grid-template-columns: 1fr;
+      }
+
+      .page-title {
+        font-size: 32px;
+      }
+
+      .page-header {
+        flex-direction: column;
+        gap: 12px;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="card">
+  <div class="page-wrap">
 
-      <div class="page-header">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">データ照会</h1>
+        <div class="page-subtitle">親一覧 → 子一覧 → 詳細表示</div>
+      </div>
+
+      <div class="header-actions">
+        <button id="btnBack" class="btn" type="button">メニューに戻る</button>
+        <button id="btnLogout" class="btn" type="button">ログアウト</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="toolbar">
+        <div class="field">
+          <label for="sourceType">データ種別</label>
+          <select id="sourceType">
+            <option value="kokkai">国会議事録</option>
+            <option value="opendata">オープンデータ</option>
+            <option value="public_url">公開URL</option>
+            <option value="upload">アップロードファイル</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="sourceHint">補足</label>
+          <input id="sourceHint" type="text" value="親一覧を表示します" readonly />
+        </div>
+
+        <div class="mini-actions">
+          <button id="btnReload" class="btn" type="button">再読込</button>
+          <button id="btnKnowledge" class="btn btn-primary" type="button" disabled>選択対象をナレッジ化</button>
+        </div>
+      </div>
+
+      <div class="summary-row">
         <div>
-          <h2>データ照会</h2>
-          <div class="subtitle">row_data の一覧表示</div>
+          <span id="summaryText">0 件</span>
+          <span class="muted" id="selectionSummary" style="margin-left:12px;">選択 0 件</span>
         </div>
-
-        <div class="header-actions">
-          <button class="btn" id="btnMenu" type="button">メニューに戻る</button>
-          <button class="btn" id="btnLogout" type="button">ログアウト</button>
-        </div>
+        <div class="muted" id="contextSummary">親一覧</div>
       </div>
+    </div>
 
-      <div class="filter-wrap">
-        <label for="sourceTypeSelect">データ種別</label>
-        <select id="sourceTypeSelect">
-          <option value="">読み込み中...</option>
-        </select>
-        <div class="subtitle">選択したデータ種別で一覧を切り替えます</div>
-      </div>
-
-      <div class="table-toolbar">
-        <div class="subtitle" id="resultInfo">0 件</div>
-
-        <div class="pager">
-          <button class="btn" id="prevPageBtn" type="button">前へ</button>
-          <span id="pageInfo" class="subtitle">0 / 0</span>
-          <button class="btn" id="nextPageBtn" type="button">次へ</button>
-        </div>
-      </div>
-
-      <div class="table-wrap">
-        <table>
-          <thead id="data-table-head">
-            <tr>
-              <th style="width: 120px;">日付</th>
-              <th style="width: 90px;">院</th>
-              <th style="width: 180px;">会議名</th>
-              <th style="width: 140px;">発言者</th>
-              <th>発言内容</th>
-            </tr>
-          </thead>
-          <tbody id="data-table-body">
-            <tr>
-              <td colspan="5">読み込み中...</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div id="detailCard" class="card detail-card" style="display:none;">
-        <div class="page-header" style="margin-bottom:12px;">
-          <div>
-            <h3 style="margin:0;">発言詳細</h3>
-            <div class="subtitle detail-meta" id="detailMeta">行を選択してください</div>
+    <div class="grid-2">
+      <div class="panel">
+        <h2 class="panel-title">親一覧</h2>
+        <div class="table-wrap">
+          <div class="table-scroll">
+            <table class="simple-table">
+              <thead id="parentTableHead"></thead>
+              <tbody id="parentTableBody"></tbody>
+            </table>
           </div>
         </div>
-
-        <div id="detailSpeech" class="detail-speech"></div>
       </div>
 
+      <div class="panel">
+        <h2 class="panel-title">子一覧</h2>
+        <div class="table-wrap">
+          <div class="table-scroll">
+            <table class="simple-table">
+              <thead id="childTableHead"></thead>
+              <tbody id="childTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     </div>
+
+    <div class="panel">
+      <h2 class="panel-title">詳細表示</h2>
+      <div id="detailCard" class="detail-card">
+        右上のデータ種別を選択し、親一覧から行を選んでください。
+      </div>
+    </div>
+
   </div>
 
-  <script src="data_view.js"></script>
+  <script src="./env.js"></script>
+  <script src="./ank_firebase.js"></script>
+  <script src="./firebase_auth.js"></script>
+  <script src="./data_view.js"></script>
 </body>
 </html>
