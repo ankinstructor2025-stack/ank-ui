@@ -294,6 +294,61 @@ async function loadSourceMaster() {
   }
 }
 
+async function createKnowledgeJob() {
+
+  const module = getCurrentModule();
+  if (!module || typeof module.getCheckedRows !== "function") {
+    alert("対象取得に失敗しました");
+    return;
+  }
+
+  const checkedRows = module.getCheckedRows();
+
+  if (!checkedRows || checkedRows.length === 0) {
+    alert("対象を選択してください");
+    return;
+  }
+
+  const payload = {
+    source_type: "kokkai",
+    source_name: "国会議事録",
+    request_type: "extract_knowledge",
+    items: checkedRows.map((row) => ({
+      source_type: "kokkai",
+      parent_source_id: row.source_id ?? null,
+      parent_key1: row.name_of_house ?? null,
+      parent_key2: row.name_of_meeting ?? null,
+      parent_label: `${row.name_of_house ?? ""} / ${row.name_of_meeting ?? ""}`,
+      row_count: row.row_count ?? 0
+    }))
+  };
+
+  const idToken = requireIdToken();
+
+  const res = await fetch(`${API_BASE}/knowledge/jobs`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${idToken}`
+    },
+    body: JSON.stringify(payload)
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    alert("ナレッジ化ジョブ作成エラー\n" + text);
+    return;
+  }
+
+  const data = await res.json();
+
+  alert(
+    "ナレッジ化ジョブを登録しました\n" +
+    "job_id: " + data.job_id + "\n" +
+    "対象件数: " + data.selected_count
+  );
+}
+
 function bindEvents() {
   if (sourceSelect) {
     sourceSelect.addEventListener("change", handleSourceChange);
@@ -319,9 +374,7 @@ function bindEvents() {
   }
 
   if (btnKnowledge) {
-    btnKnowledge.addEventListener("click", () => {
-      alert("ナレッジ化は次段階です。");
-    });
+    btnKnowledge.addEventListener("click", createKnowledgeJob);
   }
 }
 
