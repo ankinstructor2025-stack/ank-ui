@@ -6,7 +6,6 @@ const sourceName = document.getElementById("sourceName");
 const btnReload = document.getElementById("btnReload");
 const btnKnowledge = document.getElementById("btnKnowledge");
 const btnMenu = document.getElementById("btnMenu");
-const btnBack = document.getElementById("btnBack");
 const btnLogout = document.getElementById("btnLogout");
 
 const summaryText = document.getElementById("summaryText");
@@ -83,33 +82,11 @@ async function apiGet(path, query = {}) {
   return await res.json();
 }
 
-function renderInitialScreen() {
-  if (parentTableHead) parentTableHead.innerHTML = "";
-  if (parentTableBody) {
-    parentTableBody.innerHTML = `
-      <tr class="placeholder-row">
-        <td>データ種別を選択してください。</td>
-      </tr>
-    `;
-  }
-
-  if (childTableHead) childTableHead.innerHTML = "";
-  if (childTableBody) {
-    childTableBody.innerHTML = `
-      <tr class="placeholder-row">
-        <td>親一覧から1件選択してください。</td>
-      </tr>
-    `;
-  }
-
-  if (detailPre) {
-    detailPre.textContent = "データ種別を選択してください。";
-  }
-
-  if (summaryText) summaryText.textContent = "0 件";
-  if (selectionSummary) selectionSummary.textContent = "選択 0 件";
-  if (contextSummary) contextSummary.textContent = "親一覧";
-  if (btnKnowledge) btnKnowledge.disabled = true;
+function getStatusClass(status) {
+  const s = String(status || "").toLowerCase();
+  if (s === "done") return "status-pill status-done";
+  if (s === "error") return "status-pill status-error";
+  return "status-pill status-new";
 }
 
 function renderSourceOptions(list) {
@@ -121,9 +98,7 @@ function renderSourceOptions(list) {
     groups[groupName].push(item);
   });
 
-  const html = [
-    `<option value="" selected disabled>選択してください</option>`
-  ];
+  const html = [`<option value="" selected disabled>選択してください</option>`];
 
   Object.keys(groups).forEach((groupName) => {
     html.push(`<optgroup label="${escapeHtml(groupName)}">`);
@@ -167,24 +142,135 @@ function updateSourceName() {
   const text = item ? item.label : "";
 
   if (!sourceName) return;
+  sourceName.value = text;
+}
 
-  if ("value" in sourceName) {
-    sourceName.value = text;
-  } else {
-    sourceName.textContent = text;
+function renderParentPlaceholder(message) {
+  if (parentTableHead) parentTableHead.innerHTML = "";
+  if (parentTableBody) {
+    parentTableBody.innerHTML = `
+      <tr class="placeholder-row">
+        <td>${escapeHtml(message)}</td>
+      </tr>
+    `;
   }
+}
+
+function renderChildPlaceholder(message) {
+  if (childTableHead) childTableHead.innerHTML = "";
+  if (childTableBody) {
+    childTableBody.innerHTML = `
+      <tr class="placeholder-row">
+        <td>${escapeHtml(message)}</td>
+      </tr>
+    `;
+  }
+}
+
+function renderInitialScreen() {
+  renderParentPlaceholder("データ種別を選択してください。");
+  renderChildPlaceholder("親一覧から1件選択してください。");
+
+  if (detailPre) detailPre.textContent = "データ種別を選択してください。";
+  if (summaryText) summaryText.textContent = "0 件";
+  if (selectionSummary) selectionSummary.textContent = "選択 0 件";
+  if (contextSummary) contextSummary.textContent = "親一覧";
+  if (btnKnowledge) btnKnowledge.disabled = true;
+}
+
+function resetViewForSource() {
+  renderParentPlaceholder("読み込み中です...");
+  renderChildPlaceholder("親一覧から1件選択してください。");
+
+  if (detailPre) detailPre.textContent = "読み込み中です...";
+  if (summaryText) summaryText.textContent = "0 件";
+  if (selectionSummary) selectionSummary.textContent = "選択 0 件";
+  if (contextSummary) contextSummary.textContent = "親一覧";
+  if (btnKnowledge) btnKnowledge.disabled = true;
+}
+
+function getCurrentModule() {
+  const source = sourceMap[currentSourceKey];
+  if (!source) return null;
+
+  if (source.key === "api_kokkai") {
+    return window.DataViewKokkai || null;
+  }
+
+  if (source.key === "api_datago") {
+    return window.DataViewOpenData || null;
+  }
+
+  if (source.sourceType === "public_url") {
+    return window.DataViewPublicUrl || null;
+  }
+
+  if (source.key === "file_upload") {
+    return window.DataViewUpload || null;
+  }
+
+  return null;
+}
+
+function createViewContext() {
+  return {
+    apiBase: API_BASE,
+    currentSourceKey,
+    sourceMap,
+    sourceSelect,
+    sourceName,
+    btnKnowledge,
+    summaryText,
+    selectionSummary,
+    contextSummary,
+    parentTableHead,
+    parentTableBody,
+    childTableHead,
+    childTableBody,
+    detailPre,
+    apiGet,
+    escapeHtml,
+    getStatusClass,
+    renderParentPlaceholder,
+    renderChildPlaceholder
+  };
+}
+
+async function refreshParentList() {
+  if (!currentSourceKey) {
+    renderInitialScreen();
+    return;
+  }
+
+  const module = getCurrentModule();
+  const source = sourceMap[currentSourceKey];
+
+  if (!module || typeof module.load !== "function") {
+    renderParentPlaceholder("このデータ種別の照会処理は未実装です。");
+    renderChildPlaceholder("親一覧から1件選択してください。");
+    if (detailPre) detailPre.textContent = `選択中: ${source?.label || ""}`;
+    if (contextSummary) contextSummary.textContent = `親一覧: ${source?.label || ""}`;
+    return;
+  }
+
+  resetViewForSource();
+  await module.load(createViewContext());
+}
+
+async function handleSourceChange() {
+  currentSourceKey = sourceSelect ? sourceSelect.value : "";
+  updateSourceName();
+  await refreshParentList();
 }
 
 async function loadSourceMaster() {
   try {
     const res = await fetch("./source_master.json", { cache: "no-store" });
-
     if (!res.ok) {
       throw new Error(`HTTP ${res.status}`);
     }
 
     const json = await res.json();
-
     sourceList = normalizeSourceMaster(json);
     sourceMap = {};
 
@@ -194,7 +280,6 @@ async function loadSourceMaster() {
 
     renderSourceOptions(sourceList);
     updateSourceName();
-
   } catch (e) {
     console.error(e);
 
@@ -207,105 +292,6 @@ async function loadSourceMaster() {
       detailPre.textContent = `データ種別読込失敗: ${e.message}`;
     }
   }
-}
-
-function renderParentPlaceholder(message) {
-  parentTableHead.innerHTML = "";
-  parentTableBody.innerHTML = `
-    <tr class="placeholder-row">
-      <td>${escapeHtml(message)}</td>
-    </tr>
-  `;
-}
-
-function renderKokkaiParentTable(rows) {
-  if (!Array.isArray(rows) || rows.length === 0) {
-    renderParentPlaceholder("データがありません。");
-    if (summaryText) summaryText.textContent = "0 件";
-    if (contextSummary) contextSummary.textContent = "親一覧: 国会議事録";
-    return;
-  }
-
-  parentTableHead.innerHTML = `
-    <tr>
-      <th class="medium-cell">院</th>
-      <th>会議名</th>
-      <th class="narrow-cell">件数</th>
-      <th class="narrow-cell">状態</th>
-    </tr>
-  `;
-
-  parentTableBody.innerHTML = rows.map((row) => {
-    return `
-      <tr class="clickable-row">
-        <td>${escapeHtml(row.name_of_house ?? "")}</td>
-        <td>${escapeHtml(row.name_of_meeting ?? "")}</td>
-        <td>${escapeHtml(row.row_count ?? "")}</td>
-        <td>${escapeHtml(row.status ?? "")}</td>
-      </tr>
-    `;
-  }).join("");
-
-  if (summaryText) summaryText.textContent = `${rows.length} 件`;
-  if (selectionSummary) selectionSummary.textContent = "選択 0 件";
-  if (contextSummary) contextSummary.textContent = "親一覧: 国会議事録";
-  if (detailPre) detailPre.textContent = "親一覧を表示しました。";
-}
-
-async function refreshParentList() {
-  if (!currentSourceKey) {
-    renderParentPlaceholder("データ種別を選択してください。");
-    return;
-  }
-
-  const source = sourceMap[currentSourceKey];
-  if (!source) {
-    renderParentPlaceholder("データ種別を選択してください。");
-    return;
-  }
-
-  childTableHead.innerHTML = "";
-  childTableBody.innerHTML = `
-    <tr class="placeholder-row">
-      <td>親一覧から1件選択してください。</td>
-    </tr>
-  `;
-
-  if (source.key !== "api_kokkai") {
-    renderParentPlaceholder("この簡易版は国会議事録の親一覧表示まで対応しています。");
-    if (detailPre) {
-      detailPre.textContent = `選択中: ${source.label}`;
-    }
-    if (contextSummary) {
-      contextSummary.textContent = `親一覧: ${source.label}`;
-    }
-    return;
-  }
-
-  try {
-    renderParentPlaceholder("親一覧を読み込み中です...");
-    if (detailPre) {
-      detailPre.textContent = "国会議事録の親一覧を読み込み中です...";
-    }
-
-    const data = await apiGet("/kokkai/documents");
-    const rows = Array.isArray(data.rows) ? data.rows : [];
-
-    renderKokkaiParentTable(rows);
-
-  } catch (e) {
-    console.error(e);
-    renderParentPlaceholder(e.message);
-    if (detailPre) {
-      detailPre.textContent = e.message;
-    }
-  }
-}
-
-async function handleSourceChange() {
-  currentSourceKey = sourceSelect ? sourceSelect.value : "";
-  updateSourceName();
-  await refreshParentList();
 }
 
 function bindEvents() {
@@ -325,12 +311,6 @@ function bindEvents() {
     });
   }
 
-  if (btnBack) {
-    btnBack.addEventListener("click", () => {
-      window.location.href = "./menu.html";
-    });
-  }
-
   if (btnLogout) {
     btnLogout.addEventListener("click", () => {
       sessionStorage.removeItem("idToken");
@@ -340,7 +320,7 @@ function bindEvents() {
 
   if (btnKnowledge) {
     btnKnowledge.addEventListener("click", () => {
-      alert("この版は国会議事録の親一覧表示までです。");
+      alert("ナレッジ化は次段階です。");
     });
   }
 }
