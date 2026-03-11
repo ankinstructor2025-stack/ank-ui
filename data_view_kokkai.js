@@ -172,34 +172,6 @@ function renderChildTable(rows, parentRow) {
   if (ctx.btnKnowledge) ctx.btnKnowledge.disabled = false;
 }
 
-async function tryChildApiCandidates(parentRow) {
-  const parentId = getParentIdentity(parentRow);
-
-  const candidates = [
-    { path: `/kokkai/documents/${encodeURIComponent(parentId)}/rows`, query: {} },
-    { path: `/kokkai/documents/${encodeURIComponent(parentId)}`, query: {} },
-    { path: `/kokkai/rows`, query: { file_id: parentId } },
-    { path: `/row_data`, query: { source_type: "kokkai", file_id: parentId } }
-  ];
-
-  let lastError = null;
-
-  for (const candidate of candidates) {
-    try {
-      const data = await ctx.apiGet(candidate.path, candidate.query);
-      const rows = extractRowsFromResponse(data);
-
-      if (Array.isArray(rows)) {
-        return rows;
-      }
-    } catch (e) {
-      lastError = e;
-    }
-  }
-
-  throw lastError || new Error("子一覧取得APIが見つかりませんでした。");
-}
-
 async function loadChildren(parentRow) {
   const parentId = getParentIdentity(parentRow);
 
@@ -207,7 +179,14 @@ async function loadChildren(parentRow) {
     throw new Error("親データに識別子がありません。");
   }
 
-  return await tryChildApiCandidates(parentRow);
+  const data = await ctx.apiGet(`/kokkai/documents/${encodeURIComponent(parentId)}/rows`);
+  const rows = extractRowsFromResponse(data);
+
+  if (!Array.isArray(rows)) {
+    throw new Error("子一覧データの形式が不正です。");
+  }
+
+  return rows;
 }
 
 function bindParentRowEvents() {
