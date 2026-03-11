@@ -9,7 +9,7 @@ console.log("data_view.js loaded");
   let sourceMap = {};
 
   const state = {
-    sourceType: "",
+    sourceKey: "",
     parentRows: [],
     childRows: [],
     selectedParentKey: null,
@@ -34,7 +34,7 @@ console.log("data_view.js loaded");
 
   function bindElements() {
     el.sourceSelect = document.getElementById("sourceSelect");
-    el.sourceHint = document.getElementById("sourceHint");
+    el.sourceName = document.getElementById("sourceName");
 
     el.btnReload = document.getElementById("btnReload");
     el.btnKnowledge = document.getElementById("btnKnowledge");
@@ -55,16 +55,16 @@ console.log("data_view.js loaded");
 
   function bindEvents() {
     el.sourceSelect.addEventListener("change", async () => {
-      state.sourceType = el.sourceSelect.value;
+      state.sourceKey = el.sourceSelect.value;
       state.parentRows = [];
       state.childRows = [];
       state.selectedParentKey = null;
       state.selectedChildKey = null;
       state.checkedParents = new Set();
 
-      updateSourceHint();
+      updateSourceName();
 
-      if (!state.sourceType) {
+      if (!state.sourceKey) {
         renderInitialParentPlaceholder();
         clearChildArea();
         renderDetailText("データ種別を選択してください。");
@@ -77,7 +77,7 @@ console.log("data_view.js loaded");
     });
 
     el.btnReload.addEventListener("click", async () => {
-      if (!state.sourceType) {
+      if (!state.sourceKey) {
         renderInitialParentPlaceholder();
         clearChildArea();
         renderDetailText("データ種別を選択してください。");
@@ -117,16 +117,16 @@ console.log("data_view.js loaded");
       }
 
       const all = await res.json();
-
       sourceList = normalizeSourceMaster(all);
       sourceMap = Object.fromEntries(sourceList.map((item) => [item.key, item]));
 
       renderSourceOptions(sourceList);
-      updateSourceHint();
+      updateSourceName();
 
     } catch (e) {
       console.error(e);
       el.sourceSelect.innerHTML = `<option value="">データ種別読込失敗</option>`;
+      el.sourceName.textContent = "データ種別読込失敗";
       renderDetailText(`データ種別読込失敗: ${e.message}`);
     }
   }
@@ -185,42 +185,14 @@ console.log("data_view.js loaded");
     el.sourceSelect.innerHTML = html.join("");
   }
 
-  function updateSourceHint() {
-    const item = sourceMap[state.sourceType];
-
-    if (!item) {
-      el.sourceHint.value = "データ種別を選択してください";
-      return;
-    }
-
-    if (item.key === "api_kokkai") {
-      el.sourceHint.value = "国会議事録: 親一覧（院 + 会議名）";
-      return;
-    }
-
-    if (item.key === "api_datago") {
-      el.sourceHint.value = "オープンデータ: 親一覧（opendata_documents）";
-      return;
-    }
-
-    if (item.sourceType === "public_url") {
-      el.sourceHint.value = `${item.label}: 親一覧（url_roots）`;
-      return;
-    }
-
-    if (item.key === "file_upload") {
-      el.sourceHint.value = "ファイルアップロード: 親一覧（uploaded_files）";
-      return;
-    }
-
-    el.sourceHint.value = item.label || "親一覧";
+  function updateSourceName() {
+    const item = sourceMap[state.sourceKey];
+    el.sourceName.textContent = item ? item.label : "";
   }
 
   async function requireIdToken() {
     const sessionToken = sessionStorage.getItem("idToken");
-    if (sessionToken) {
-      return sessionToken;
-    }
+    if (sessionToken) return sessionToken;
 
     if (window.firebaseAuth && window.firebaseAuth.currentUser) {
       return await window.firebaseAuth.currentUser.getIdToken(true);
@@ -263,7 +235,7 @@ console.log("data_view.js loaded");
       clearChildArea();
       renderDetailText("親一覧を読み込み中です...");
 
-      const rows = await fetchParentRows(state.sourceType);
+      const rows = await fetchParentRows(state.sourceKey);
       state.parentRows = rows;
       state.childRows = [];
       state.selectedParentKey = null;
@@ -401,7 +373,7 @@ console.log("data_view.js loaded");
       return;
     }
 
-    const columns = getParentColumns(state.sourceType);
+    const columns = getParentColumns(state.sourceKey);
 
     el.parentTableHead.innerHTML = `
       <tr>
@@ -410,7 +382,7 @@ console.log("data_view.js loaded");
     `;
 
     el.parentTableBody.innerHTML = state.parentRows.map((row) => {
-      const rowKey = getParentRowKey(state.sourceType, row);
+      const rowKey = getParentRowKey(state.sourceKey, row);
       const checked = state.checkedParents.has(rowKey) ? "checked" : "";
       const rowClass = state.selectedParentKey === rowKey ? "selected-row" : "clickable-row";
 
@@ -439,12 +411,10 @@ console.log("data_view.js loaded");
 
     el.parentTableBody.querySelectorAll("tr[data-parent-key]").forEach((tr) => {
       tr.addEventListener("click", async (event) => {
-        if (event.target && event.target.classList.contains("parent-checkbox")) {
-          return;
-        }
+        if (event.target && event.target.classList.contains("parent-checkbox")) return;
 
         const rowKey = tr.dataset.parentKey;
-        const row = state.parentRows.find((x) => getParentRowKey(state.sourceType, x) === rowKey);
+        const row = state.parentRows.find((x) => getParentRowKey(state.sourceKey, x) === rowKey);
         if (!row) return;
 
         state.selectedParentKey = rowKey;
@@ -480,7 +450,7 @@ console.log("data_view.js loaded");
       renderChildLoading();
       renderDetailText("子一覧を読み込み中です...");
 
-      const rows = await fetchChildRows(state.sourceType, parentRow);
+      const rows = await fetchChildRows(state.sourceKey, parentRow);
       state.childRows = rows;
       renderChildTable();
       renderDetailText("子一覧から1件選択すると詳細が表示されます。");
@@ -518,7 +488,7 @@ console.log("data_view.js loaded");
       return;
     }
 
-    const columns = getChildColumns(state.sourceType);
+    const columns = getChildColumns(state.sourceKey);
 
     el.childTableHead.innerHTML = `
       <tr>
@@ -527,7 +497,7 @@ console.log("data_view.js loaded");
     `;
 
     el.childTableBody.innerHTML = state.childRows.map((row) => {
-      const rowKey = getChildRowKey(state.sourceType, row);
+      const rowKey = getChildRowKey(state.sourceKey, row);
       const rowClass = state.selectedChildKey === rowKey ? "selected-row" : "clickable-row";
 
       return `
@@ -543,13 +513,13 @@ console.log("data_view.js loaded");
     el.childTableBody.querySelectorAll("tr[data-child-key]").forEach((tr) => {
       tr.addEventListener("click", async () => {
         const rowKey = tr.dataset.childKey;
-        const row = state.childRows.find((x) => getChildRowKey(state.sourceType, x) === rowKey);
+        const row = state.childRows.find((x) => getChildRowKey(state.sourceKey, x) === rowKey);
         if (!row) return;
 
         state.selectedChildKey = rowKey;
         renderChildTable();
 
-        const item = sourceMap[state.sourceType];
+        const item = sourceMap[state.sourceKey];
         if (item && item.sourceType === "public_url") {
           await handlePublicUrlChildClick(row);
           return;
@@ -615,7 +585,7 @@ console.log("data_view.js loaded");
     el.summaryText.textContent = `${state.parentRows.length} 件`;
     el.selectionSummary.textContent = `選択 ${state.checkedParents.size} 件`;
 
-    const item = sourceMap[state.sourceType];
+    const item = sourceMap[state.sourceKey];
     if (!item) {
       el.contextSummary.textContent = "親一覧";
       return;
@@ -649,14 +619,14 @@ console.log("data_view.js loaded");
   }
 
   function handleKnowledge() {
-    const item = sourceMap[state.sourceType];
+    const item = sourceMap[state.sourceKey];
     if (!item) {
       alert("データ種別を選択してください。");
       return;
     }
 
     const selected = state.parentRows.filter((row) => {
-      const key = getParentRowKey(state.sourceType, row);
+      const key = getParentRowKey(state.sourceKey, row);
       return state.checkedParents.has(key);
     });
 

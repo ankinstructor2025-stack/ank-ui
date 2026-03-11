@@ -6,6 +6,12 @@
   <title>データ照会</title>
   <link rel="stylesheet" href="./theme.css" />
   <style>
+    .page-note {
+      margin: 0 0 12px 0;
+      color: #ffffff;
+      font-size: 14px;
+    }
+
     .split-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -19,20 +25,19 @@
       font-weight: 700;
     }
 
-    .muted-text {
-      color: #9ca3af;
-      font-size: 13px;
-    }
-
     .summary-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
       gap: 12px;
-      margin-top: 12px;
       margin-bottom: 12px;
       color: #d1d5db;
       font-size: 14px;
+    }
+
+    .muted-text {
+      color: #9ca3af;
+      font-size: 13px;
     }
 
     .table-cell-link a {
@@ -111,6 +116,20 @@
       width: 140px;
     }
 
+    .name-display {
+      width: 100%;
+      box-sizing: border-box;
+      background: rgba(255,255,255,0.12);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-size: 14px;
+      min-height: 42px;
+      display: flex;
+      align-items: center;
+    }
+
     @media (max-width: 960px) {
       .split-grid {
         grid-template-columns: 1fr;
@@ -142,8 +161,8 @@
         </div>
 
         <div class="form-group">
-          <label for="sourceHint">補足</label>
-          <input id="sourceHint" type="text" value="データ種別を選択してください" readonly />
+          <label for="sourceName">名称</label>
+          <div id="sourceName" class="name-display"></div>
         </div>
       </div>
 
