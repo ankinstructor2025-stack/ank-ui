@@ -74,6 +74,7 @@ function renderDetailText(text) {
   }
 }
 
+/* data_source.js と同じ出し方に統一 */
 function renderSourceOptions(list) {
   const groups = {};
 
@@ -83,7 +84,7 @@ function renderSourceOptions(list) {
     groups[groupName].push(item);
   });
 
-  const html = [`<option value="" selected>選択してください</option>`];
+  const html = [`<option value="" selected disabled>選択してください</option>`];
 
   Object.keys(groups).forEach((groupName) => {
     html.push(`<optgroup label="${escapeHtml(groupName)}">`);
@@ -244,7 +245,7 @@ async function loadSourceMaster() {
   } catch (e) {
     console.error(e);
     if (sourceSelect) {
-      sourceSelect.innerHTML = `<option value="" selected>データ種別読込失敗</option>`;
+      sourceSelect.innerHTML = `<option value="" selected disabled>データ種別読込失敗</option>`;
     }
     renderDetailText(`データ種別読込失敗: ${e.message}`);
   }
