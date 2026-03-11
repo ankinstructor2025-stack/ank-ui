@@ -2,10 +2,14 @@ console.log("data_view.js loaded");
 
 (function () {
   const API_BASE = window.API_BASE || "";
+  const SOURCE_MASTER_PATH = "./source_master.json";
   const NEXT_KNOWLEDGE_PAGE = "./knowledge_build.html";
 
-  let state = {
-    sourceType: "kokkai",
+  let sourceList = [];
+  let sourceMap = {};
+
+  const state = {
+    sourceType: "",
     parentRows: [],
     childRows: [],
     selectedParentKey: null,
@@ -20,12 +24,18 @@ console.log("data_view.js loaded");
   async function init() {
     bindElements();
     bindEvents();
-    await refreshParentList();
+    renderInitialParentPlaceholder();
+    clearChildArea();
+    renderDetailText("データ種別を選択してください。");
+    updateSummaries();
+    updateKnowledgeButton();
+    await loadSourceMaster();
   }
 
   function bindElements() {
-    el.sourceType = document.getElementById("sourceType");
+    el.sourceSelect = document.getElementById("sourceSelect");
     el.sourceHint = document.getElementById("sourceHint");
+
     el.btnReload = document.getElementById("btnReload");
     el.btnKnowledge = document.getElementById("btnKnowledge");
     el.btnBack = document.getElementById("btnBack");
@@ -40,22 +50,39 @@ console.log("data_view.js loaded");
     el.childTableHead = document.getElementById("childTableHead");
     el.childTableBody = document.getElementById("childTableBody");
 
-    el.detailCard = document.getElementById("detailCard");
+    el.detailPre = document.getElementById("detailPre");
   }
 
   function bindEvents() {
-    el.sourceType.addEventListener("change", async () => {
-      state.sourceType = el.sourceType.value;
+    el.sourceSelect.addEventListener("change", async () => {
+      state.sourceType = el.sourceSelect.value;
       state.parentRows = [];
       state.childRows = [];
       state.selectedParentKey = null;
       state.selectedChildKey = null;
       state.checkedParents = new Set();
+
       updateSourceHint();
+
+      if (!state.sourceType) {
+        renderInitialParentPlaceholder();
+        clearChildArea();
+        renderDetailText("データ種別を選択してください。");
+        updateSummaries();
+        updateKnowledgeButton();
+        return;
+      }
+
       await refreshParentList();
     });
 
     el.btnReload.addEventListener("click", async () => {
+      if (!state.sourceType) {
+        renderInitialParentPlaceholder();
+        clearChildArea();
+        renderDetailText("データ種別を選択してください。");
+        return;
+      }
       await refreshParentList();
     });
 
@@ -64,38 +91,146 @@ console.log("data_view.js loaded");
     });
 
     el.btnBack.addEventListener("click", () => {
-      location.href = "./index.html";
+      location.href = "./menu.html";
     });
 
     el.btnLogout.addEventListener("click", async () => {
-      if (window.firebaseAuth && typeof window.firebaseAuth.signOut === "function") {
-        await window.firebaseAuth.signOut();
+      try {
+        if (window.firebaseAuth && typeof window.firebaseAuth.signOut === "function") {
+          await window.firebaseAuth.signOut();
+        }
+      } catch (_) {}
+
+      try {
+        sessionStorage.removeItem("idToken");
+      } catch (_) {}
+
+      location.href = "./index.html";
+    });
+  }
+
+  async function loadSourceMaster() {
+    try {
+      const res = await fetch(SOURCE_MASTER_PATH, { cache: "no-store" });
+      if (!res.ok) {
+        throw new Error(`source_master.json 読込失敗 (HTTP ${res.status})`);
       }
-      location.href = "./login.html";
+
+      const all = await res.json();
+
+      sourceList = normalizeSourceMaster(all);
+      sourceMap = Object.fromEntries(sourceList.map((item) => [item.key, item]));
+
+      renderSourceOptions(sourceList);
+      updateSourceHint();
+
+    } catch (e) {
+      console.error(e);
+      el.sourceSelect.innerHTML = `<option value="">データ種別読込失敗</option>`;
+      renderDetailText(`データ種別読込失敗: ${e.message}`);
+    }
+  }
+
+  function normalizeSourceMaster(all) {
+    if (!Array.isArray(all)) return [];
+
+    const targetKeys = ["api_kokkai", "api_datago", "url_egov", "file_upload"];
+
+    return all
+      .filter((item) => targetKeys.includes(item.key))
+      .map((item) => ({
+        key: item.key,
+        label: item.label || item.name || item.key,
+        group: item.group || inferGroup(item.key, item.type),
+        type: item.type || "",
+        sourceType: mapKeyToSourceType(item.key, item.type)
+      }));
+  }
+
+  function inferGroup(key, type) {
+    if (key === "api_kokkai" || key === "api_datago") return "公開API";
+    if (type === "public_url" || key.startsWith("url_")) return "公開URL";
+    return "その他";
+  }
+
+  function mapKeyToSourceType(key, type) {
+    if (key === "api_kokkai") return "kokkai";
+    if (key === "api_datago") return "opendata";
+    if (type === "public_url" || key.startsWith("url_")) return "public_url";
+    if (key === "file_upload") return "upload";
+    return "";
+  }
+
+  function renderSourceOptions(list) {
+    const groups = {};
+
+    list.forEach((item) => {
+      const groupName = item.group || "その他";
+      if (!groups[groupName]) groups[groupName] = [];
+      groups[groupName].push(item);
     });
 
-    updateSourceHint();
+    const html = [`<option value="">選択してください</option>`];
+
+    Object.keys(groups).forEach((groupName) => {
+      html.push(`<optgroup label="${escapeHtml(groupName)}">`);
+      groups[groupName].forEach((item) => {
+        html.push(
+          `<option value="${escapeHtml(item.key)}">${escapeHtml(item.label)}</option>`
+        );
+      });
+      html.push(`</optgroup>`);
+    });
+
+    el.sourceSelect.innerHTML = html.join("");
   }
 
   function updateSourceHint() {
-    const map = {
-      kokkai: "国会議事録: 親一覧（院 + 会議名）",
-      opendata: "オープンデータ: 親一覧（opendata_documents）",
-      public_url: "公開URL: 親一覧（url_roots）",
-      upload: "アップロード: 親一覧（uploaded_files）"
-    };
-    el.sourceHint.value = map[state.sourceType] || "親一覧を表示します";
+    const item = sourceMap[state.sourceType];
+
+    if (!item) {
+      el.sourceHint.value = "データ種別を選択してください";
+      return;
+    }
+
+    if (item.key === "api_kokkai") {
+      el.sourceHint.value = "国会議事録: 親一覧（院 + 会議名）";
+      return;
+    }
+
+    if (item.key === "api_datago") {
+      el.sourceHint.value = "オープンデータ: 親一覧（opendata_documents）";
+      return;
+    }
+
+    if (item.sourceType === "public_url") {
+      el.sourceHint.value = `${item.label}: 親一覧（url_roots）`;
+      return;
+    }
+
+    if (item.key === "file_upload") {
+      el.sourceHint.value = "ファイルアップロード: 親一覧（uploaded_files）";
+      return;
+    }
+
+    el.sourceHint.value = item.label || "親一覧";
   }
 
-  async function getIdToken() {
-    if (!window.firebaseAuth || !window.firebaseAuth.currentUser) {
-      throw new Error("ログイン情報が見つかりません");
+  async function requireIdToken() {
+    const sessionToken = sessionStorage.getItem("idToken");
+    if (sessionToken) {
+      return sessionToken;
     }
-    return await window.firebaseAuth.currentUser.getIdToken(true);
+
+    if (window.firebaseAuth && window.firebaseAuth.currentUser) {
+      return await window.firebaseAuth.currentUser.getIdToken(true);
+    }
+
+    throw new Error("ログイン情報が見つかりません");
   }
 
   async function apiGet(path, query = {}) {
-    const idToken = await getIdToken();
+    const idToken = await requireIdToken();
     const url = new URL(`${API_BASE}${path}`);
 
     Object.entries(query).forEach(([k, v]) => {
@@ -153,57 +288,63 @@ console.log("data_view.js loaded");
     }
   }
 
-  async function fetchParentRows(sourceType) {
-    if (sourceType === "kokkai") {
-      const data = await apiGet("/v1/kokkai/documents");
+  async function fetchParentRows(sourceKey) {
+    const item = sourceMap[sourceKey];
+    if (!item) return [];
+
+    if (item.key === "api_kokkai") {
+      const data = await apiGet("/kokkai/documents");
       return Array.isArray(data.rows) ? data.rows : [];
     }
 
-    if (sourceType === "opendata") {
-      const data = await apiGet("/v1/opendata/documents");
+    if (item.key === "api_datago") {
+      const data = await apiGet("/opendata/documents");
       return Array.isArray(data.rows) ? data.rows : [];
     }
 
-    if (sourceType === "public_url") {
-      const data = await apiGet("/v1/public-url/roots");
+    if (item.sourceType === "public_url") {
+      const data = await apiGet("/public-url/roots", {
+        source_key: item.key
+      });
       return Array.isArray(data.rows) ? data.rows : [];
     }
 
-    if (sourceType === "upload") {
-      const data = await apiGet("/v1/uploaded-files");
+    if (item.key === "file_upload") {
+      const data = await apiGet("/uploaded-files");
       return Array.isArray(data.rows) ? data.rows : [];
     }
 
     return [];
   }
 
-  async function fetchChildRows(sourceType, parentRow) {
-    if (!parentRow) return [];
+  async function fetchChildRows(sourceKey, parentRow) {
+    const item = sourceMap[sourceKey];
+    if (!item || !parentRow) return [];
 
-    if (sourceType === "kokkai") {
-      const data = await apiGet("/v1/kokkai/rows", {
+    if (item.key === "api_kokkai") {
+      const data = await apiGet("/kokkai/rows", {
         name_of_house: parentRow.name_of_house,
         name_of_meeting: parentRow.name_of_meeting
       });
       return Array.isArray(data.rows) ? data.rows : [];
     }
 
-    if (sourceType === "opendata") {
-      const data = await apiGet("/v1/row_data/by_file", {
+    if (item.key === "api_datago") {
+      const data = await apiGet("/row_data/by_file", {
         file_id: parentRow.source_id
       });
       return Array.isArray(data.rows) ? data.rows : [];
     }
 
-    if (sourceType === "public_url") {
-      const data = await apiGet("/v1/public-url/pages", {
+    if (item.sourceType === "public_url") {
+      const data = await apiGet("/public-url/pages", {
         root_id: parentRow.root_id
       });
       return Array.isArray(data.rows) ? data.rows : [];
     }
 
-    if (sourceType === "upload") {
-      const data = await apiGet("/v1/row_data/by_file", {
+    if (item.key === "file_upload") {
+      const data = await apiGet("/row_data/by_file", {
         file_id: parentRow.file_id
       });
       return Array.isArray(data.rows) ? data.rows : [];
@@ -214,17 +355,28 @@ console.log("data_view.js loaded");
 
   async function fetchGrandChildRowsForPublicUrl(pageRow) {
     if (!pageRow) return [];
-    const data = await apiGet("/v1/row_data/by_file", {
+
+    const data = await apiGet("/row_data/by_file", {
       file_id: pageRow.page_id
     });
+
     return Array.isArray(data.rows) ? data.rows : [];
+  }
+
+  function renderInitialParentPlaceholder() {
+    el.parentTableHead.innerHTML = "";
+    el.parentTableBody.innerHTML = `
+      <tr class="placeholder-row">
+        <td>データ種別を選択してください。</td>
+      </tr>
+    `;
   }
 
   function renderParentError(message) {
     el.parentTableHead.innerHTML = "";
     el.parentTableBody.innerHTML = `
-      <tr>
-        <td class="placeholder">${escapeHtml(message)}</td>
+      <tr class="placeholder-row">
+        <td>${escapeHtml(message)}</td>
       </tr>
     `;
   }
@@ -232,7 +384,9 @@ console.log("data_view.js loaded");
   function clearChildArea() {
     el.childTableHead.innerHTML = "";
     el.childTableBody.innerHTML = `
-      <tr><td class="placeholder">親一覧から1件選択してください。</td></tr>
+      <tr class="placeholder-row">
+        <td>親一覧から1件選択してください。</td>
+      </tr>
     `;
   }
 
@@ -240,7 +394,9 @@ console.log("data_view.js loaded");
     if (!state.parentRows.length) {
       el.parentTableHead.innerHTML = "";
       el.parentTableBody.innerHTML = `
-        <tr><td class="placeholder">データがありません。</td></tr>
+        <tr class="placeholder-row">
+          <td>データがありません。</td>
+        </tr>
       `;
       return;
     }
@@ -249,21 +405,21 @@ console.log("data_view.js loaded");
 
     el.parentTableHead.innerHTML = `
       <tr>
-        ${columns.map(col => `<th style="${col.width ? `width:${col.width};` : ""}">${escapeHtml(col.label)}</th>`).join("")}
+        ${columns.map(col => `<th class="${col.className || ""}">${escapeHtml(col.label)}</th>`).join("")}
       </tr>
     `;
 
     el.parentTableBody.innerHTML = state.parentRows.map((row) => {
       const rowKey = getParentRowKey(state.sourceType, row);
       const checked = state.checkedParents.has(rowKey) ? "checked" : "";
-      const selectedClass = state.selectedParentKey === rowKey ? "is-selected" : "is-clickable";
+      const rowClass = state.selectedParentKey === rowKey ? "selected-row" : "clickable-row";
 
       return `
-        <tr class="${selectedClass}" data-parent-key="${escapeHtml(rowKey)}">
-          ${columns.map(col => {
+        <tr class="${rowClass}" data-parent-key="${escapeHtml(rowKey)}">
+          ${columns.map((col) => {
             if (col.type === "checkbox") {
               return `
-                <td>
+                <td class="checkbox-cell">
                   <input
                     type="checkbox"
                     class="parent-checkbox"
@@ -274,8 +430,8 @@ console.log("data_view.js loaded");
               `;
             }
 
-            const value = col.render ? col.render(row) : row[col.key];
-            return `<td>${value == null ? "" : value}</td>`;
+            const value = col.render ? col.render(row) : escapeHtml(row[col.key] ?? "");
+            return `<td>${value}</td>`;
           }).join("")}
         </tr>
       `;
@@ -288,7 +444,7 @@ console.log("data_view.js loaded");
         }
 
         const rowKey = tr.dataset.parentKey;
-        const row = state.parentRows.find(x => getParentRowKey(state.sourceType, x) === rowKey);
+        const row = state.parentRows.find((x) => getParentRowKey(state.sourceType, x) === rowKey);
         if (!row) return;
 
         state.selectedParentKey = rowKey;
@@ -328,14 +484,15 @@ console.log("data_view.js loaded");
       state.childRows = rows;
       renderChildTable();
       renderDetailText("子一覧から1件選択すると詳細が表示されます。");
-      updateSummaries();
 
     } catch (e) {
       console.error(e);
       state.childRows = [];
       el.childTableHead.innerHTML = "";
       el.childTableBody.innerHTML = `
-        <tr><td class="placeholder">${escapeHtml(e.message)}</td></tr>
+        <tr class="placeholder-row">
+          <td>${escapeHtml(e.message)}</td>
+        </tr>
       `;
       renderDetailText(e.message);
     }
@@ -344,7 +501,9 @@ console.log("data_view.js loaded");
   function renderChildLoading() {
     el.childTableHead.innerHTML = "";
     el.childTableBody.innerHTML = `
-      <tr><td class="placeholder">子一覧を読み込み中です...</td></tr>
+      <tr class="placeholder-row">
+        <td>子一覧を読み込み中です...</td>
+      </tr>
     `;
   }
 
@@ -352,7 +511,9 @@ console.log("data_view.js loaded");
     if (!state.childRows.length) {
       el.childTableHead.innerHTML = "";
       el.childTableBody.innerHTML = `
-        <tr><td class="placeholder">子一覧はありません。</td></tr>
+        <tr class="placeholder-row">
+          <td>子一覧はありません。</td>
+        </tr>
       `;
       return;
     }
@@ -361,19 +522,19 @@ console.log("data_view.js loaded");
 
     el.childTableHead.innerHTML = `
       <tr>
-        ${columns.map(col => `<th style="${col.width ? `width:${col.width};` : ""}">${escapeHtml(col.label)}</th>`).join("")}
+        ${columns.map(col => `<th class="${col.className || ""}">${escapeHtml(col.label)}</th>`).join("")}
       </tr>
     `;
 
     el.childTableBody.innerHTML = state.childRows.map((row) => {
       const rowKey = getChildRowKey(state.sourceType, row);
-      const selectedClass = state.selectedChildKey === rowKey ? "is-selected" : "is-clickable";
+      const rowClass = state.selectedChildKey === rowKey ? "selected-row" : "clickable-row";
 
       return `
-        <tr class="${selectedClass}" data-child-key="${escapeHtml(rowKey)}">
-          ${columns.map(col => {
-            const value = col.render ? col.render(row) : row[col.key];
-            return `<td>${value == null ? "" : value}</td>`;
+        <tr class="${rowClass}" data-child-key="${escapeHtml(rowKey)}">
+          ${columns.map((col) => {
+            const value = col.render ? col.render(row) : escapeHtml(row[col.key] ?? "");
+            return `<td>${value}</td>`;
           }).join("")}
         </tr>
       `;
@@ -382,13 +543,14 @@ console.log("data_view.js loaded");
     el.childTableBody.querySelectorAll("tr[data-child-key]").forEach((tr) => {
       tr.addEventListener("click", async () => {
         const rowKey = tr.dataset.childKey;
-        const row = state.childRows.find(x => getChildRowKey(state.sourceType, x) === rowKey);
+        const row = state.childRows.find((x) => getChildRowKey(state.sourceType, x) === rowKey);
         if (!row) return;
 
         state.selectedChildKey = rowKey;
         renderChildTable();
 
-        if (state.sourceType === "public_url") {
+        const item = sourceMap[state.sourceType];
+        if (item && item.sourceType === "public_url") {
           await handlePublicUrlChildClick(row);
           return;
         }
@@ -446,20 +608,40 @@ console.log("data_view.js loaded");
   }
 
   function renderDetailText(text) {
-    el.detailCard.textContent = text || "";
+    el.detailPre.textContent = text || "";
   }
 
   function updateSummaries() {
     el.summaryText.textContent = `${state.parentRows.length} 件`;
     el.selectionSummary.textContent = `選択 ${state.checkedParents.size} 件`;
 
-    const contextMap = {
-      kokkai: "親一覧: 院 + 会議名",
-      opendata: "親一覧: データセット",
-      public_url: "親一覧: ルートURL",
-      upload: "親一覧: アップロードファイル"
-    };
-    el.contextSummary.textContent = contextMap[state.sourceType] || "親一覧";
+    const item = sourceMap[state.sourceType];
+    if (!item) {
+      el.contextSummary.textContent = "親一覧";
+      return;
+    }
+
+    if (item.key === "api_kokkai") {
+      el.contextSummary.textContent = "親一覧: 院 + 会議名";
+      return;
+    }
+
+    if (item.key === "api_datago") {
+      el.contextSummary.textContent = "親一覧: データセット";
+      return;
+    }
+
+    if (item.sourceType === "public_url") {
+      el.contextSummary.textContent = `親一覧: ${item.label}`;
+      return;
+    }
+
+    if (item.key === "file_upload") {
+      el.contextSummary.textContent = "親一覧: アップロードファイル";
+      return;
+    }
+
+    el.contextSummary.textContent = "親一覧";
   }
 
   function updateKnowledgeButton() {
@@ -467,6 +649,12 @@ console.log("data_view.js loaded");
   }
 
   function handleKnowledge() {
+    const item = sourceMap[state.sourceType];
+    if (!item) {
+      alert("データ種別を選択してください。");
+      return;
+    }
+
     const selected = state.parentRows.filter((row) => {
       const key = getParentRowKey(state.sourceType, row);
       return state.checkedParents.has(key);
@@ -478,103 +666,117 @@ console.log("data_view.js loaded");
     }
 
     const payload = {
-      source_type: state.sourceType,
+      source_key: item.key,
+      source_type: item.sourceType,
+      source_info: item,
       selected_parents: selected,
       created_at: new Date().toISOString()
     };
 
     sessionStorage.setItem("knowledge_targets", JSON.stringify(payload));
-    alert("選択対象を保存しました。次のナレッジ化処理画面で利用してください。");
+    alert("選択対象を保存しました。");
     location.href = NEXT_KNOWLEDGE_PAGE;
   }
 
-  function getParentColumns(sourceType) {
-    if (sourceType === "kokkai") {
+  function getParentColumns(sourceKey) {
+    const item = sourceMap[sourceKey];
+
+    if (item && item.key === "api_kokkai") {
       return [
-        { type: "checkbox", label: "" , width: "52px" },
-        { key: "name_of_house", label: "院", width: "120px" },
+        { type: "checkbox", label: "", className: "checkbox-cell" },
+        { key: "name_of_house", label: "院", className: "medium-cell" },
         { key: "name_of_meeting", label: "会議名" },
-        { key: "row_count", label: "件数", width: "90px" },
-        { key: "status", label: "状態", width: "100px", render: (row) => renderStatus(row.status) }
+        { key: "row_count", label: "件数", className: "narrow-cell" },
+        { key: "status", label: "状態", className: "narrow-cell", render: (row) => renderStatus(row.status) }
       ];
     }
 
-    if (sourceType === "opendata") {
+    if (item && item.key === "api_datago") {
       return [
-        { type: "checkbox", label: "" , width: "52px" },
+        { type: "checkbox", label: "", className: "checkbox-cell" },
         { key: "logical_name", label: "タイトル" },
-        { key: "ext", label: "ext", width: "90px" },
-        { key: "row_count", label: "件数", width: "90px" },
-        { key: "status", label: "状態", width: "100px", render: (row) => renderStatus(row.status) }
+        { key: "ext", label: "ext", className: "narrow-cell" },
+        { key: "row_count", label: "件数", className: "narrow-cell" },
+        { key: "status", label: "状態", className: "narrow-cell", render: (row) => renderStatus(row.status) }
       ];
     }
 
-    if (sourceType === "public_url") {
+    if (item && item.sourceType === "public_url") {
       return [
-        { type: "checkbox", label: "" , width: "52px" },
-        { key: "root_url", label: "ルートURL" },
-        { key: "source_type", label: "種別", width: "120px" },
-        { key: "created_at", label: "作成日", width: "130px", render: (row) => escapeHtml(toDate(row.created_at)) }
+        { type: "checkbox", label: "", className: "checkbox-cell" },
+        { key: "root_url", label: "ルートURL", render: (row) => renderLink(row.root_url) },
+        { key: "source_type", label: "種別", className: "medium-cell", render: (row) => escapeHtml(row.source_type || "") },
+        { key: "created_at", label: "作成日", className: "medium-cell", render: (row) => escapeHtml(toDate(row.created_at)) }
       ];
     }
 
     return [
-      { type: "checkbox", label: "" , width: "52px" },
+      { type: "checkbox", label: "", className: "checkbox-cell" },
       { key: "logical_name", label: "ファイル名" },
-      { key: "ext", label: "ext", width: "90px" },
-      { key: "created_at", label: "作成日", width: "130px", render: (row) => escapeHtml(toDate(row.created_at)) }
+      { key: "ext", label: "ext", className: "narrow-cell" },
+      { key: "created_at", label: "作成日", className: "medium-cell", render: (row) => escapeHtml(toDate(row.created_at)) }
     ];
   }
 
-  function getChildColumns(sourceType) {
-    if (sourceType === "kokkai") {
+  function getChildColumns(sourceKey) {
+    const item = sourceMap[sourceKey];
+
+    if (item && item.key === "api_kokkai") {
       return [
-        { key: "row_index", label: "No", width: "70px" },
-        { key: "speaker", label: "発言者", width: "140px", render: (row) => escapeHtml(extractSpeaker(row)) },
+        { key: "row_index", label: "No", className: "narrow-cell" },
+        { key: "speaker", label: "発言者", className: "medium-cell", render: (row) => escapeHtml(extractSpeaker(row)) },
         { key: "speech", label: "内容", render: (row) => escapeHtml(shorten(extractSpeech(row), 120)) }
       ];
     }
 
-    if (sourceType === "opendata") {
+    if (item && item.key === "api_datago") {
       return [
-        { key: "row_index", label: "No", width: "70px" },
+        { key: "row_index", label: "No", className: "narrow-cell" },
         { key: "content", label: "概要", render: (row) => escapeHtml(shorten(extractContentText(row), 120)) }
       ];
     }
 
-    if (sourceType === "public_url") {
+    if (item && item.sourceType === "public_url") {
       return [
-        { key: "depth", label: "階層", width: "70px" },
-        { key: "page_type", label: "種別", width: "90px", render: (row) => escapeHtml(row.page_type || "") },
-        { key: "score", label: "評価", width: "80px" },
-        { key: "status", label: "状態", width: "100px", render: (row) => renderStatus(row.status) },
+        { key: "depth", label: "階層", className: "narrow-cell" },
+        { key: "page_type", label: "種別", className: "narrow-cell", render: (row) => escapeHtml(row.page_type || "") },
+        { key: "score", label: "評価", className: "narrow-cell", render: (row) => escapeHtml(row.score ?? "") },
+        { key: "status", label: "状態", className: "narrow-cell", render: (row) => renderStatus(row.status) },
         { key: "page_url", label: "ページURL", render: (row) => renderLink(row.page_url) }
       ];
     }
 
     return [
-      { key: "row_index", label: "No", width: "70px" },
+      { key: "row_index", label: "No", className: "narrow-cell" },
       { key: "content", label: "概要", render: (row) => escapeHtml(shorten(extractContentText(row), 120)) }
     ];
   }
 
-  function getParentRowKey(sourceType, row) {
-    if (sourceType === "kokkai") {
+  function getParentRowKey(sourceKey, row) {
+    const item = sourceMap[sourceKey];
+
+    if (item && item.key === "api_kokkai") {
       return `${row.name_of_house}__${row.name_of_meeting}`;
     }
-    if (sourceType === "opendata") {
+
+    if (item && item.key === "api_datago") {
       return String(row.source_id);
     }
-    if (sourceType === "public_url") {
+
+    if (item && item.sourceType === "public_url") {
       return String(row.root_id);
     }
+
     return String(row.file_id);
   }
 
-  function getChildRowKey(sourceType, row) {
-    if (sourceType === "public_url") {
+  function getChildRowKey(sourceKey, row) {
+    const item = sourceMap[sourceKey];
+
+    if (item && item.sourceType === "public_url") {
       return String(row.page_id);
     }
+
     return String(row.row_id || `${row.file_id}_${row.row_index}`);
   }
 
@@ -592,17 +794,17 @@ console.log("data_view.js loaded");
 
   function renderLink(url) {
     const v = String(url || "");
-    return `<a href="${escapeHtml(v)}" target="_blank" rel="noopener noreferrer">${escapeHtml(v)}</a>`;
+    return `<span class="table-cell-link"><a href="${escapeHtml(v)}" target="_blank" rel="noopener noreferrer">${escapeHtml(v)}</a></span>`;
   }
 
   function extractSpeaker(row) {
     const content = parseContent(row && row.content);
-    return content && (content.speaker || content.speakerName || content.nameOfSpeaker) || "";
+    return (content && (content.speaker || content.speakerName || content.nameOfSpeaker)) || "";
   }
 
   function extractSpeech(row) {
     const content = parseContent(row && row.content);
-    return content && (content.speech || content.speechText || content.body) || extractContentText(row);
+    return (content && (content.speech || content.speechText || content.body)) || extractContentText(row);
   }
 
   function parseContent(content) {

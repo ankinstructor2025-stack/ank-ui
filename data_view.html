@@ -6,113 +6,22 @@
   <title>データ照会</title>
   <link rel="stylesheet" href="./theme.css" />
   <style>
-    .page-wrap {
-      max-width: 1280px;
-      margin: 8px auto;
-      padding: 16px;
-      color: #fff;
-    }
-
-    .page-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 16px;
-    }
-
-    .page-title {
-      font-size: 40px;
-      font-weight: 700;
-      margin: 0;
-      line-height: 1.1;
-    }
-
-    .page-subtitle {
-      margin-top: 8px;
-      font-size: 14px;
-      color: rgba(255,255,255,0.72);
-    }
-
-    .header-actions {
-      display: flex;
-      gap: 12px;
-      align-items: center;
-    }
-
-    .btn {
-      appearance: none;
-      border: 1px solid rgba(255,255,255,0.18);
-      background: rgba(255,255,255,0.08);
-      color: #fff;
-      border-radius: 12px;
-      padding: 10px 16px;
-      cursor: pointer;
-      font-size: 14px;
-      font-weight: 600;
-    }
-
-    .btn:hover {
-      background: rgba(255,255,255,0.14);
-    }
-
-    .btn-primary {
-      background: #3b82f6;
-      border-color: #3b82f6;
-    }
-
-    .btn-primary:hover {
-      background: #2563eb;
-    }
-
-    .btn:disabled {
-      opacity: 0.55;
-      cursor: not-allowed;
-    }
-
-    .panel {
-      background: rgba(255,255,255,0.08);
-      border: 1px solid rgba(255,255,255,0.12);
-      border-radius: 18px;
-      padding: 18px;
-      margin-bottom: 16px;
-      box-shadow: 0 6px 24px rgba(0,0,0,0.16);
+    .split-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 16px;
     }
 
     .panel-title {
-      margin: 0 0 14px 0;
+      margin: 0 0 12px 0;
       font-size: 18px;
       font-weight: 700;
     }
 
-    .toolbar {
-      display: grid;
-      grid-template-columns: 260px 1fr auto;
-      gap: 14px;
-      align-items: end;
-      margin-bottom: 10px;
-    }
-
-    .field label {
-      display: block;
+    .muted-text {
+      color: #9ca3af;
       font-size: 13px;
-      color: rgba(255,255,255,0.78);
-      margin-bottom: 6px;
-    }
-
-    .field select,
-    .field input {
-      width: 100%;
-      box-sizing: border-box;
-      background: rgba(255,255,255,0.12);
-      color: #fff;
-      border: 1px solid rgba(255,255,255,0.18);
-      border-radius: 12px;
-      padding: 10px 12px;
-      font-size: 14px;
-    }
-
-    .field select option {
-      color: #111827;
     }
 
     .summary-row {
@@ -120,219 +29,166 @@
       justify-content: space-between;
       align-items: center;
       gap: 12px;
-      margin-top: 8px;
-      margin-bottom: 10px;
-      font-size: 14px;
-      color: rgba(255,255,255,0.86);
-    }
-
-    .grid-2 {
-      display: grid;
-      grid-template-columns: 1.1fr 1fr;
-      gap: 16px;
-    }
-
-    .table-wrap {
-      border: 1px solid rgba(255,255,255,0.12);
-      border-radius: 14px;
-      overflow: hidden;
-      background: rgba(0,0,0,0.12);
-      min-height: 420px;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .table-scroll {
-      overflow: auto;
-      flex: 1;
-    }
-
-    .simple-table {
-      width: 100%;
-      border-collapse: collapse;
-      table-layout: fixed;
-    }
-
-    .simple-table th,
-    .simple-table td {
-      border-bottom: 1px solid rgba(255,255,255,0.08);
-      padding: 10px 12px;
-      text-align: left;
-      vertical-align: top;
-      font-size: 14px;
-      word-break: break-word;
-    }
-
-    .simple-table th {
-      position: sticky;
-      top: 0;
-      background: rgba(15,23,42,0.95);
-      z-index: 1;
-      font-weight: 700;
-      color: rgba(255,255,255,0.86);
-    }
-
-    .simple-table tr.is-selected {
-      background: rgba(59,130,246,0.18);
-    }
-
-    .simple-table tr.is-clickable {
-      cursor: pointer;
-    }
-
-    .simple-table tr.is-clickable:hover {
-      background: rgba(255,255,255,0.06);
-    }
-
-    .placeholder {
-      padding: 18px;
-      color: rgba(255,255,255,0.68);
+      margin-top: 12px;
+      margin-bottom: 12px;
+      color: #d1d5db;
       font-size: 14px;
     }
 
-    .detail-card {
-      border: 1px solid rgba(255,255,255,0.12);
-      border-radius: 14px;
-      background: rgba(0,0,0,0.12);
-      padding: 16px;
-      min-height: 180px;
-      white-space: pre-wrap;
-      word-break: break-word;
-      font-size: 14px;
-      line-height: 1.6;
-    }
-
-    .muted {
-      color: rgba(255,255,255,0.64);
+    .table-cell-link a {
+      color: #bfdbfe;
+      text-decoration: underline;
+      word-break: break-all;
     }
 
     .status-pill {
       display: inline-block;
-      padding: 3px 8px;
-      border-radius: 999px;
+      padding: 2px 8px;
+      border-radius: 9999px;
       font-size: 12px;
       font-weight: 700;
-      background: rgba(255,255,255,0.1);
-    }
-
-    .status-done {
-      background: rgba(34,197,94,0.2);
-      color: #bbf7d0;
+      line-height: 1.5;
     }
 
     .status-new {
-      background: rgba(59,130,246,0.22);
+      background: rgba(59, 130, 246, 0.18);
       color: #bfdbfe;
     }
 
+    .status-done {
+      background: rgba(34, 197, 94, 0.18);
+      color: #bbf7d0;
+    }
+
     .status-error {
-      background: rgba(239,68,68,0.2);
+      background: rgba(239, 68, 68, 0.18);
       color: #fecaca;
     }
 
-    .mini-actions {
+    .selected-row {
+      background: rgba(59, 130, 246, 0.12);
+    }
+
+    .clickable-row {
+      cursor: pointer;
+    }
+
+    .clickable-row:hover {
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .placeholder-row td {
+      color: #9ca3af;
+      text-align: center;
+      padding: 16px;
+    }
+
+    .detail-pre {
+      white-space: pre-wrap;
+      word-break: break-word;
+      line-height: 1.65;
+      margin: 0;
+      font-family: inherit;
+    }
+
+    .toolbar-right {
       display: flex;
       gap: 8px;
       align-items: center;
+      justify-content: flex-end;
+    }
+
+    .checkbox-cell {
+      width: 48px;
+      text-align: center;
+    }
+
+    .narrow-cell {
+      width: 100px;
+    }
+
+    .medium-cell {
+      width: 140px;
     }
 
     @media (max-width: 960px) {
-      .toolbar {
+      .split-grid {
         grid-template-columns: 1fr;
-      }
-
-      .grid-2 {
-        grid-template-columns: 1fr;
-      }
-
-      .page-title {
-        font-size: 32px;
-      }
-
-      .page-header {
-        flex-direction: column;
-        gap: 12px;
       }
     }
   </style>
 </head>
 <body>
-  <div class="page-wrap">
+  <div class="container">
 
     <div class="page-header">
       <div>
-        <h1 class="page-title">データ照会</h1>
-        <div class="page-subtitle">親一覧 → 子一覧 → 詳細表示</div>
+        <h1>データ照会</h1>
+        <p>親一覧 → 子一覧 → 詳細表示</p>
       </div>
-
       <div class="header-actions">
-        <button id="btnBack" class="btn" type="button">メニューに戻る</button>
-        <button id="btnLogout" class="btn" type="button">ログアウト</button>
+        <button id="btnBack" class="btn secondary">メニューに戻る</button>
+        <button id="btnLogout" class="btn secondary">ログアウト</button>
       </div>
     </div>
 
-    <div class="panel">
-      <div class="toolbar">
-        <div class="field">
-          <label for="sourceType">データ種別</label>
-          <select id="sourceType">
-            <option value="kokkai">国会議事録</option>
-            <option value="opendata">オープンデータ</option>
-            <option value="public_url">公開URL</option>
-            <option value="upload">アップロードファイル</option>
+    <div class="card">
+      <div class="filter-wrap">
+        <div class="form-group">
+          <label for="sourceSelect">データ種別</label>
+          <select id="sourceSelect">
+            <option value="">読み込み中...</option>
           </select>
         </div>
 
-        <div class="field">
+        <div class="form-group">
           <label for="sourceHint">補足</label>
-          <input id="sourceHint" type="text" value="親一覧を表示します" readonly />
-        </div>
-
-        <div class="mini-actions">
-          <button id="btnReload" class="btn" type="button">再読込</button>
-          <button id="btnKnowledge" class="btn btn-primary" type="button" disabled>選択対象をナレッジ化</button>
+          <input id="sourceHint" type="text" value="データ種別を選択してください" readonly />
         </div>
       </div>
 
-      <div class="summary-row">
-        <div>
-          <span id="summaryText">0 件</span>
-          <span class="muted" id="selectionSummary" style="margin-left:12px;">選択 0 件</span>
+      <div class="table-toolbar">
+        <div class="summary-row" style="margin:0;">
+          <div>
+            <span id="summaryText">0 件</span>
+            <span id="selectionSummary" class="muted-text" style="margin-left:12px;">選択 0 件</span>
+          </div>
+          <div id="contextSummary" class="muted-text">親一覧</div>
         </div>
-        <div class="muted" id="contextSummary">親一覧</div>
+
+        <div class="toolbar-right">
+          <button id="btnReload" class="btn secondary" type="button">再読込</button>
+          <button id="btnKnowledge" class="btn primary" type="button" disabled>選択対象をナレッジ化</button>
+        </div>
       </div>
     </div>
 
-    <div class="grid-2">
-      <div class="panel">
+    <div class="split-grid">
+      <div class="card">
         <h2 class="panel-title">親一覧</h2>
         <div class="table-wrap">
-          <div class="table-scroll">
-            <table class="simple-table">
-              <thead id="parentTableHead"></thead>
-              <tbody id="parentTableBody"></tbody>
-            </table>
-          </div>
+          <table class="data-table">
+            <thead id="parentTableHead"></thead>
+            <tbody id="parentTableBody"></tbody>
+          </table>
         </div>
       </div>
 
-      <div class="panel">
+      <div class="card">
         <h2 class="panel-title">子一覧</h2>
         <div class="table-wrap">
-          <div class="table-scroll">
-            <table class="simple-table">
-              <thead id="childTableHead"></thead>
-              <tbody id="childTableBody"></tbody>
-            </table>
-          </div>
+          <table class="data-table">
+            <thead id="childTableHead"></thead>
+            <tbody id="childTableBody"></tbody>
+          </table>
         </div>
       </div>
     </div>
 
-    <div class="panel">
+    <div class="card">
       <h2 class="panel-title">詳細表示</h2>
-      <div id="detailCard" class="detail-card">
-        右上のデータ種別を選択し、親一覧から行を選んでください。
+      <div class="detail-card">
+        <pre id="detailPre" class="detail-pre">データ種別を選択してください。</pre>
       </div>
     </div>
 
