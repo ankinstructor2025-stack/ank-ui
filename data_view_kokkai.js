@@ -325,14 +325,6 @@ async function previewKnowledge() {
   }
 }
 
-function bindActionButtons() {
-  if (ctx.btnKnowledge) {
-    ctx.btnKnowledge.onclick = async () => {
-      await previewKnowledge();
-    };
-  }
-}
-
 function bindParentRowEvents() {
   const rows = ctx.parentTableBody.querySelectorAll(".parent-row");
 
@@ -437,7 +429,6 @@ async function load(viewContext) {
   selectedChildIndex = -1;
   checkedParentIndexes = new Set();
 
-  bindActionButtons();
   clearChildArea("親一覧から1件選択してください。");
 
   try {
