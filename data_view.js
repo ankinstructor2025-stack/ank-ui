@@ -313,6 +313,7 @@ async function createKnowledgeJob() {
     source_type: "kokkai",
     source_name: "国会議事録",
     request_type: "extract_knowledge",
+    preview_only: true,
     items: checkedRows.map((row) => ({
       source_type: "kokkai",
       parent_source_id: row.source_id ?? null,
@@ -342,11 +343,34 @@ async function createKnowledgeJob() {
 
   const data = await res.json();
 
-  alert(
-    "ナレッジ化ジョブを登録しました\n" +
-    "job_id: " + data.job_id + "\n" +
-    "対象件数: " + data.selected_count
-  );
+  const previews = Array.isArray(data.prompt_previews) ? data.prompt_previews : [];
+
+  if (detailPre) {
+    if (previews.length === 0) {
+      detailPre.textContent = "生成プロンプトがありません。";
+    } else {
+      detailPre.textContent = previews
+        .map((item, index) => {
+          const label = item.parent_label || item.parent_source_id || `item ${index + 1}`;
+          return [
+            `--- prompt ${index + 1} ---`,
+            `対象: ${label}`,
+            `job_item_id: ${item.job_item_id || ""}`,
+            "",
+            item.prompt_text || ""
+          ].join("\n");
+        })
+        .join("\n\n========================================\n\n");
+    }
+  }
+
+  if (contextSummary) {
+    contextSummary.textContent = `ナレッジ化 preview: ${previews.length} 件`;
+  }
+
+  if (selectionSummary) {
+    selectionSummary.textContent = `選択 ${checkedRows.length} 件 / preview ${previews.length} 件`;
+  }
 }
 
 function bindEvents() {
