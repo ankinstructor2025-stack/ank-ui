@@ -354,10 +354,8 @@ async function createKnowledgeJob() {
           const label = item.parent_label || item.parent_source_id || `item ${index + 1}`;
           return [
             `--- prompt ${index + 1} ---`,
-            `対象: ${label}`,
-            `job_item_id: ${item.job_item_id || ""}`,
             "",
-            item.prompt_text || ""
+            promptText
           ].join("\n");
         })
         .join("\n\n========================================\n\n");
