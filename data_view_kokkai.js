@@ -88,6 +88,30 @@ function renderDetailFromChild(row, parentRow) {
   ctx.detailPre.textContent = lines.join("\n");
 }
 
+function renderPromptPreviews(previews) {
+  if (!ctx.detailPre) return;
+
+  if (!Array.isArray(previews) || previews.length === 0) {
+    ctx.detailPre.textContent = "生成プロンプトがありません。";
+    return;
+  }
+
+  const blocks = previews.map((item, index) => {
+    const label = item?.parent_label || item?.parent_source_id || `item ${index + 1}`;
+    const promptText = item?.prompt_text || "";
+
+    return [
+      `--- prompt ${index + 1} ---`,
+      `対象: ${label}`,
+      `job_item_id: ${item?.job_item_id || ""}`,
+      "",
+      promptText
+    ].join("\n");
+  });
+
+  ctx.detailPre.textContent = blocks.join("\n\n========================================\n\n");
+}
+
 function setSelectedParentRow(index) {
   selectedParentIndex = index;
 
@@ -204,6 +228,74 @@ async function loadChildren(parentRow) {
   return rows;
 }
 
+async function previewKnowledge() {
+  const checkedRows = getCheckedRows();
+
+  if (!checkedRows.length) {
+    if (ctx.detailPre) {
+      ctx.detailPre.textContent = "親一覧で対象をチェックしてください。";
+    }
+    return;
+  }
+
+  if (ctx.btnKnowledge) {
+    ctx.btnKnowledge.disabled = true;
+  }
+
+  if (ctx.contextSummary) {
+    ctx.contextSummary.textContent = `ナレッジ化: ${checkedRows.length} 件`;
+  }
+
+  if (ctx.detailPre) {
+    ctx.detailPre.textContent = "生成プロンプトを作成中です...";
+  }
+
+  try {
+    const body = {
+      source_type: "kokkai",
+      source_name: "国会議事録",
+      request_type: "extract_knowledge",
+      preview_only: true,
+      items: checkedRows.map((row) => ({
+        source_type: "kokkai",
+        parent_source_id: row.source_id,
+        parent_key1: row.name_of_house || "",
+        parent_key2: row.name_of_meeting || "",
+        parent_label: formatParentLabel(row),
+        row_count: Number(row.row_count || 0)
+      }))
+    };
+
+    const data = await ctx.apiPost("/knowledge/jobs", body);
+    const previews = Array.isArray(data?.prompt_previews) ? data.prompt_previews : [];
+
+    renderPromptPreviews(previews);
+
+    if (ctx.selectionSummary) {
+      ctx.selectionSummary.textContent = `選択 ${checkedRows.length} 件 / preview ${previews.length} 件`;
+    }
+
+    if (ctx.contextSummary) {
+      ctx.contextSummary.textContent = `ナレッジ化 preview: ${previews.length} 件`;
+    }
+  } catch (e) {
+    console.error(e);
+    if (ctx.detailPre) {
+      ctx.detailPre.textContent = e.message || "生成プロンプト作成でエラーが発生しました。";
+    }
+  } finally {
+    updateCheckedSummary();
+  }
+}
+
+function bindActionButtons() {
+  if (ctx.btnKnowledge) {
+    ctx.btnKnowledge.onclick = async () => {
+      await previewKnowledge();
+    };
+  }
+}
+
 function bindParentRowEvents() {
   const rows = ctx.parentTableBody.querySelectorAll(".parent-row");
 
@@ -308,6 +400,7 @@ async function load(viewContext) {
   selectedChildIndex = -1;
   checkedParentIndexes = new Set();
 
+  bindActionButtons();
   clearChildArea("親一覧から1件選択してください。");
 
   try {
