@@ -48,6 +48,43 @@ function extractRowsFromResponse(data) {
   return [];
 }
 
+async function apiPostJson(path, body) {
+  if (!ctx || !ctx.apiBase) {
+    throw new Error("apiBase が取得できません。");
+  }
+
+  const requestUrl = path.startsWith("/")
+    ? `${ctx.apiBase}${path}`
+    : `${ctx.apiBase}/${path}`;
+
+  const headers = {
+    "Content-Type": "application/json"
+  };
+
+  if (ctx.idToken) {
+    headers.Authorization = `Bearer ${ctx.idToken}`;
+  }
+
+  const res = await fetch(requestUrl, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(body)
+  });
+
+  if (!res.ok) {
+    let message = `APIエラー (HTTP ${res.status})`;
+    try {
+      const err = await res.json();
+      if (err?.detail) {
+        message = err.detail;
+      }
+    } catch (_) {}
+    throw new Error(message);
+  }
+
+  return await res.json();
+}
+
 function updateCheckedSummary() {
   if (ctx.selectionSummary) {
     ctx.selectionSummary.textContent = `選択 ${checkedParentIndexes.size} 件`;
@@ -266,7 +303,7 @@ async function previewKnowledge() {
       }))
     };
 
-    const data = await ctx.apiPost("/knowledge/jobs", body);
+    const data = await apiPostJson("/knowledge/jobs", body);
     const previews = Array.isArray(data?.prompt_previews) ? data.prompt_previews : [];
 
     renderPromptPreviews(previews);
