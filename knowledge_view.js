@@ -1,7 +1,6 @@
 console.log("knowledge_view.js loaded");
 
 const btnReload = document.getElementById("btnReload");
-const btnExecute = document.getElementById("btnExecute");
 const btnMenu = document.getElementById("btnMenu");
 const btnLogout = document.getElementById("btnLogout");
 
@@ -124,18 +123,10 @@ function resetScreen() {
   selectionSummary.textContent = "選択 0 件";
   contextSummary.textContent = "親一覧";
   detailPre.textContent = "読み込み中です.";
-  btnExecute?.disabled = true;
   childRows = [];
   selectedParentJobId = "";
   selectedChildJobItemId = "";
   checkedChildIds = new Set();
-}
-
-function updateSelectionSummary() {
-  selectionSummary.textContent = `選択 ${checkedChildIds.size} 件`;
-  if (btnExecute) {
-    btnExecute.disabled = checkedChildIds.size === 0;
-  }
 }
 
 async function executeParentAction(jobId, actionName) {
@@ -267,10 +258,6 @@ async function executeKnowledgeJob() {
 function bindEvents() {
   btnReload?.addEventListener("click", async () => {
     await loadParentRows();
-  });
-
-  btnExecute?.addEventListener("click", async () => {
-    await executeKnowledgeJob();
   });
 
   btnMenu?.addEventListener("click", () => {
