@@ -118,13 +118,13 @@ function renderChildPlaceholder(message) {
 }
 
 function resetScreen() {
-  renderParentPlaceholder("読み込み中です...");
+  renderParentPlaceholder("読み込み中です.");
   renderChildPlaceholder("今後対応予定です。");
   summaryText.textContent = "0 件";
   selectionSummary.textContent = "選択 0 件";
   contextSummary.textContent = "親一覧";
-  detailPre.textContent = "読み込み中です...";
-  btnExecute.disabled = true;
+  detailPre.textContent = "読み込み中です.";
+  btnExecute?.disabled = true;
   childRows = [];
   selectedParentJobId = "";
   selectedChildJobItemId = "";
@@ -133,7 +133,9 @@ function resetScreen() {
 
 function updateSelectionSummary() {
   selectionSummary.textContent = `選択 ${checkedChildIds.size} 件`;
-  btnExecute.disabled = checkedChildIds.size === 0;
+  if (btnExecute) {
+    btnExecute.disabled = checkedChildIds.size === 0;
+  }
 }
 
 async function executeParentAction(jobId, actionName) {
@@ -152,16 +154,17 @@ async function executeParentAction(jobId, actionName) {
   alert(`${actionLabel} API は次段階で接続します。\njob_id: ${jobId}`);
 }
 
-parentTableHead.innerHTML = `
-<tr>
-  <th>source_type</th>
-  <th>status</th>
-  <th>selected</th>
-  <th>qa</th>
-  <th>plain</th>
-  <th>処理</th>
-</tr>
-`;
+function renderParentTable(rows) {
+  parentTableHead.innerHTML = `
+    <tr>
+      <th>source_type</th>
+      <th>status</th>
+      <th>selected</th>
+      <th>qa</th>
+      <th>plain</th>
+      <th>処理</th>
+    </tr>
+  `;
 
   if (!rows.length) {
     renderParentPlaceholder("job がありません。");
