@@ -318,8 +318,8 @@ async function loadChildRows(jobId) {
   updateSelectionSummary();
 
   try {
-    const data = await apiGet("/knowledge/refine/job-items", { job_id: jobId });
-    childRows = Array.isArray(data?.job_items) ? data.job_items : [];
+    const data = await apiGet(`/knowledge/refine/jobs/${jobId}/items`);
+    childRows = Array.isArray(data?.items) ? data.items : [];
     renderChildTable(childRows);
     updateSelectionSummary();
 
