@@ -152,18 +152,16 @@ async function executeParentAction(jobId, actionName) {
   alert(`${actionLabel} API は次段階で接続します。\njob_id: ${jobId}`);
 }
 
-function renderParentTable(rows) {
-  parentTableHead.innerHTML = `
-    <tr>
-      <th>job_id</th>
-      <th>source_type</th>
-      <th>status</th>
-      <th>selected</th>
-      <th>qa</th>
-      <th>plain</th>
-      <th>処理</th>
-    </tr>
-  `;
+parentTableHead.innerHTML = `
+<tr>
+  <th>source_type</th>
+  <th>status</th>
+  <th>selected</th>
+  <th>qa</th>
+  <th>plain</th>
+  <th>処理</th>
+</tr>
+`;
 
   if (!rows.length) {
     renderParentPlaceholder("job がありません。");
@@ -178,7 +176,6 @@ function renderParentTable(rows) {
 
     return `
       <tr class="clickable-row ${row.job_id === selectedParentJobId ? "selected-row" : ""}" data-job-id="${escapeHtml(row.job_id)}">
-        <td>${escapeHtml(row.job_id)}</td>
         <td>${escapeHtml(row.source_type)}</td>
         <td><span class="${getStatusClass(row.status)}">${escapeHtml(row.status)}</span></td>
         <td>${escapeHtml(row.selected_count ?? 0)}</td>
