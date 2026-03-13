@@ -75,8 +75,12 @@ async function apiGet(path, query = {}) {
 
 function getStatusClass(status) {
   const s = String(status || "").toLowerCase();
-  if (s === "ready" || s === "done") return "status-pill status-done";
-  if (s === "error") return "status-pill status-error";
+  if (s === "ready" || s === "done" || s === "normalized" || s === "vectorized") {
+    return "status-pill status-done";
+  }
+  if (s === "error" || s === "failed") {
+    return "status-pill status-error";
+  }
   return "status-pill status-new";
 }
 
@@ -118,7 +122,7 @@ function renderChildPlaceholder(message) {
 
 function resetScreen() {
   renderParentPlaceholder("読み込み中です.");
-  renderChildPlaceholder("今後対応予定です。");
+  renderChildPlaceholder("親を選択してください。");
   summaryText.textContent = "0 件";
   selectionSummary.textContent = "選択 0 件";
   contextSummary.textContent = "親一覧";
@@ -127,6 +131,10 @@ function resetScreen() {
   selectedParentJobId = "";
   selectedChildJobItemId = "";
   checkedChildIds = new Set();
+}
+
+function updateSelectionSummary() {
+  selectionSummary.textContent = `選択 ${checkedChildIds.size} 件`;
 }
 
 async function executeParentAction(jobId, actionName) {
@@ -143,63 +151,6 @@ async function executeParentAction(jobId, actionName) {
     "処理";
 
   alert(`${actionLabel} API は次段階で接続します。\njob_id: ${jobId}`);
-}
-
-function renderParentTable(rows) {
-  parentTableHead.innerHTML = `
-    <tr>
-      <th>source_type</th>
-      <th>status</th>
-      <th>selected</th>
-      <th>qa</th>
-      <th>plain</th>
-      <th>処理</th>
-    </tr>
-  `;
-
-  if (!rows.length) {
-    renderParentPlaceholder("job がありません。");
-    return;
-  }
-
-  parentTableBody.innerHTML = rows.map((row) => {
-    const nextAction = getNextAction(row.status);
-    const actionButton = nextAction
-      ? `<button type="button" class="btn btn-primary parent-action-btn" data-job-id="${escapeHtml(row.job_id)}" data-action="${escapeHtml(nextAction.action)}">${escapeHtml(nextAction.label)}</button>`
-      : `<span class="muted-text">-</span>`;
-
-    return `
-      <tr class="clickable-row ${row.job_id === selectedParentJobId ? "selected-row" : ""}" data-job-id="${escapeHtml(row.job_id)}">
-        <td>${escapeHtml(row.source_type)}</td>
-        <td><span class="${getStatusClass(row.status)}">${escapeHtml(row.status)}</span></td>
-        <td>${escapeHtml(row.selected_count ?? 0)}</td>
-        <td>${escapeHtml(row.qa_count ?? 0)}</td>
-        <td>${escapeHtml(row.plain_count ?? 0)}</td>
-        <td>${actionButton}</td>
-      </tr>
-    `;
-  }).join("");
-
-  parentTableBody.querySelectorAll("tr[data-job-id]").forEach((tr) => {
-    tr.addEventListener("click", () => {
-      selectedParentJobId = tr.dataset.jobId || "";
-      selectedChildJobItemId = "";
-      checkedChildIds = new Set();
-      renderParentTable(parentRows);
-      renderChildPlaceholder("job_items API は今後対応予定です。");
-      updateSelectionSummary();
-      loadDetailFromParent(selectedParentJobId);
-    });
-  });
-
-  parentTableBody.querySelectorAll(".parent-action-btn").forEach((btn) => {
-    btn.addEventListener("click", async (e) => {
-      e.stopPropagation();
-      const jobId = btn.dataset.jobId || "";
-      const actionName = btn.dataset.action || "";
-      await executeParentAction(jobId, actionName);
-    });
-  });
 }
 
 function buildParentDetailText(row) {
@@ -226,6 +177,26 @@ function buildParentDetailText(row) {
   return lines.join("\n");
 }
 
+function buildChildDetailText(row) {
+  const lines = [];
+
+  lines.push(`job_item_id: ${row?.job_item_id ?? ""}`);
+  lines.push(`job_id: ${row?.job_id ?? ""}`);
+  lines.push(`source_item_id: ${row?.source_item_id ?? ""}`);
+  lines.push(`source_type: ${row?.source_type ?? ""}`);
+  lines.push(`title: ${row?.title ?? ""}`);
+  lines.push(`status: ${row?.status ?? ""}`);
+  lines.push(`qa_count: ${row?.qa_count ?? 0}`);
+  lines.push(`plain_count: ${row?.plain_count ?? 0}`);
+  lines.push(`error_count: ${row?.error_count ?? 0}`);
+  lines.push(`requested_at: ${row?.requested_at ?? ""}`);
+  lines.push(`started_at: ${row?.started_at ?? ""}`);
+  lines.push(`finished_at: ${row?.finished_at ?? ""}`);
+  lines.push(`error_message: ${row?.error_message ?? ""}`);
+
+  return lines.join("\n");
+}
+
 function loadDetailFromParent(jobId) {
   const row = parentRows.find((x) => x.job_id === jobId);
   if (!row) {
@@ -235,42 +206,32 @@ function loadDetailFromParent(jobId) {
   detailPre.textContent = buildParentDetailText(row);
 }
 
-async function loadParentRows() {
-  resetScreen();
-
-  const data = await apiGet("/knowledge/refine/jobs");
-  parentRows = Array.isArray(data?.jobs) ? data.jobs : [];
-
-  summaryText.textContent = `${parentRows.length} 件`;
-  contextSummary.textContent = "親一覧: knowledge_jobs";
-  renderParentTable(parentRows);
-
-  renderChildPlaceholder("job_items API は今後対応予定です。");
-  detailPre.textContent = parentRows.length
-    ? "親一覧から1件選択してください。"
-    : "job がありません。";
+function loadDetailFromChild(jobItemId) {
+  const row = childRows.find((x) => String(x.job_item_id) === String(jobItemId));
+  if (!row) {
+    detailPre.textContent = "job_item が見つかりません。";
+    return;
+  }
+  detailPre.textContent = buildChildDetailText(row);
 }
 
-async function executeKnowledgeJob() {
-  alert("下部の一括実行ボタンは今後対応予定です。");
-}
+function renderParentTable(rows) {
+  parentTableHead.innerHTML = `
+    <tr>
+      <th>source_type</th>
+      <th>status</th>
+      <th>selected</th>
+      <th>qa</th>
+      <th>plain</th>
+      <th>処理</th>
+    </tr>
+  `;
 
-function bindEvents() {
-  btnReload?.addEventListener("click", async () => {
-    await loadParentRows();
-  });
+  if (!rows.length) {
+    renderParentPlaceholder("job がありません。");
+    return;
+  }
 
-  btnMenu?.addEventListener("click", () => {
-    window.location.href = "./menu.html";
-  });
-
-  btnLogout?.addEventListener("click", () => {
-    sessionStorage.removeItem("idToken");
-    window.location.href = "./index.html";
-  });
-}
-
-document.addEventListener("DOMContentLoaded", async () => {
-  bindEvents();
-  await loadParentRows();
-});
+  parentTableBody.innerHTML = rows.map((row) => {
+    const nextAction = getNextAction(row.status);
+    const actionButton =
