@@ -81,6 +81,24 @@ function getStatusClass(status) {
   return "status-pill status-new";
 }
 
+function getNextAction(status) {
+  const s = String(status || "").toLowerCase();
+
+  if (s === "new" || s === "ready") {
+    return { label: "正規化", action: "normalize" };
+  }
+
+  if (s === "normalized" || s === "normalize_done") {
+    return { label: "ベクトル化", action: "vectorize" };
+  }
+
+  if (s === "vectorized" || s === "vectorize_done") {
+    return { label: "重複削除", action: "dedup" };
+  }
+
+  return null;
+}
+
 function renderParentPlaceholder(message) {
   parentTableHead.innerHTML = "";
   parentTableBody.innerHTML = `
@@ -118,6 +136,22 @@ function updateSelectionSummary() {
   btnExecute.disabled = checkedChildIds.size === 0;
 }
 
+async function executeParentAction(jobId, actionName) {
+  const row = parentRows.find((x) => x.job_id === jobId);
+  if (!row) {
+    alert("job が見つかりません。");
+    return;
+  }
+
+  const actionLabel =
+    actionName === "normalize" ? "正規化" :
+    actionName === "vectorize" ? "ベクトル化" :
+    actionName === "dedup" ? "重複削除" :
+    "処理";
+
+  alert(`${actionLabel} API は次段階で接続します。\njob_id: ${jobId}`);
+}
+
 function renderParentTable(rows) {
   parentTableHead.innerHTML = `
     <tr>
@@ -127,7 +161,7 @@ function renderParentTable(rows) {
       <th>selected</th>
       <th>qa</th>
       <th>plain</th>
-      <th>requested_at</th>
+      <th>処理</th>
     </tr>
   `;
 
@@ -136,17 +170,24 @@ function renderParentTable(rows) {
     return;
   }
 
-  parentTableBody.innerHTML = rows.map((row) => `
-    <tr class="clickable-row ${row.job_id === selectedParentJobId ? "selected-row" : ""}" data-job-id="${escapeHtml(row.job_id)}">
-      <td>${escapeHtml(row.job_id)}</td>
-      <td>${escapeHtml(row.source_type)}</td>
-      <td><span class="${getStatusClass(row.status)}">${escapeHtml(row.status)}</span></td>
-      <td>${escapeHtml(row.selected_count ?? 0)}</td>
-      <td>${escapeHtml(row.qa_count ?? 0)}</td>
-      <td>${escapeHtml(row.plain_count ?? 0)}</td>
-      <td>${escapeHtml(row.requested_at ?? "")}</td>
-    </tr>
-  `).join("");
+  parentTableBody.innerHTML = rows.map((row) => {
+    const nextAction = getNextAction(row.status);
+    const actionButton = nextAction
+      ? `<button type="button" class="btn btn-primary parent-action-btn" data-job-id="${escapeHtml(row.job_id)}" data-action="${escapeHtml(nextAction.action)}">${escapeHtml(nextAction.label)}</button>`
+      : `<span class="muted-text">-</span>`;
+
+    return `
+      <tr class="clickable-row ${row.job_id === selectedParentJobId ? "selected-row" : ""}" data-job-id="${escapeHtml(row.job_id)}">
+        <td>${escapeHtml(row.job_id)}</td>
+        <td>${escapeHtml(row.source_type)}</td>
+        <td><span class="${getStatusClass(row.status)}">${escapeHtml(row.status)}</span></td>
+        <td>${escapeHtml(row.selected_count ?? 0)}</td>
+        <td>${escapeHtml(row.qa_count ?? 0)}</td>
+        <td>${escapeHtml(row.plain_count ?? 0)}</td>
+        <td>${actionButton}</td>
+      </tr>
+    `;
+  }).join("");
 
   parentTableBody.querySelectorAll("tr[data-job-id]").forEach((tr) => {
     tr.addEventListener("click", () => {
@@ -157,6 +198,15 @@ function renderParentTable(rows) {
       renderChildPlaceholder("job_items API は今後対応予定です。");
       updateSelectionSummary();
       loadDetailFromParent(selectedParentJobId);
+    });
+  });
+
+  parentTableBody.querySelectorAll(".parent-action-btn").forEach((btn) => {
+    btn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      const jobId = btn.dataset.jobId || "";
+      const actionName = btn.dataset.action || "";
+      await executeParentAction(jobId, actionName);
     });
   });
 }
@@ -173,10 +223,14 @@ function buildParentDetailText(row) {
   lines.push(`qa_count: ${row?.qa_count ?? 0}`);
   lines.push(`plain_count: ${row?.plain_count ?? 0}`);
   lines.push(`error_count: ${row?.error_count ?? 0}`);
-  lines.push(`requested_at: ${row?.requested_at ?? ""}`);
   lines.push(`started_at: ${row?.started_at ?? ""}`);
   lines.push(`finished_at: ${row?.finished_at ?? ""}`);
   lines.push(`error_message: ${row?.error_message ?? ""}`);
+
+  const nextAction = getNextAction(row?.status);
+  if (nextAction) {
+    lines.push(`next_action: ${nextAction.label}`);
+  }
 
   return lines.join("\n");
 }
@@ -207,7 +261,7 @@ async function loadParentRows() {
 }
 
 async function executeKnowledgeJob() {
-  alert("正規化・ベクトル化の実行APIは次段階で接続します。");
+  alert("下部の一括実行ボタンは今後対応予定です。");
 }
 
 function bindEvents() {
