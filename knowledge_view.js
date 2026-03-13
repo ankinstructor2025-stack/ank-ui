@@ -151,10 +151,14 @@ async function executeParentAction(jobId, actionName) {
     return;
   }
 
+  if (actionName === "vectorize") {
+    await apiPost(`/knowledge/refine/jobs/${jobId}/vectorize`);
+    await reloadAfterAction(jobId);
+    return;
+  }
+
   const label =
-    actionName === "vectorize"
-      ? "ベクトル化"
-      : actionName === "dedup"
+    actionName === "dedup"
       ? "重複削除"
       : actionName;
 
