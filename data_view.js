@@ -294,8 +294,50 @@ async function loadSourceMaster() {
   }
 }
 
-async function createKnowledgeJob() {
+function buildKnowledgeResultText(data) {
+  const lines = [];
 
+  lines.push(`job_id: ${data?.job_id ?? ""}`);
+  lines.push(`status: ${data?.status ?? ""}`);
+  lines.push(`selected_count: ${data?.selected_count ?? 0}`);
+  lines.push(`created_item_count: ${data?.created_item_count ?? 0}`);
+  lines.push("");
+
+  const previews = Array.isArray(data?.prompt_previews) ? data.prompt_previews : [];
+  if (previews.length > 0) {
+    previews.forEach((item, index) => {
+      lines.push(`--- prompt ${index + 1} ---`);
+      lines.push(item?.prompt_text || "");
+      lines.push("");
+    });
+  }
+
+  const debugItems = Array.isArray(data?.debug_items) ? data.debug_items : [];
+  if (debugItems.length > 0) {
+    lines.push("=== debug_items ===");
+    debugItems.forEach((item, index) => {
+      lines.push(`--- debug ${index + 1} ---`);
+      lines.push(`job_item_id: ${item?.job_item_id ?? ""}`);
+      lines.push(`parent_label: ${item?.parent_label ?? ""}`);
+      lines.push(`status: ${item?.status ?? ""}`);
+      lines.push(`qa_count: ${item?.qa_count ?? 0}`);
+      lines.push(`error_message: ${item?.error_message ?? ""}`);
+      if (item?.llm_result !== undefined && item?.llm_result !== null) {
+        lines.push("llm_result:");
+        lines.push(JSON.stringify(item.llm_result, null, 2));
+      }
+      lines.push("");
+    });
+  }
+
+  if (previews.length === 0 && debugItems.length === 0) {
+    lines.push(JSON.stringify(data, null, 2));
+  }
+
+  return lines.join("\n");
+}
+
+async function createKnowledgeJob() {
   const module = getCurrentModule();
   if (!module || typeof module.getCheckedRows !== "function") {
     alert("対象取得に失敗しました");
@@ -326,48 +368,57 @@ async function createKnowledgeJob() {
 
   const idToken = requireIdToken();
 
-  const res = await fetch(`${API_BASE}/knowledge/jobs`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${idToken}`
-    },
-    body: JSON.stringify(payload)
-  });
-
-  if (!res.ok) {
-    const text = await res.text();
-    alert("ナレッジ化ジョブ作成エラー\n" + text);
-    return;
-  }
-
-  const data = await res.json();
-
-  const previews = Array.isArray(data.prompt_previews) ? data.prompt_previews : [];
-
-  if (detailPre) {
-    if (previews.length === 0) {
-      detailPre.textContent = "生成プロンプトがありません。";
-    } else {
-      detailPre.textContent = previews
-        .map((item, index) => {
-          const label = item.parent_label || item.parent_source_id || `item ${index + 1}`;
-          return [
-            `--- prompt ${index + 1} ---`,
-            "",
-            promptText
-          ].join("\n");
-        })
-        .join("\n\n========================================\n\n");
+  try {
+    if (detailPre) {
+      detailPre.textContent = "ナレッジ化を実行中です...";
     }
-  }
 
-  if (contextSummary) {
-    contextSummary.textContent = `ナレッジ化 preview: ${previews.length} 件`;
-  }
+    const res = await fetch(`${API_BASE}/knowledge/jobs`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${idToken}`
+      },
+      body: JSON.stringify(payload)
+    });
 
-  if (selectionSummary) {
-    selectionSummary.textContent = `選択 ${checkedRows.length} 件 / preview ${previews.length} 件`;
+    const rawText = await res.text();
+
+    let data = null;
+    try {
+      data = rawText ? JSON.parse(rawText) : null;
+    } catch (_) {
+      data = null;
+    }
+
+    if (!res.ok) {
+      const errorText = data ? JSON.stringify(data, null, 2) : rawText;
+      if (detailPre) {
+        detailPre.textContent = errorText || `APIエラー (HTTP ${res.status})`;
+      }
+      alert("ナレッジ化ジョブ作成エラー");
+      return;
+    }
+
+    if (detailPre) {
+      detailPre.textContent = buildKnowledgeResultText(data || {});
+    }
+
+    const previews = Array.isArray(data?.prompt_previews) ? data.prompt_previews : [];
+
+    if (contextSummary) {
+      contextSummary.textContent = `ナレッジ化: ${data?.status ?? "unknown"}`;
+    }
+
+    if (selectionSummary) {
+      selectionSummary.textContent = `選択 ${checkedRows.length} 件 / prompt ${previews.length} 件`;
+    }
+  } catch (e) {
+    console.error(e);
+    if (detailPre) {
+      detailPre.textContent = e.message || "ナレッジ化処理でエラーが発生しました。";
+    }
+    alert("ナレッジ化処理でエラーが発生しました");
   }
 }
 
