@@ -313,7 +313,7 @@ async function createKnowledgeJob() {
     source_type: "kokkai",
     source_name: "国会議事録",
     request_type: "extract_knowledge",
-    preview_only: true,
+    preview_only: false,
     items: checkedRows.map((row) => ({
       source_type: "kokkai",
       parent_source_id: row.source_id ?? null,
