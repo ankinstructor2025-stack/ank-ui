@@ -101,12 +101,16 @@ function renderChildPlaceholder(message) {
 
 function resetScreen() {
   renderParentPlaceholder("読み込み中です...");
-  renderChildPlaceholder("親一覧から1件選択してください。");
+  renderChildPlaceholder("今後対応予定です。");
   summaryText.textContent = "0 件";
   selectionSummary.textContent = "選択 0 件";
   contextSummary.textContent = "親一覧";
   detailPre.textContent = "読み込み中です...";
   btnExecute.disabled = true;
+  childRows = [];
+  selectedParentJobId = "";
+  selectedChildJobItemId = "";
+  checkedChildIds = new Set();
 }
 
 function updateSelectionSummary() {
@@ -145,161 +149,65 @@ function renderParentTable(rows) {
   `).join("");
 
   parentTableBody.querySelectorAll("tr[data-job-id]").forEach((tr) => {
-    tr.addEventListener("click", async () => {
+    tr.addEventListener("click", () => {
       selectedParentJobId = tr.dataset.jobId || "";
       selectedChildJobItemId = "";
       checkedChildIds = new Set();
       renderParentTable(parentRows);
-      await loadChildRows(selectedParentJobId);
+      renderChildPlaceholder("job_items API は今後対応予定です。");
+      updateSelectionSummary();
+      loadDetailFromParent(selectedParentJobId);
     });
   });
 }
 
-function renderChildTable(rows) {
-  childTableHead.innerHTML = `
-    <tr>
-      <th class="checkbox-cell"></th>
-      <th>job_item_id</th>
-      <th>親ラベル</th>
-      <th>status</th>
-      <th>件数</th>
-      <th>finished_at</th>
-    </tr>
-  `;
+function buildParentDetailText(row) {
+  const lines = [];
 
-  if (!rows.length) {
-    renderChildPlaceholder("子データがありません。");
+  lines.push(`job_id: ${row?.job_id ?? ""}`);
+  lines.push(`source_type: ${row?.source_type ?? ""}`);
+  lines.push(`source_name: ${row?.source_name ?? ""}`);
+  lines.push(`request_type: ${row?.request_type ?? ""}`);
+  lines.push(`status: ${row?.status ?? ""}`);
+  lines.push(`selected_count: ${row?.selected_count ?? 0}`);
+  lines.push(`qa_count: ${row?.qa_count ?? 0}`);
+  lines.push(`plain_count: ${row?.plain_count ?? 0}`);
+  lines.push(`error_count: ${row?.error_count ?? 0}`);
+  lines.push(`requested_at: ${row?.requested_at ?? ""}`);
+  lines.push(`started_at: ${row?.started_at ?? ""}`);
+  lines.push(`finished_at: ${row?.finished_at ?? ""}`);
+  lines.push(`error_message: ${row?.error_message ?? ""}`);
+
+  return lines.join("\n");
+}
+
+function loadDetailFromParent(jobId) {
+  const row = parentRows.find((x) => x.job_id === jobId);
+  if (!row) {
+    detailPre.textContent = "job が見つかりません。";
     return;
   }
-
-  childTableBody.innerHTML = rows.map((row) => `
-    <tr class="clickable-row ${row.job_item_id === selectedChildJobItemId ? "selected-row" : ""}" data-job-item-id="${escapeHtml(row.job_item_id)}">
-      <td class="checkbox-cell">
-        <input type="checkbox" class="child-checkbox" data-job-item-id="${escapeHtml(row.job_item_id)}" ${checkedChildIds.has(row.job_item_id) ? "checked" : ""}>
-      </td>
-      <td>${escapeHtml(row.job_item_id)}</td>
-      <td>${escapeHtml(row.parent_label ?? "")}</td>
-      <td><span class="${getStatusClass(row.status)}">${escapeHtml(row.status)}</span></td>
-      <td>${escapeHtml(row.knowledge_count ?? 0)}</td>
-      <td>${escapeHtml(row.finished_at ?? "")}</td>
-    </tr>
-  `).join("");
-
-  childTableBody.querySelectorAll(".child-checkbox").forEach((checkbox) => {
-    checkbox.addEventListener("click", (e) => {
-      e.stopPropagation();
-      const id = checkbox.dataset.jobItemId || "";
-      if (!id) return;
-
-      if (checkbox.checked) {
-        checkedChildIds.add(id);
-      } else {
-        checkedChildIds.delete(id);
-      }
-      updateSelectionSummary();
-    });
-  });
-
-  childTableBody.querySelectorAll("tr[data-job-item-id]").forEach((tr) => {
-    tr.addEventListener("click", async () => {
-      selectedChildJobItemId = tr.dataset.jobItemId || "";
-      renderChildTable(childRows);
-      await loadDetail(selectedChildJobItemId);
-    });
-  });
-
-  updateSelectionSummary();
+  detailPre.textContent = buildParentDetailText(row);
 }
 
 async function loadParentRows() {
   resetScreen();
 
-  const data = await apiGet("/knowledge/jobs");
+  const data = await apiGet("/knowledge/refine/jobs");
   parentRows = Array.isArray(data?.jobs) ? data.jobs : [];
 
   summaryText.textContent = `${parentRows.length} 件`;
   contextSummary.textContent = "親一覧: knowledge_jobs";
   renderParentTable(parentRows);
 
-  if (!parentRows.length) {
-    detailPre.textContent = "job がありません。";
-  } else {
-    detailPre.textContent = "親一覧から1件選択してください。";
-  }
-}
-
-async function loadChildRows(jobId) {
-  renderChildPlaceholder("読み込み中です...");
-  detailPre.textContent = "子一覧を読み込み中です...";
-  contextSummary.textContent = `子一覧: ${jobId}`;
-
-  const data = await apiGet(`/knowledge/jobs/${encodeURIComponent(jobId)}/items`);
-  childRows = Array.isArray(data?.items) ? data.items : [];
-
-  renderChildTable(childRows);
-
-  if (!childRows.length) {
-    detailPre.textContent = "子データがありません。";
-  } else {
-    detailPre.textContent = "子一覧から1件選択してください。";
-  }
-}
-
-function buildDetailText(data) {
-  const lines = [];
-
-  lines.push(`job_item_id: ${data?.job_item?.job_item_id ?? ""}`);
-  lines.push(`parent_label: ${data?.job_item?.parent_label ?? ""}`);
-  lines.push(`status: ${data?.job_item?.status ?? ""}`);
-  lines.push(`knowledge_count: ${data?.job_item?.knowledge_count ?? 0}`);
-  lines.push("");
-
-  const contents = Array.isArray(data?.contents) ? data.contents : [];
-  if (contents.length) {
-    lines.push("=== contents ===");
-    contents.forEach((item, index) => {
-      lines.push(`--- content ${index + 1} ---`);
-      lines.push(item?.content_text ?? "");
-      lines.push("");
-    });
-  }
-
-  const knowledgeItems = Array.isArray(data?.knowledge_items) ? data.knowledge_items : [];
-  if (knowledgeItems.length) {
-    lines.push("=== knowledge_items ===");
-    knowledgeItems.forEach((item, index) => {
-      lines.push(`--- item ${index + 1} ---`);
-      lines.push(`knowledge_type: ${item?.knowledge_type ?? ""}`);
-      if (item?.question) lines.push(`question: ${item.question}`);
-      if (item?.answer) lines.push(`answer: ${item.answer}`);
-      if (item?.content) lines.push(`content: ${item.content}`);
-      lines.push("");
-    });
-  }
-
-  if (!contents.length && !knowledgeItems.length) {
-    lines.push(JSON.stringify(data, null, 2));
-  }
-
-  return lines.join("\n");
-}
-
-async function loadDetail(jobItemId) {
-  detailPre.textContent = "詳細を読み込み中です...";
-
-  const data = await apiGet(`/knowledge/job_items/${encodeURIComponent(jobItemId)}`);
-  detailPre.textContent = buildDetailText(data);
+  renderChildPlaceholder("job_items API は今後対応予定です。");
+  detailPre.textContent = parentRows.length
+    ? "親一覧から1件選択してください。"
+    : "job がありません。";
 }
 
 async function executeKnowledgeJob() {
-  const ids = Array.from(checkedChildIds);
-  if (!ids.length) {
-    alert("対象を選択してください");
-    return;
-  }
-
-  detailPre.textContent = "ここでは job_item 単位の再処理API をつなぐ想定です。";
-  alert("この画面ではまず一覧と詳細確認まで作成しています。実行API接続は次段階です。");
+  alert("正規化・ベクトル化の実行APIは次段階で接続します。");
 }
 
 function bindEvents() {
