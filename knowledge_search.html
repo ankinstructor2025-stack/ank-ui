@@ -7,6 +7,16 @@
 
 <style>
 
+.db-select-area{
+max-width:720px;
+margin-top:8px;
+}
+
+.db-select-area select{
+width:100%;
+min-width:520px;
+}
+
 .split-grid{
 display:grid;
 grid-template-columns:1.1fr 0.9fr;
@@ -131,43 +141,6 @@ overflow:hidden;
 text-overflow:ellipsis;
 }
 
-/* DB選択 */
-
-.db-select-area{
-max-width:720px;
-}
-
-.db-select-area select{
-width:100%;
-min-width:520px;
-}
-
-@media (max-width:960px){
-
-.split-grid{
-grid-template-columns:1fr;
-}
-
-.search-grid{
-grid-template-columns:1fr;
-}
-
-.detail-wrap,
-.table-wrap{
-max-height:none;
-}
-
-.db-select-area{
-max-width:100%;
-}
-
-.db-select-area select{
-min-width:0;
-width:100%;
-}
-
-}
-
 </style>
 </head>
 
@@ -188,18 +161,9 @@ width:100%;
 </div>
 
 
-<div class="page-note">
-データベース選択 → 検索 → 結果確認
-</div>
-
-
-<div class="common-panel">
-
 <div class="db-select-area">
 <label for="databaseSelect">データベース選択</label>
 <select id="databaseSelect"></select>
-</div>
-
 </div>
 
 
