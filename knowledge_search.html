@@ -7,21 +7,19 @@
 
 <style>
 
-.db-select-area{
-max-width:720px;
-margin-top:8px;
+.search-panel{
+margin-top:12px;
+border:1px solid rgba(255,255,255,0.08);
+border-radius:16px;
+padding:16px;
+background:rgba(255,255,255,0.02);
 }
 
-.db-select-area select{
-width:100%;
-min-width:520px;
-}
-
-.split-grid{
+.search-grid{
 display:grid;
-grid-template-columns:1.1fr 0.9fr;
-gap:16px;
-margin-top:16px;
+grid-template-columns:1fr 1.2fr auto;
+gap:12px;
+align-items:end;
 }
 
 .panel-title{
@@ -44,6 +42,13 @@ flex-wrap:wrap;
 .muted-text{
 color:#9ca3af;
 font-size:13px;
+}
+
+.split-grid{
+display:grid;
+grid-template-columns:1.1fr 0.9fr;
+gap:16px;
+margin-top:16px;
 }
 
 .table-wrap{
@@ -111,21 +116,6 @@ margin:0;
 font-family:inherit;
 }
 
-.search-panel{
-margin-top:16px;
-border:1px solid rgba(255,255,255,0.08);
-border-radius:12px;
-padding:16px;
-background:rgba(255,255,255,0.02);
-}
-
-.search-grid{
-display:grid;
-grid-template-columns:1.4fr 0.8fr auto;
-gap:12px;
-align-items:end;
-}
-
 .result-title{
 white-space:nowrap;
 overflow:hidden;
@@ -141,110 +131,112 @@ overflow:hidden;
 text-overflow:ellipsis;
 }
 
+#queryText{
+width:100%;
+resize:vertical;
+min-height:72px;
+line-height:1.5;
+padding:8px 10px;
+box-sizing:border-box;
+}
+
+@media (max-width:960px){
+
+.search-grid{
+grid-template-columns:1fr;
+}
+
+.split-grid{
+grid-template-columns:1fr;
+}
+
+.detail-wrap,
+.table-wrap{
+max-height:none;
+}
+
+}
+
 </style>
 </head>
-
 
 <body>
 
 <div class="page">
+  <div class="card">
 
-<div class="card">
+    <div class="header-row">
+      <h2>ナレッジ検索</h2>
 
-<div class="header-row">
-<h2>ナレッジ検索</h2>
+      <div class="header-actions">
+        <button id="btnMenu" class="btn">メニューに戻る</button>
+        <button id="btnLogout" class="btn">ログアウト</button>
+      </div>
+    </div>
 
-<div class="header-actions">
-<button id="btnMenu" class="btn">メニューに戻る</button>
-<button id="btnLogout" class="btn">ログアウト</button>
+    <div class="search-panel">
+
+      <div class="search-grid">
+
+        <div>
+          <label for="databaseSelect">データベース選択</label>
+          <select id="databaseSelect"></select>
+        </div>
+
+        <div>
+          <label for="queryText">検索文字列</label>
+          <textarea id="queryText" rows="3" placeholder="検索文字列（複数行OK）"></textarea>
+        </div>
+
+        <div>
+          <button id="btnSearch" class="btn btn-primary">検索</button>
+        </div>
+
+      </div>
+
+    </div>
+
+    <div class="work-panel">
+
+      <div class="summary-row">
+        <div>
+          <span id="summaryText">0 件</span>
+          <span id="selectionSummary" class="muted-text" style="margin-left:12px;">選択なし</span>
+        </div>
+
+        <div>
+          <span id="contextSummary" class="muted-text">検索結果一覧</span>
+          <button id="btnReload" class="btn" style="margin-left:12px;">再読込</button>
+        </div>
+      </div>
+
+      <div class="split-grid">
+
+        <div>
+          <h3 class="panel-title">検索結果一覧</h3>
+
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead id="resultTableHead"></thead>
+              <tbody id="resultTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div>
+          <h3 class="panel-title">詳細表示</h3>
+
+          <div class="detail-wrap">
+            <pre id="detailPre" class="detail-pre">データベースを選択してください。</pre>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
 </div>
-</div>
-
-
-<div class="db-select-area">
-<label for="databaseSelect">データベース選択</label>
-<select id="databaseSelect"></select>
-</div>
-
-
-<div class="search-panel">
-
-<div class="search-grid">
-
-<div>
-<label for="queryText">検索文字列</label>
-<input id="queryText" type="text" placeholder="キーワードを入力">
-</div>
-
-<div>
-<label for="knowledgeType">種別</label>
-<select id="knowledgeType">
-<option value="all">すべて</option>
-<option value="qa">QA</option>
-<option value="plain">説明文</option>
-</select>
-</div>
-
-<div>
-<button id="btnSearch" class="btn btn-primary">検索</button>
-</div>
-
-</div>
-
-</div>
-
-
-<div class="work-panel">
-
-<div class="summary-row">
-
-<div>
-<span id="summaryText">0 件</span>
-<span id="selectionSummary" class="muted-text" style="margin-left:12px;">選択なし</span>
-</div>
-
-<div>
-<span id="contextSummary" class="muted-text">検索結果一覧</span>
-<button id="btnReload" class="btn" style="margin-left:12px;">再読込</button>
-</div>
-
-</div>
-
-
-<div class="split-grid">
-
-<div>
-
-<h3 class="panel-title">検索結果一覧</h3>
-
-<div class="table-wrap">
-<table class="data-table">
-<thead id="resultTableHead"></thead>
-<tbody id="resultTableBody"></tbody>
-</table>
-</div>
-
-</div>
-
-
-<div>
-
-<h3 class="panel-title">詳細表示</h3>
-
-<div class="detail-wrap">
-<pre id="detailPre" class="detail-pre">データベースを選択してください。</pre>
-</div>
-
-</div>
-
-</div>
-
-</div>
-
-</div>
-
-</div>
-
 
 <script src="./knowledge_search.js"></script>
 
