@@ -17,11 +17,15 @@
       --btn:#2b6cff;
       --btnHover:#3a78ff;
     }
-    *{box-sizing:border-box}
+
+    *{
+      box-sizing:border-box;
+    }
+
     body{
       margin:0;
       min-height:100vh;
-      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans JP", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+      font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans JP","Hiragino Kaku Gothic ProN",Meiryo,sans-serif;
       color:var(--text);
       background:
         radial-gradient(900px 600px at 70% 20%, rgba(43,108,255,.18), transparent 55%),
@@ -32,37 +36,37 @@
       justify-content:center;
       padding:24px;
     }
-    .wrap{width:min(520px, 100%);}
+
+    .wrap{
+      width:min(520px, 100%);
+    }
+
     .brand{
       margin:0 0 10px 0;
       color:var(--muted);
       font-size:13px;
       letter-spacing:.06em;
     }
+
     .card{
-      background: linear-gradient(180deg, var(--panel), var(--panel2));
+      background:linear-gradient(180deg, var(--panel), var(--panel2));
       border:1px solid var(--border);
       border-radius:var(--radius);
       box-shadow:var(--shadow);
       padding:22px;
     }
+
     h1{
-      margin:0 0 14px 0;
+      margin:0 0 18px 0;
       font-size:18px;
       font-weight:700;
     }
-    .desc{
-      margin:0 0 18px 0;
-      color:var(--muted);
-      font-size:13px;
-      line-height:1.6;
-    }
+
     .btn{
       width:100%;
       display:flex;
       align-items:center;
       justify-content:center;
-      gap:10px;
       padding:12px 14px;
       border-radius:12px;
       border:1px solid rgba(255,255,255,.14);
@@ -73,14 +77,26 @@
       transition:transform .05s ease, filter .2s ease, background .2s ease;
       user-select:none;
     }
-    .btn:hover{filter:brightness(1.05)}
-    .btn:active{transform:translateY(1px)}
-    .btn[disabled]{opacity:.55; cursor:not-allowed}
+
+    .btn:hover{
+      filter:brightness(1.05);
+    }
+
+    .btn:active{
+      transform:translateY(1px);
+    }
+
+    .btn[disabled]{
+      opacity:.55;
+      cursor:not-allowed;
+    }
+
     .note{
       margin:14px 0 0 0;
       color:var(--muted);
       font-size:12px;
     }
+
     .error{
       margin:12px 0 0 0;
       color:#ffd1d1;
@@ -92,6 +108,7 @@
       font-size:12px;
       line-height:1.5;
     }
+
     .row{
       display:flex;
       align-items:center;
@@ -101,18 +118,16 @@
       color:var(--muted);
       font-size:12px;
     }
-    a{color:#b9ccff; text-decoration:none}
-    a:hover{text-decoration:underline}
-    .googleMark{
-      width:18px; height:18px; border-radius:4px;
-      background:
-        conic-gradient(from 45deg,
-          #ea4335 0 90deg,
-          #fbbc05 90deg 180deg,
-          #34a853 180deg 270deg,
-          #4285f4 270deg 360deg);
-      box-shadow:0 6px 18px rgba(0,0,0,.25);
+
+    a{
+      color:#b9ccff;
+      text-decoration:none;
     }
+
+    a:hover{
+      text-decoration:underline;
+    }
+
     .small{
       font-size:11px;
       opacity:.9;
@@ -126,15 +141,13 @@
 
     <div class="card">
       <h1>ログイン</h1>
-      <p class="desc">
-        Googleアカウントでログインします。
-      </p>
 
       <button id="loginButton" class="btn" type="button">
         <span>Googleでログイン</span>
       </button>
     </div>
   </div>
+
+  <script type="module" src="index.js"></script>
 </body>
-<script type="module" src="index.js"></script>
 </html>
