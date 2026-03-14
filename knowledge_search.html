@@ -5,7 +5,6 @@
 <title>ナレッジ検索</title>
 
 <style>
-
 body{
 margin:0;
 font-family:sans-serif;
@@ -32,8 +31,9 @@ align-items:center;
 margin-bottom:18px;
 }
 
-.header-actions button{
-margin-left:10px;
+.header-actions{
+display:flex;
+gap:10px;
 }
 
 .btn{
@@ -55,8 +55,6 @@ border-color:#2563eb;
 background:#1d4ed8;
 border-color:#1d4ed8;
 }
-
-/* 検索エリア */
 
 .search-panel{
 margin-bottom:16px;
@@ -112,8 +110,6 @@ min-height:88px;
 line-height:1.5;
 }
 
-/* タブ */
-
 .tabs-header{
 display:flex;
 gap:10px;
@@ -143,8 +139,6 @@ border-color:#1d4ed8;
 color:#ffffff;
 }
 
-/* 結果エリア */
-
 .tab-panel{
 display:none;
 background:#e5e7eb;
@@ -156,8 +150,6 @@ min-height:300px;
 .tab-panel.active{
 display:block;
 }
-
-/* 結果カード */
 
 .result-card{
 background:#ffffff;
@@ -186,6 +178,25 @@ white-space:pre-wrap;
 line-height:1.7;
 }
 
+@media (max-width:1100px){
+.search-grid{
+grid-template-columns:360px 1fr 96px;
+}
+}
+
+@media (max-width:900px){
+.search-grid{
+grid-template-columns:1fr;
+}
+
+.search-button-col{
+align-items:stretch;
+}
+
+.search-button-col .btn{
+width:140px;
+}
+}
 </style>
 </head>
 
@@ -198,65 +209,41 @@ line-height:1.7;
 <h2>ナレッジ検索</h2>
 
 <div class="header-actions">
-<button class="btn">メニューに戻る</button>
-<button class="btn">ログアウト</button>
+<button id="btnMenu" class="btn" type="button">メニューに戻る</button>
+<button id="btnLogout" class="btn" type="button">ログアウト</button>
 </div>
 </div>
-
 
 <div class="search-panel">
-
 <div class="search-grid">
 
 <div class="search-col">
-<label>データベース選択</label>
-
+<label for="dbSelect">データベース選択</label>
 <select id="dbSelect">
 <option value="">選択してください</option>
 <option>knowledge_20260314183446.sqlite</option>
 <option>knowledge_20260315100512.sqlite</option>
 </select>
-
 </div>
-
 
 <div class="search-col">
-<label>検索文字列</label>
-
-<textarea id="queryText" rows="3"
-placeholder="検索文字列（複数行OK）"></textarea>
-
+<label for="queryText">検索文字列</label>
+<textarea id="queryText" rows="3" placeholder="検索文字列（複数行OK）"></textarea>
 </div>
-
 
 <div class="search-button-col">
-<button class="btn btn-primary" onclick="runSearch()">検索</button>
+<button class="btn btn-primary" type="button" onclick="runSearch()">検索</button>
 </div>
 
 </div>
 </div>
-
 
 <div class="tabs-header">
-
-<button class="tab-btn active" data-tab="qa">
-QA類似
-</button>
-
-<button class="tab-btn" data-tab="plain">
-プレインFTS
-</button>
-
-<button class="tab-btn" data-tab="hybrid">
-両方
-</button>
-
-<button class="tab-btn" data-tab="ai">
-両方＋AI整理
-</button>
-
+<button class="tab-btn active" data-tab="qa" type="button">QA類似</button>
+<button class="tab-btn" data-tab="plain" type="button">プレインFTS</button>
+<button class="tab-btn" data-tab="hybrid" type="button">両方</button>
+<button class="tab-btn" data-tab="ai" type="button">両方＋AI整理</button>
 </div>
-
 
 <div id="panel-qa" class="tab-panel active">
 <div id="resultQa"></div>
@@ -274,115 +261,82 @@ QA類似
 <div id="resultAi"></div>
 </div>
 
-
 </div>
 </div>
-
 
 <script>
-
-/* タブ切替 */
-
 document.querySelectorAll(".tab-btn").forEach(btn=>{
 btn.onclick=()=>{
-
-document.querySelectorAll(".tab-btn")
-.forEach(b=>b.classList.remove("active"));
-
+document.querySelectorAll(".tab-btn").forEach(b=>b.classList.remove("active"));
 btn.classList.add("active");
 
 const tab=btn.dataset.tab;
 
-document.querySelectorAll(".tab-panel")
-.forEach(p=>p.classList.remove("active"));
-
-document.getElementById("panel-"+tab)
-.classList.add("active");
-
+document.querySelectorAll(".tab-panel").forEach(p=>p.classList.remove("active"));
+document.getElementById("panel-"+tab).classList.add("active");
 };
 });
 
-
-/* 検索 */
-
 function runSearch(){
-
 const db=document.getElementById("dbSelect").value;
-
-const text=document.getElementById("queryText")
-.value.trim();
-
-/* DB未選択 */
+const text=document.getElementById("queryText").value.trim();
 
 if(!db){
 alert("データベースを選択してください");
 return;
 }
 
-/* 検索文字未入力 */
-
 if(!text){
 alert("検索文字列を入力してください");
 return;
 }
 
-/* 仮検索 */
-
-document.getElementById("resultQa")
-.innerHTML=createCard(
+document.getElementById("resultQa").innerHTML=createCard(
 "再エネ賦課金の質問",
 "kokkai",
 "QA検索結果"
 );
 
-document.getElementById("resultPlain")
-.innerHTML=createCard(
+document.getElementById("resultPlain").innerHTML=createCard(
 "制度説明",
 "kokkai",
 "FTS検索結果"
 );
 
-document.getElementById("resultHybrid")
-.innerHTML=createCard(
+document.getElementById("resultHybrid").innerHTML=createCard(
 "統合候補",
 "hybrid",
 "QA + FTS"
 );
 
-document.getElementById("resultAi")
-.innerHTML=createCard(
+document.getElementById("resultAi").innerHTML=createCard(
 "AI整理結果",
 "ai",
 "候補を整理"
 );
-
 }
-
-
-/* 結果カード */
 
 function createCard(title,sub,body){
-
 return `
 <div class="result-card">
-
-<div class="result-card-title">
-${title}
-</div>
-
-<div class="result-card-sub">
-${sub}
-</div>
-
-<div class="result-card-body">
-${body}
-</div>
-
+  <div class="result-card-title">${title}</div>
+  <div class="result-card-sub">${sub}</div>
+  <div class="result-card-body">${body}</div>
 </div>
 `;
-
 }
 
+document.getElementById("btnMenu").addEventListener("click",()=>{
+window.location.href="./menu.html";
+});
+
+document.getElementById("btnLogout").addEventListener("click",()=>{
+sessionStorage.removeItem("idToken");
+sessionStorage.removeItem("user");
+localStorage.removeItem("idToken");
+localStorage.removeItem("user");
+window.location.href="./index.html";
+});
 </script>
 
 </body>
