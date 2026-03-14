@@ -1,9 +1,7 @@
 console.log("data_source_url.js loaded");
 
 (function () {
-
   function buildRequestUrl(apiBase, path) {
-
     if (!path) {
       throw new Error("path が指定されていません");
     }
@@ -20,7 +18,6 @@ console.log("data_source_url.js loaded");
   }
 
   function escapeHtml(value) {
-
     return String(value ?? "")
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
@@ -30,7 +27,6 @@ console.log("data_source_url.js loaded");
   }
 
   function toPageTypeLabel(pageType) {
-
     switch (pageType) {
       case "faq":
         return "QA";
@@ -49,20 +45,43 @@ console.log("data_source_url.js loaded");
     return Number(isUsable) === 1 ? "○" : "×";
   }
 
-  function canDecompose(page) {
+  function normalizeStatus(rawStatus) {
+    const status = String(rawStatus ?? "").trim();
 
+    if (!status) return "new";
+    if (status === "done") return "done";
+    if (status === "fetch_error") return "fetch_error";
+
+    return status;
+  }
+
+  function toStatusLabel(rawStatus) {
+    const status = normalizeStatus(rawStatus);
+
+    switch (status) {
+      case "done":
+        return "分解済";
+      case "fetch_error":
+        return "取得失敗";
+      default:
+        return "new";
+    }
+  }
+
+  function canDecompose(page) {
     if (!page) return false;
     if (Number(page.is_usable) !== 1) return false;
     if (page.page_type === "list") return false;
     if (page.page_type === "notice") return false;
-    if (page.status === "fetch_error") return false;
-    if (page.status === "done") return false;
+
+    const status = normalizeStatus(page.status);
+    if (status === "fetch_error") return false;
+    if (status === "done") return false;
 
     return true;
   }
 
   function formatCreatedAt(value) {
-
     if (!value) return "";
 
     return String(value)
@@ -71,7 +90,6 @@ console.log("data_source_url.js loaded");
   }
 
   function buildMetaCell(label, value) {
-
     return `
       <span style="display:inline-block; margin-right:14px; white-space:nowrap;">
         <span style="color:#666;">${escapeHtml(label)}:</span>
@@ -80,8 +98,7 @@ console.log("data_source_url.js loaded");
     `;
   }
 
-  async function decomposePage({ apiBase, idToken, pageUrl, writeLog }) {
-
+  async function decomposePage({ apiBase, idToken, pageUrl }) {
     const requestUrl = buildRequestUrl(apiBase, "/public-url/decompose");
 
     const headers = {
@@ -107,8 +124,24 @@ console.log("data_source_url.js loaded");
     return await res.json();
   }
 
-  function renderPages(pages, targetEl, options = {}) {
+  function clonePages(pages) {
+    if (!Array.isArray(pages)) return [];
+    return pages.map((p) => ({ ...p }));
+  }
 
+  function updatePageStatusLocally(pages, pageUrl, nextStatus) {
+    return clonePages(pages).map((p) => {
+      if ((p.page_url ?? "") === pageUrl) {
+        return {
+          ...p,
+          status: nextStatus
+        };
+      }
+      return { ...p };
+    });
+  }
+
+  function renderPages(pages, targetEl, options = {}) {
     if (!targetEl) return;
 
     const {
@@ -117,42 +150,40 @@ console.log("data_source_url.js loaded");
       writeLog
     } = options;
 
-    if (!Array.isArray(pages) || pages.length === 0) {
+    const currentPages = clonePages(pages);
+
+    if (!Array.isArray(currentPages) || currentPages.length === 0) {
       targetEl.innerHTML = `<div class="placeholder">子URLはありません</div>`;
       return;
     }
 
-    const rows = pages.map((p, i) => {
-
+    const rows = currentPages.map((p, i) => {
       const urlRaw = p.page_url ?? "";
       const depth = p.depth ?? "";
       const pageType = toPageTypeLabel(p.page_type);
       const score = p.score ?? 0;
       const usable = toUsableLabel(p.is_usable);
-      const rawStatus = String(p.status ?? "");
-      const displayStatus =
-        rawStatus === "done" ? "分解済" :
-        rawStatus === "fetch_error" ? "取得失敗" :
-        "new";
+      const rawStatus = normalizeStatus(p.status);
+      const displayStatus = toStatusLabel(rawStatus);
       const createdAt = formatCreatedAt(p.created_at ?? "").split(" ")[0];
 
-      const actionHtml = rawStatus === "done"
-        ? `<span style="color:#666;">分解済</span>`
-        : canDecompose(p)
-          ? `
-          <button
-            type="button"
-            class="btn btn-primary btn-decompose"
-            data-page-url="${escapeHtml(urlRaw)}">
-            分解
-          </button>
-        `
-          : `<span style="color:#666;">対象外</span>`;
+      const actionHtml =
+        rawStatus === "done"
+          ? `<span style="color:#666;">分解済</span>`
+          : canDecompose(p)
+            ? `
+              <button
+                type="button"
+                class="btn btn-primary btn-decompose"
+                data-page-url="${escapeHtml(urlRaw)}">
+                分解
+              </button>
+            `
+            : `<span style="color:#666;">対象外</span>`;
 
       return `
         <tr>
           <td style="padding:8px 6px; border-bottom:1px solid #eee;">
-
             <div style="font-size:14px; line-height:1.6; word-break:break-all;">
               <b>No:</b> ${i + 1}
               &nbsp;&nbsp;
@@ -176,11 +207,9 @@ console.log("data_source_url.js loaded");
                 ${actionHtml}
               </span>
             </div>
-
           </td>
         </tr>
       `;
-
     }).join("");
 
     targetEl.innerHTML = `
@@ -192,9 +221,7 @@ console.log("data_source_url.js loaded");
     `;
 
     targetEl.querySelectorAll(".btn-decompose").forEach((btn) => {
-
       btn.addEventListener("click", async () => {
-
         const pageUrl = btn.dataset.pageUrl;
         if (!pageUrl) return;
 
@@ -204,14 +231,12 @@ console.log("data_source_url.js loaded");
         btn.textContent = "分解中";
 
         try {
-
           writeLog?.(`分解開始: ${pageUrl}`);
 
           const data = await decomposePage({
             apiBase,
             idToken,
-            pageUrl,
-            writeLog
+            pageUrl
           });
 
           writeLog?.(`分解完了: ${pageUrl}`);
@@ -220,28 +245,36 @@ console.log("data_source_url.js loaded");
           if (data.qa_count != null) writeLog?.(`qa_count=${data.qa_count}`);
           if (data.text_count != null) writeLog?.(`text_count=${data.text_count}`);
 
-        } catch (e) {
+          if (Array.isArray(data.pages)) {
+            renderPages(data.pages, targetEl, {
+              apiBase,
+              idToken,
+              writeLog
+            });
+            return;
+          }
 
+          const updatedPages = updatePageStatusLocally(currentPages, pageUrl, "done");
+
+          renderPages(updatedPages, targetEl, {
+            apiBase,
+            idToken,
+            writeLog
+          });
+
+        } catch (e) {
           console.error(e);
           writeLog?.(`分解失敗: ${pageUrl} / ${e.message}`);
 
-        } finally {
-
           btn.disabled = false;
           btn.textContent = originalText;
-
         }
-
       });
-
     });
-
   }
 
   function resetPages(targetEl) {
-
     if (!targetEl) return;
-
     targetEl.innerHTML = `<div class="placeholder">まだ取得していません</div>`;
   }
 
@@ -252,7 +285,6 @@ console.log("data_source_url.js loaded");
     writeLog,
     pagesContainer
   }) {
-
     if (!sourceKey) {
       throw new Error("sourceKey が指定されていません");
     }
@@ -298,17 +330,13 @@ console.log("data_source_url.js loaded");
     }
 
     if (Array.isArray(data.pages)) {
-
       renderPages(data.pages, pagesContainer, {
         apiBase,
         idToken,
         writeLog
       });
-
     } else {
-
       resetPages(pagesContainer);
-
     }
 
     return data;
@@ -319,5 +347,4 @@ console.log("data_source_url.js loaded");
     renderPages,
     resetPages
   };
-
 })();
