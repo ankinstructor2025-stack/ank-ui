@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>ナレッジ検索</title>
+  <link rel="stylesheet" href="./theme.css">
+  <style>
+    .split-grid {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .panel-title {
+      margin: 0 0 12px 0;
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+      color: #d1d5db;
+      font-size: 14px;
+      flex-wrap: wrap;
+    }
+
+    .muted-text {
+      color: #9ca3af;
+      font-size: 13px;
+    }
+
+    .table-wrap {
+      max-height: 420px;
+      overflow: auto;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+    }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+
+    .data-table th,
+    .data-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      text-align: left;
+      vertical-align: top;
+      font-size: 14px;
+    }
+
+    .data-table th {
+      background: rgba(255,255,255,0.04);
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
+    .clickable-row {
+      cursor: pointer;
+    }
+
+    .clickable-row:hover {
+      background: rgba(255,255,255,0.04);
+    }
+
+    .selected-row {
+      background: rgba(59,130,246,0.12);
+    }
+
+    .placeholder-row td {
+      color: #9ca3af;
+      text-align: center;
+      padding: 16px;
+    }
+
+    .detail-wrap {
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      padding: 12px 16px;
+      min-height: 420px;
+      max-height: 420px;
+      overflow: auto;
+      background: rgba(255,255,255,0.02);
+    }
+
+    .detail-pre {
+      white-space: pre-wrap;
+      word-break: break-word;
+      line-height: 1.7;
+      margin: 0;
+      font-family: inherit;
+    }
+
+    .search-panel {
+      margin-top: 16px;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      padding: 16px;
+      background: rgba(255,255,255,0.02);
+    }
+
+    .search-grid {
+      display: grid;
+      grid-template-columns: 1.4fr 0.8fr auto;
+      gap: 12px;
+      align-items: end;
+    }
+
+    .db-info-box {
+      min-height: 42px;
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 10px;
+      background: rgba(255,255,255,0.02);
+      color: #d1d5db;
+      font-size: 14px;
+    }
+
+    .result-title {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .result-sub {
+      margin-top: 4px;
+      color: #9ca3af;
+      font-size: 12px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    @media (max-width: 960px) {
+      .split-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .search-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .detail-wrap,
+      .table-wrap {
+        max-height: none;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="page">
+  <div class="card">
+
+    <div class="header-row">
+      <h2>ナレッジ検索</h2>
+
+      <div class="header-actions">
+        <button id="btnMenu" class="btn" type="button">メニューに戻る</button>
+        <button id="btnLogout" class="btn" type="button">ログアウト</button>
+      </div>
+    </div>
+
+    <div class="page-note">
+      データベース選択 → 検索 → 結果確認
+    </div>
+
+    <div class="common-panel">
+      <div class="common-grid">
+        <div>
+          <label for="databaseSelect">データベース選択</label>
+          <select id="databaseSelect"></select>
+        </div>
+
+        <div>
+          <label for="databaseInfo">DB情報</label>
+          <div id="databaseInfo" class="db-info-box">データベースを選択してください。</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="search-panel">
+      <div class="search-grid">
+        <div>
+          <label for="queryText">検索文字列</label>
+          <input id="queryText" type="text" placeholder="キーワードを入力">
+        </div>
+
+        <div>
+          <label for="knowledgeType">種別</label>
+          <select id="knowledgeType">
+            <option value="all">すべて</option>
+            <option value="qa">QA</option>
+            <option value="plain">説明文</option>
+          </select>
+        </div>
+
+        <div>
+          <button id="btnSearch" class="btn btn-primary" type="button">検索</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="work-panel">
+
+      <div class="summary-row">
+        <div>
+          <span id="summaryText">0 件</span>
+          <span id="selectionSummary" class="muted-text" style="margin-left:12px;">選択なし</span>
+        </div>
+
+        <div>
+          <span id="contextSummary" class="muted-text">検索結果一覧</span>
+          <button id="btnReload" class="btn" type="button" style="margin-left:12px;">再読込</button>
+        </div>
+      </div>
+
+      <div class="split-grid">
+        <div>
+          <h3 class="panel-title">検索結果一覧</h3>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead id="resultTableHead"></thead>
+              <tbody id="resultTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div>
+          <h3 class="panel-title">詳細表示</h3>
+          <div class="detail-wrap">
+            <pre id="detailPre" class="detail-pre">データベースを選択してください。</pre>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+<script src="./knowledge_search.js"></script>
+
+</body>
+</html>
