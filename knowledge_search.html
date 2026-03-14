@@ -15,12 +15,11 @@ padding:16px;
 background:rgba(255,255,255,0.02);
 }
 
-/* ここを修正 */
 .search-grid{
 display:grid;
-grid-template-columns:0.9fr 1.4fr auto;
+grid-template-columns:1fr 1.2fr auto;
 gap:12px;
-align-items:start;
+align-items:end;
 }
 
 .panel-title{
@@ -132,16 +131,13 @@ overflow:hidden;
 text-overflow:ellipsis;
 }
 
-/* textarea調整 */
-
 #queryText{
 width:100%;
 resize:vertical;
-min-height:68px;
+min-height:72px;
 line-height:1.5;
 padding:8px 10px;
 box-sizing:border-box;
-margin-top:2px;
 }
 
 @media (max-width:960px){
