@@ -45,6 +45,7 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+  padding-top: 2px;
 }
 
 .menu-buttons .btn{
@@ -73,7 +74,7 @@
 /* 右側説明欄 */
 .menu-description{
   min-height: 240px;
-  padding-top: 6px;
+  padding-top: 14px;
 }
 
 .menu-description h3{
@@ -119,6 +120,10 @@
     max-width: 100%;
     grid-template-columns: 1fr;
     gap: 22px;
+  }
+
+  .menu-buttons{
+    padding-top: 0;
   }
 
   .menu-description{
