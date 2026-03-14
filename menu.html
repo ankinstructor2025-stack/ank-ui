@@ -23,63 +23,70 @@
           </button>
         </div>
 
-        <div class="menu-layout">
+        <div class="menu-list">
 
-          <div class="menu-buttons">
-            <button class="btn btn-primary is-active" id="btn-import" type="button" data-panel="panel-import">
+          <div class="menu-row">
+            <button class="btn btn-primary menu-btn" id="btn-import" type="button">
               データ取込
             </button>
-
-            <button class="btn btn-primary" id="btn-view" type="button" data-panel="panel-view">
-              データ照会
-            </button>
-
-            <button class="btn btn-primary" id="btn-knowledge-create" type="button" data-panel="panel-knowledge-create">
-              ナレッジ作成
-            </button>
-
-            <button class="btn btn-primary" id="btn-knowledge-view" type="button" data-panel="panel-knowledge-view">
-              ナレッジ照会
-            </button>
-
-            <button class="btn btn-primary" id="btn-search" type="button" data-panel="panel-search">
-              ナレッジ検索
-            </button>
+            <div class="menu-text">
+              <div class="menu-text-title">データ取込</div>
+              <div class="menu-text-body">
+                公開API、公開URL、アップロードファイルからデータを取り込みます。取り込んだデータはナレッジ作成や検索処理の元データとして利用します。
+              </div>
+            </div>
           </div>
 
-          <div class="menu-description">
-            <div class="menu-panel active" id="panel-import">
-              <h3>データ取込</h3>
-              <p>公開API、公開URL、アップロードファイルからデータを取り込みます。</p>
-              <p>取り込んだデータは、ナレッジ作成や検索処理の元データとして利用します。</p>
+          <div class="menu-row">
+            <button class="btn btn-primary menu-btn" id="btn-view" type="button">
+              データ照会
+            </button>
+            <div class="menu-text">
+              <div class="menu-text-title">データ照会</div>
+              <div class="menu-text-body">
+                取り込み済みデータを一覧で確認します。登録状況、件数、内容の確認を行うための画面です。
+              </div>
             </div>
+          </div>
 
-            <div class="menu-panel" id="panel-view">
-              <h3>データ照会</h3>
-              <p>取り込み済みデータを一覧で確認します。</p>
-              <p>登録状況、件数、内容の確認を行うための画面です。</p>
+          <div class="menu-row">
+            <button class="btn btn-primary menu-btn" id="btn-knowledge-create" type="button">
+              ナレッジ作成
+            </button>
+            <div class="menu-text">
+              <div class="menu-text-title">ナレッジ作成</div>
+              <div class="menu-text-body">
+                取り込んだデータをもとに、QAや説明文などの再利用しやすいナレッジを作成します。作成処理の起点となる画面です。
+              </div>
             </div>
+          </div>
 
-            <div class="menu-panel" id="panel-knowledge-create">
-              <h3>ナレッジ作成</h3>
-              <p>取り込んだデータをもとに、QAや説明文などの再利用しやすいナレッジを作成します。</p>
-              <p>作成処理の起点となる画面です。</p>
+          <div class="menu-row">
+            <button class="btn btn-primary menu-btn" id="btn-knowledge-view" type="button">
+              ナレッジ照会
+            </button>
+            <div class="menu-text">
+              <div class="menu-text-title">ナレッジ照会</div>
+              <div class="menu-text-body">
+                作成済みのナレッジを一覧で確認します。内容確認、状態確認、次の処理対象の把握に利用する画面です。
+              </div>
             </div>
+          </div>
 
-            <div class="menu-panel" id="panel-knowledge-view">
-              <h3>ナレッジ照会</h3>
-              <p>作成済みのナレッジを一覧で確認します。</p>
-              <p>内容確認、状態確認、次の処理対象の把握に利用する画面です。</p>
-            </div>
-
-            <div class="menu-panel" id="panel-search">
-              <h3>ナレッジ検索</h3>
-              <p>作成したナレッジを検索し、必要な情報に絞って確認します。</p>
-              <p>検索結果や回答候補の確認に利用する画面です。</p>
+          <div class="menu-row">
+            <button class="btn btn-primary menu-btn" id="btn-search" type="button">
+              ナレッジ検索
+            </button>
+            <div class="menu-text">
+              <div class="menu-text-title">ナレッジ検索</div>
+              <div class="menu-text-body">
+                作成したナレッジを検索し、必要な情報に絞って確認します。検索結果や回答候補の確認に利用する画面です。
+              </div>
             </div>
           </div>
 
         </div>
+
       </div>
     </div>
   </div>
