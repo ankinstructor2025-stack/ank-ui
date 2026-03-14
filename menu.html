@@ -1,239 +1,89 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<title>機能メニュー</title>
-
-<link rel="stylesheet" href="theme.css">
-
-<style>
-
-.menu-shell{
-  width: 100%;
-  max-width: 980px;
-  margin: 0 auto;
-}
-
-.menu-frame{
-  width: 100%;
-  max-width: 860px;
-  margin: 0 auto;
-}
-
-/* header */
-
-.menu-header{
-  display:flex;
-  justify-content:space-between;
-  align-items:flex-start;
-  margin:0 0 28px 0;
-}
-
-.menu-title h2{
-  margin:0 0 6px 0;
-}
-
-/* layout */
-
-.menu-layout{
-  display:grid;
-  grid-template-columns:240px minmax(0,1fr);
-  gap:36px;
-  align-items:start;
-}
-
-/* buttons */
-
-.menu-buttons{
-  display:flex;
-  flex-direction:column;
-  gap:12px;
-}
-
-.menu-buttons button{
-  width:100%;
-}
-
-/* 薄い青で統一 */
-.menu-buttons .btn,
-.menu-buttons .btn.btn-primary{
-  background: linear-gradient(180deg, #68b6ff 0%, #4f9cff 100%);
-  border: 1px solid rgba(160, 210, 255, 0.65);
-  color: #ffffff;
-  box-shadow: 0 4px 12px rgba(79, 156, 255, 0.22);
-}
-
-.menu-buttons .btn:hover,
-.menu-buttons .btn.btn-primary:hover{
-  filter: brightness(1.04);
-}
-
-.menu-buttons .btn.is-active{
-  outline: 2px solid rgba(255,255,255,0.22);
-  outline-offset: 0;
-}
-
-/* description */
-
-.menu-description{
-  font-size:14px;
-  line-height:1.9;
-  padding-top:4px;
-  min-height:220px;
-}
-
-.menu-description h3{
-  margin:0 0 18px 0;
-}
-
-.menu-description p{
-  margin:0 0 14px 0;
-}
-
-.menu-panel{
-  display:none;
-}
-
-.menu-panel.active{
-  display:block;
-}
-
-/* logout */
-
-.logout-btn{
-  white-space:nowrap;
-}
-
-/* mobile */
-
-@media (max-width:900px){
-
-  .menu-layout{
-    grid-template-columns:1fr;
-  }
-
-  .menu-header{
-    margin-bottom:24px;
-  }
-
-}
-
-</style>
-
+  <meta charset="UTF-8">
+  <title>機能メニュー</title>
+  <link rel="stylesheet" href="theme.css">
+  <link rel="stylesheet" href="menu.css">
 </head>
 
 <body>
+  <div class="center-wrap">
+    <div class="card menu-card">
+      <div class="menu-shell">
 
-<div class="center-wrap">
-<div class="card">
+        <div class="menu-header">
+          <div class="menu-title">
+            <h2>機能メニュー</h2>
+            <div class="subtitle">使用する機能を選択してください</div>
+          </div>
 
-<div class="menu-shell">
-<div class="menu-frame">
+          <button class="btn logout-btn" id="btn-logout" type="button">
+            ログアウト
+          </button>
+        </div>
 
-<div class="menu-header">
+        <div class="menu-layout">
 
-  <div class="menu-title">
-    <h2>機能メニュー</h2>
-    <div class="subtitle">使用する機能を選択してください</div>
+          <div class="menu-buttons">
+            <button class="btn btn-primary is-active" id="btn-import" type="button" data-panel="panel-import">
+              データ取込
+            </button>
+
+            <button class="btn btn-primary" id="btn-view" type="button" data-panel="panel-view">
+              データ照会
+            </button>
+
+            <button class="btn btn-primary" id="btn-knowledge-create" type="button" data-panel="panel-knowledge-create">
+              ナレッジ作成
+            </button>
+
+            <button class="btn btn-primary" id="btn-knowledge-view" type="button" data-panel="panel-knowledge-view">
+              ナレッジ照会
+            </button>
+
+            <button class="btn btn-primary" id="btn-search" type="button" data-panel="panel-search">
+              ナレッジ検索
+            </button>
+          </div>
+
+          <div class="menu-description">
+            <div class="menu-panel active" id="panel-import">
+              <h3>データ取込</h3>
+              <p>公開API、公開URL、アップロードファイルからデータを取り込みます。</p>
+              <p>取り込んだデータは、ナレッジ作成や検索処理の元データとして利用します。</p>
+            </div>
+
+            <div class="menu-panel" id="panel-view">
+              <h3>データ照会</h3>
+              <p>取り込み済みデータを一覧で確認します。</p>
+              <p>登録状況、件数、内容の確認を行うための画面です。</p>
+            </div>
+
+            <div class="menu-panel" id="panel-knowledge-create">
+              <h3>ナレッジ作成</h3>
+              <p>取り込んだデータをもとに、QAや説明文などの再利用しやすいナレッジを作成します。</p>
+              <p>作成処理の起点となる画面です。</p>
+            </div>
+
+            <div class="menu-panel" id="panel-knowledge-view">
+              <h3>ナレッジ照会</h3>
+              <p>作成済みのナレッジを一覧で確認します。</p>
+              <p>内容確認、状態確認、次の処理対象の把握に利用する画面です。</p>
+            </div>
+
+            <div class="menu-panel" id="panel-search">
+              <h3>ナレッジ検索</h3>
+              <p>作成したナレッジを検索し、必要な情報に絞って確認します。</p>
+              <p>検索結果や回答候補の確認に利用する画面です。</p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
   </div>
 
-  <button class="btn logout-btn" id="btn-logout" type="button">
-    ログアウト
-  </button>
-
-</div>
-
-
-<div class="menu-layout">
-
-  <div class="menu-buttons">
-
-    <button class="btn btn-primary is-active" id="btn-import" type="button" data-panel="panel-import">
-      データ取込
-    </button>
-
-    <button class="btn btn-primary" id="btn-view" type="button" data-panel="panel-view">
-      データ照会
-    </button>
-
-    <button class="btn btn-primary" id="btn-knowledge-create" type="button" data-panel="panel-knowledge-create">
-      ナレッジ作成
-    </button>
-
-    <button class="btn btn-primary" id="btn-knowledge-view" type="button" data-panel="panel-knowledge-view">
-      ナレッジ照会
-    </button>
-
-    <button class="btn btn-primary" id="btn-search" type="button" data-panel="panel-search">
-      ナレッジ検索
-    </button>
-
-  </div>
-
-
-  <div class="menu-description">
-
-    <div class="menu-panel active" id="panel-import">
-      <h3>データ取込</h3>
-      <p>
-        公開API、公開URL、アップロードファイルからデータを取り込みます。
-      </p>
-      <p>
-        取り込んだデータは、ナレッジ作成や検索処理の元データとして利用します。
-      </p>
-    </div>
-
-    <div class="menu-panel" id="panel-view">
-      <h3>データ照会</h3>
-      <p>
-        取り込み済みデータを一覧で確認します。
-      </p>
-      <p>
-        登録状況、件数、内容の確認を行うための画面です。
-      </p>
-    </div>
-
-    <div class="menu-panel" id="panel-knowledge-create">
-      <h3>ナレッジ作成</h3>
-      <p>
-        取り込んだデータをもとに、QAや説明文などの再利用しやすいナレッジを作成します。
-      </p>
-      <p>
-        作成処理の起点となる画面です。
-      </p>
-    </div>
-
-    <div class="menu-panel" id="panel-knowledge-view">
-      <h3>ナレッジ照会</h3>
-      <p>
-        作成済みのナレッジを一覧で確認します。
-      </p>
-      <p>
-        内容確認、状態確認、次の処理対象の把握に利用する画面です。
-      </p>
-    </div>
-
-    <div class="menu-panel" id="panel-search">
-      <h3>ナレッジ検索</h3>
-      <p>
-        作成したナレッジを検索し、必要な情報に絞って確認します。
-      </p>
-      <p>
-        検索結果や回答候補の確認に利用する画面です。
-      </p>
-    </div>
-
-  </div>
-
-</div>
-
-</div>
-</div>
-
-</div>
-</div>
-
-<script src="menu.js"></script>
-
+  <script src="menu.js"></script>
 </body>
 </html>
