@@ -17,7 +17,7 @@ background:rgba(255,255,255,0.02);
 
 .search-grid{
 display:grid;
-grid-template-columns:1fr 1.2fr auto;
+grid-template-columns:1fr 1.4fr auto;
 gap:12px;
 align-items:end;
 }
@@ -44,91 +44,103 @@ color:#9ca3af;
 font-size:13px;
 }
 
-.split-grid{
-display:grid;
-grid-template-columns:1.1fr 0.9fr;
-gap:16px;
+.work-panel{
 margin-top:16px;
 }
 
-.table-wrap{
-max-height:420px;
-overflow:auto;
-border:1px solid rgba(255,255,255,0.08);
-border-radius:12px;
+.tabs-wrap{
+margin-top:12px;
 }
 
-.data-table{
-width:100%;
-border-collapse:collapse;
-table-layout:fixed;
+.tabs-header{
+display:flex;
+gap:8px;
+flex-wrap:wrap;
+margin-bottom:12px;
 }
 
-.data-table th,
-.data-table td{
-padding:10px 12px;
-border-bottom:1px solid rgba(255,255,255,0.08);
-text-align:left;
-vertical-align:top;
-font-size:14px;
-}
-
-.data-table th{
-background:rgba(255,255,255,0.04);
-position:sticky;
-top:0;
-z-index:1;
-}
-
-.clickable-row{
+.tab-btn{
+appearance:none;
+border:1px solid rgba(255,255,255,0.12);
+background:rgba(255,255,255,0.03);
+color:#d1d5db;
+padding:10px 14px;
+border-radius:10px;
 cursor:pointer;
+font-size:14px;
+font-weight:600;
 }
 
-.clickable-row:hover{
-background:rgba(255,255,255,0.04);
+.tab-btn:hover{
+background:rgba(255,255,255,0.06);
 }
 
-.selected-row{
-background:rgba(59,130,246,0.12);
+.tab-btn.active{
+background:rgba(59,130,246,0.22);
+border-color:rgba(59,130,246,0.60);
+color:#ffffff;
 }
 
-.placeholder-row td{
-color:#9ca3af;
-text-align:center;
-padding:16px;
-}
-
-.detail-wrap{
+.tab-panel{
+display:none;
 border:1px solid rgba(255,255,255,0.08);
 border-radius:12px;
-padding:12px 16px;
-min-height:420px;
+padding:14px;
+background:rgba(255,255,255,0.02);
+min-height:320px;
+}
+
+.tab-panel.active{
+display:block;
+}
+
+.result-box{
+border:1px solid rgba(255,255,255,0.08);
+border-radius:12px;
+background:rgba(255,255,255,0.02);
+min-height:260px;
 max-height:420px;
 overflow:auto;
+padding:12px;
+}
+
+.result-empty{
+color:#9ca3af;
+white-space:pre-wrap;
+line-height:1.7;
+}
+
+.result-card{
+border:1px solid rgba(255,255,255,0.08);
+border-radius:10px;
+padding:12px;
+margin-bottom:10px;
 background:rgba(255,255,255,0.02);
 }
 
-.detail-pre{
+.result-card:last-child{
+margin-bottom:0;
+}
+
+.result-card-title{
+font-size:15px;
+font-weight:700;
+margin-bottom:6px;
+color:#ffffff;
+}
+
+.result-card-sub{
+font-size:12px;
+color:#9ca3af;
+margin-bottom:8px;
+}
+
+.result-card-body{
 white-space:pre-wrap;
 word-break:break-word;
-line-height:1.7;
-margin:0;
-font-family:inherit;
-}
-
-.result-title{
-white-space:nowrap;
-overflow:hidden;
-text-overflow:ellipsis;
-}
-
-.result-sub{
-margin-top:4px;
-color:#9ca3af;
-font-size:12px;
-white-space:nowrap;
-overflow:hidden;
-text-overflow:ellipsis;
+line-height:1.6;
+font-size:14px;
+color:#e5e7eb;
 }
 
 #queryText{
@@ -146,13 +158,13 @@ box-sizing:border-box;
 grid-template-columns:1fr;
 }
 
-.split-grid{
-grid-template-columns:1fr;
+.tabs-header{
+gap:6px;
 }
 
-.detail-wrap,
-.table-wrap{
-max-height:none;
+.tab-btn{
+width:100%;
+text-align:left;
 }
 
 }
@@ -175,7 +187,6 @@ max-height:none;
     </div>
 
     <div class="search-panel">
-
       <div class="search-grid">
 
         <div>
@@ -193,7 +204,6 @@ max-height:none;
         </div>
 
       </div>
-
     </div>
 
     <div class="work-panel">
@@ -201,33 +211,49 @@ max-height:none;
       <div class="summary-row">
         <div>
           <span id="summaryText">0 件</span>
-          <span id="selectionSummary" class="muted-text" style="margin-left:12px;">選択なし</span>
+          <span id="selectionSummary" class="muted-text" style="margin-left:12px;">未実行</span>
         </div>
 
         <div>
-          <span id="contextSummary" class="muted-text">検索結果一覧</span>
+          <span id="contextSummary" class="muted-text">検索結果</span>
           <button id="btnReload" class="btn" style="margin-left:12px;">再読込</button>
         </div>
       </div>
 
-      <div class="split-grid">
+      <div class="tabs-wrap">
 
-        <div>
-          <h3 class="panel-title">検索結果一覧</h3>
+        <div class="tabs-header">
+          <button class="tab-btn active" data-tab="qa_similarity">QA類似</button>
+          <button class="tab-btn" data-tab="plain_fts">プレインFTS</button>
+          <button class="tab-btn" data-tab="hybrid">両方</button>
+          <button class="tab-btn" data-tab="hybrid_ai">両方＋AI整理</button>
+        </div>
 
-          <div class="table-wrap">
-            <table class="data-table">
-              <thead id="resultTableHead"></thead>
-              <tbody id="resultTableBody"></tbody>
-            </table>
+        <div id="panel-qa_similarity" class="tab-panel active">
+          <h3 class="panel-title">QA類似</h3>
+          <div id="resultQaSimilarity" class="result-box">
+            <div class="result-empty">まだ結果はありません。</div>
           </div>
         </div>
 
-        <div>
-          <h3 class="panel-title">詳細表示</h3>
+        <div id="panel-plain_fts" class="tab-panel">
+          <h3 class="panel-title">プレインFTS</h3>
+          <div id="resultPlainFts" class="result-box">
+            <div class="result-empty">まだ結果はありません。</div>
+          </div>
+        </div>
 
-          <div class="detail-wrap">
-            <pre id="detailPre" class="detail-pre">データベースを選択してください。</pre>
+        <div id="panel-hybrid" class="tab-panel">
+          <h3 class="panel-title">両方</h3>
+          <div id="resultHybrid" class="result-box">
+            <div class="result-empty">まだ結果はありません。</div>
+          </div>
+        </div>
+
+        <div id="panel-hybrid_ai" class="tab-panel">
+          <h3 class="panel-title">両方＋AI整理</h3>
+          <div id="resultHybridAi" class="result-box">
+            <div class="result-empty">まだ結果はありません。</div>
           </div>
         </div>
 

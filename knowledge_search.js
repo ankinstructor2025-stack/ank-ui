@@ -12,53 +12,19 @@ const summaryText = document.getElementById("summaryText");
 const selectionSummary = document.getElementById("selectionSummary");
 const contextSummary = document.getElementById("contextSummary");
 
-const resultTableHead = document.getElementById("resultTableHead");
-const resultTableBody = document.getElementById("resultTableBody");
-const detailPre = document.getElementById("detailPre");
+const resultQaSimilarity = document.getElementById("resultQaSimilarity");
+const resultPlainFts = document.getElementById("resultPlainFts");
+const resultHybrid = document.getElementById("resultHybrid");
+const resultHybridAi = document.getElementById("resultHybridAi");
+
+const tabButtons = Array.from(document.querySelectorAll(".tab-btn"));
+const tabPanels = Array.from(document.querySelectorAll(".tab-panel"));
 
 let currentDatabase = "";
-let selectedEntryId = "";
 
 const demoDatabases = [
-  {
-    db_name: "knowledge_20260314183446.sqlite"
-  },
-  {
-    db_name: "knowledge_20260315100512.sqlite"
-  }
-];
-
-const demoResults = [
-  {
-    entry_id: "e001",
-    title: "再エネ賦課金に関する質問",
-    source_type: "kokkai",
-    source_label: "参議院 / 経済産業委員会",
-    question: "再エネ賦課金の見直し方針はどうなっていますか。",
-    answer: "政府としては国民負担や電力価格への影響を踏まえつつ制度全体の見直しを検討している。",
-    content: "",
-    data_kind: "qa"
-  },
-  {
-    entry_id: "e002",
-    title: "制度見直しの背景説明",
-    source_type: "kokkai",
-    source_label: "参議院 / 経済産業委員会",
-    question: "",
-    answer: "",
-    content: "制度開始以降、再生可能エネルギー導入量は増加した一方で国民負担とのバランスが継続的な論点となっている。",
-    data_kind: "plain"
-  },
-  {
-    entry_id: "e003",
-    title: "電気料金負担への対応",
-    source_type: "kokkai",
-    source_label: "衆議院 / 本会議",
-    question: "電気料金負担の軽減策はありますか。",
-    answer: "負担軽減のための支援策や制度のあり方について関係省庁で連携して検討している。",
-    content: "",
-    data_kind: "qa"
-  }
+  { db_name: "knowledge_20260314183446.sqlite" },
+  { db_name: "knowledge_20260315100512.sqlite" }
 ];
 
 function escapeHtml(value) {
@@ -82,126 +48,51 @@ function renderDatabaseOptions(list) {
   databaseSelect.innerHTML = html.join("");
 }
 
-function renderResultPlaceholder(message) {
-  resultTableHead.innerHTML = "";
+function renderEmpty(box, message) {
+  box.innerHTML = `<div class="result-empty">${escapeHtml(message)}</div>`;
+}
 
-  resultTableBody.innerHTML = `
-    <tr class="placeholder-row">
-      <td>${escapeHtml(message)}</td>
-    </tr>
+function buildCardHtml(item) {
+  return `
+    <div class="result-card">
+      <div class="result-card-title">${escapeHtml(item.title || "-")}</div>
+      <div class="result-card-sub">${escapeHtml(item.sub || "")}</div>
+      <div class="result-card-body">${escapeHtml(item.body || "")}</div>
+    </div>
   `;
 }
 
-function renderInitialScreen() {
-  renderResultPlaceholder("データベースを選択してください。");
-  detailPre.textContent = "データベースを選択してください。";
-  summaryText.textContent = "0 件";
-  selectionSummary.textContent = "選択なし";
-  contextSummary.textContent = "検索結果一覧";
-}
-
-function renderResultTable(rows) {
-  resultTableHead.innerHTML = `
-    <tr>
-      <th>タイトル</th>
-      <th style="width:110px;">source</th>
-    </tr>
-  `;
-
-  if (!rows.length) {
-    resultTableBody.innerHTML = `
-      <tr class="placeholder-row">
-        <td colspan="2">該当データはありません。</td>
-      </tr>
-    `;
+function renderCards(box, items, emptyMessage) {
+  if (!items || !items.length) {
+    renderEmpty(box, emptyMessage);
     return;
   }
 
-  resultTableBody.innerHTML = rows.map((row) => `
-    <tr class="clickable-row ${row.entry_id === selectedEntryId ? "selected-row" : ""}" data-entry-id="${escapeHtml(row.entry_id)}">
-      <td>
-        <div class="result-title">${escapeHtml(row.title || "-")}</div>
-        <div class="result-sub">${escapeHtml(row.source_label || "")}</div>
-      </td>
-      <td>${escapeHtml(row.source_type || "-")}</td>
-    </tr>
-  `).join("");
+  box.innerHTML = items.map(buildCardHtml).join("");
 }
 
-function buildDetailText(row) {
-  const lines = [];
+function setActiveTab(tabName) {
+  tabButtons.forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.tab === tabName);
+  });
 
-  lines.push(`entry_id: ${row.entry_id || ""}`);
-  lines.push(`title: ${row.title || ""}`);
-  lines.push(`source_type: ${row.source_type || ""}`);
-  lines.push(`source_label: ${row.source_label || ""}`);
-  lines.push("");
-
-  if (row.question) {
-    lines.push("[質問]");
-    lines.push(row.question);
-    lines.push("");
-  }
-
-  if (row.answer) {
-    lines.push("[回答]");
-    lines.push(row.answer);
-    lines.push("");
-  }
-
-  if (row.content) {
-    lines.push("[内容]");
-    lines.push(row.content);
-    lines.push("");
-  }
-
-  return lines.join("\n");
+  tabPanels.forEach((panel) => {
+    panel.classList.toggle("active", panel.id === `panel-${tabName}`);
+  });
 }
 
-function showDetailByEntryId(entryId) {
-  const row = demoResults.find((item) => item.entry_id === entryId);
-
-  if (!row) {
-    detailPre.textContent = "詳細を表示できません。";
-    return;
-  }
-
-  selectedEntryId = entryId;
-  detailPre.textContent = buildDetailText(row);
-  selectionSummary.textContent = `選択: ${row.title || row.entry_id}`;
-  renderResultTable(getFilteredResults());
+function resetAllResultAreas(message) {
+  renderEmpty(resultQaSimilarity, message);
+  renderEmpty(resultPlainFts, message);
+  renderEmpty(resultHybrid, message);
+  renderEmpty(resultHybridAi, message);
 }
 
 function getSearchLines() {
   return (queryText.value || "")
     .split(/\r?\n/)
-    .map((line) => line.trim().toLowerCase())
+    .map((line) => line.trim())
     .filter((line) => line);
-}
-
-function getSearchTargetText(row) {
-  return [
-    row.title,
-    row.question,
-    row.answer,
-    row.content,
-    row.source_label,
-    row.source_type
-  ].join(" ").toLowerCase();
-}
-
-function getFilteredResults() {
-  const lines = getSearchLines();
-
-  return demoResults.filter((row) => {
-    if (!lines.length) {
-      return true;
-    }
-
-    const target = getSearchTargetText(row);
-
-    return lines.some((line) => target.includes(line));
-  });
 }
 
 function executeSearch() {
@@ -210,50 +101,87 @@ function executeSearch() {
     return;
   }
 
-  const rows = getFilteredResults();
-  selectedEntryId = "";
+  const lines = getSearchLines();
+  const queryLabel = lines.length ? lines.join(" / ") : "(空)";
 
-  renderResultTable(rows);
+  const qaSimilarityItems = [
+    {
+      title: "再エネ賦課金に関する質問",
+      sub: "kokkai / 参議院 / 経済産業委員会 / score: 0.91",
+      body: `検索語: ${queryLabel}\n質問に近いQA候補をここに表示します。`
+    },
+    {
+      title: "電気料金負担への対応",
+      sub: "kokkai / 衆議院 / 本会議 / score: 0.84",
+      body: "QA類似度検索の結果をここに表示します。"
+    }
+  ];
 
-  detailPre.textContent = rows.length
-    ? "一覧から1件選択してください。"
-    : "該当データはありません。";
+  const plainFtsItems = [
+    {
+      title: "制度見直しの背景説明",
+      sub: "kokkai / 参議院 / 経済産業委員会 / bm25: 12.8",
+      body: `検索語: ${queryLabel}\nプレイン文書のFTS結果をここに表示します。`
+    }
+  ];
 
-  summaryText.textContent = `${rows.length} 件`;
-  selectionSummary.textContent = "選択なし";
+  const hybridItems = [
+    {
+      title: "再エネ賦課金に関する質問",
+      sub: "QA / score: 91",
+      body: "QA類似検索から採用した候補です。"
+    },
+    {
+      title: "制度見直しの背景説明",
+      sub: "plain / score: 83",
+      body: "プレインFTSから採用した候補です。"
+    }
+  ];
+
+  const hybridAiItems = [
+    {
+      title: "AI整理結果",
+      sub: "統合候補を整理",
+      body:
+        "・主要論点: 再エネ賦課金\n" +
+        "・関連テーマ: 電気料金負担、制度見直し\n" +
+        "・候補の重複をまとめた表示をここに出します。"
+    }
+  ];
+
+  renderCards(resultQaSimilarity, qaSimilarityItems, "QA類似の結果はありません。");
+  renderCards(resultPlainFts, plainFtsItems, "プレインFTSの結果はありません。");
+  renderCards(resultHybrid, hybridItems, "両方の結果はありません。");
+  renderCards(resultHybridAi, hybridAiItems, "AI整理の結果はありません。");
+
+  summaryText.textContent = `${qaSimilarityItems.length + plainFtsItems.length} 件`;
+  selectionSummary.textContent = `検索語 ${lines.length} 行`;
   contextSummary.textContent = `DB: ${currentDatabase}`;
 }
 
-function bindResultClick() {
-  resultTableBody.addEventListener("click", (event) => {
-    const tr = event.target.closest("tr[data-entry-id]");
-    if (!tr) return;
-
-    const entryId = tr.getAttribute("data-entry-id");
-    if (!entryId) return;
-
-    showDetailByEntryId(entryId);
+function bindTabEvents() {
+  tabButtons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      setActiveTab(btn.dataset.tab);
+    });
   });
-}
-
-function resetSearchArea(message) {
-  renderResultPlaceholder(message);
-  detailPre.textContent = message;
-  summaryText.textContent = "0 件";
-  selectionSummary.textContent = "選択なし";
 }
 
 function bindEvents() {
   databaseSelect.addEventListener("change", () => {
     currentDatabase = databaseSelect.value || "";
-    resetSearchArea("検索文字列を入力して検索してください。");
+    resetAllResultAreas("検索文字列を入力して検索してください。");
+    summaryText.textContent = "0 件";
+    selectionSummary.textContent = "未実行";
     contextSummary.textContent = `DB: ${currentDatabase || "-"}`;
   });
 
   btnSearch.addEventListener("click", executeSearch);
 
   btnReload.addEventListener("click", () => {
-    resetSearchArea("検索文字列を入力して検索してください。");
+    resetAllResultAreas("検索文字列を入力して検索してください。");
+    summaryText.textContent = "0 件";
+    selectionSummary.textContent = "未実行";
     contextSummary.textContent = `DB: ${currentDatabase || "-"}`;
   });
 
@@ -266,11 +194,11 @@ function bindEvents() {
     window.location.href = "./index.html";
   });
 
-  bindResultClick();
+  bindTabEvents();
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  renderInitialScreen();
   renderDatabaseOptions(demoDatabases);
+  resetAllResultAreas("データベースを選択してください。");
   bindEvents();
 });
