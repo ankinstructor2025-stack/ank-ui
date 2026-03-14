@@ -5,284 +5,291 @@
 <title>ナレッジ検索</title>
 
 <style>
-
 body{
-margin:0;
-font-family:sans-serif;
-background:#0f172a;
-color:#ffffff;
+  margin:0;
+  font-family:sans-serif;
+  background:#0f172a;
+  color:#ffffff;
 }
 
 .page{
-max-width:1200px;
-margin:auto;
-padding:20px;
+  max-width:1280px;
+  margin:auto;
+  padding:8px 18px 18px;
 }
 
 .card{
-background:#111827;
-border-radius:14px;
-padding:20px;
+  background:#111827;
+  border-radius:14px;
+  padding:0;
 }
 
 .header-row{
-display:flex;
-justify-content:space-between;
-align-items:center;
-margin-bottom:20px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:18px;
 }
 
 .header-actions button{
-margin-left:10px;
+  margin-left:10px;
 }
 
 .btn{
-padding:8px 14px;
-border-radius:8px;
-border:1px solid rgba(255,255,255,0.15);
-background:#1f2937;
-color:#ffffff;
-cursor:pointer;
+  padding:8px 14px;
+  border-radius:10px;
+  border:1px solid rgba(255,255,255,0.15);
+  background:#1f2937;
+  color:#ffffff;
+  cursor:pointer;
+  font-weight:600;
 }
 
 .btn-primary{
-background:#2563eb;
-border-color:#2563eb;
+  background:#2563eb;
+  border-color:#2563eb;
+}
+
+.btn-primary:hover{
+  background:#1d4ed8;
+  border-color:#1d4ed8;
 }
 
 .search-panel{
-margin-bottom:16px;
+  margin-bottom:16px;
 }
 
 .search-grid{
-display:grid;
-grid-template-columns:1fr 1.5fr;
-gap:12px;
+  display:grid;
+  grid-template-columns:460px 1fr 96px;
+  gap:12px;
+  align-items:start;
+}
+
+.search-col{
+  min-width:0;
+}
+
+.search-button-col{
+  display:flex;
+  align-items:flex-end;
+  height:100%;
+}
+
+.search-button-col .btn{
+  width:100%;
+  min-height:38px;
 }
 
 label{
-font-size:14px;
-display:block;
-margin-bottom:4px;
+  font-size:14px;
+  display:block;
+  margin-bottom:6px;
+  font-weight:600;
 }
 
-select,textarea{
-width:100%;
-border-radius:8px;
-border:1px solid #374151;
-background:#1f2937;
-color:#ffffff;
-padding:8px;
+select,
+textarea{
+  width:100%;
+  border-radius:10px;
+  border:1px solid #374151;
+  background:#1f2937;
+  color:#ffffff;
+  padding:10px 12px;
+  box-sizing:border-box;
+}
+
+select{
+  height:44px;
 }
 
 textarea{
-resize:vertical;
-min-height:70px;
+  resize:vertical;
+  min-height:88px;
+  line-height:1.5;
 }
-
-.search-button-row{
-margin-top:12px;
-text-align:right;
-}
-
-/* タブ */
 
 .tabs-header{
-display:flex;
-gap:10px;
-margin-top:20px;
-margin-bottom:10px;
+  display:flex;
+  gap:10px;
+  margin-top:14px;
+  margin-bottom:10px;
+  flex-wrap:wrap;
 }
 
 .tab-btn{
-border:1px solid rgba(255,255,255,0.2);
-background:#1f2937;
-color:#e5e7eb;
-padding:8px 14px;
-border-radius:8px;
-cursor:pointer;
-font-weight:600;
+  border:1px solid rgba(255,255,255,0.2);
+  background:#1f2937;
+  color:#e5e7eb;
+  padding:8px 14px;
+  border-radius:10px;
+  cursor:pointer;
+  font-weight:600;
 }
 
 .tab-btn:hover{
-background:#2563eb;
-color:#ffffff;
+  background:#2563eb;
+  color:#ffffff;
 }
 
 .tab-btn.active{
-background:#1d4ed8;
-border-color:#1d4ed8;
-color:#ffffff;
+  background:#1d4ed8;
+  border-color:#1d4ed8;
+  color:#ffffff;
 }
 
-/* 結果エリア */
-
 .tab-panel{
-display:none;
-background:#f3f4f6;
-border-radius:10px;
-padding:16px;
-min-height:300px;
+  display:none;
+  background:#e5e7eb;
+  border-radius:12px;
+  padding:16px;
+  min-height:300px;
 }
 
 .tab-panel.active{
-display:block;
+  display:block;
 }
 
-/* 結果カード */
-
 .result-card{
-background:#ffffff;
-border-radius:8px;
-padding:12px;
-margin-bottom:10px;
-border:1px solid #e5e7eb;
+  background:#ffffff;
+  border-radius:8px;
+  padding:12px;
+  margin-bottom:10px;
+  border:1px solid #d1d5db;
 }
 
 .result-card-title{
-font-weight:700;
-color:#111827;
-margin-bottom:6px;
+  font-weight:700;
+  color:#111827;
+  margin-bottom:6px;
+  font-size:16px;
 }
 
 .result-card-sub{
-font-size:12px;
-color:#6b7280;
-margin-bottom:6px;
+  font-size:12px;
+  color:#4b5563;
+  margin-bottom:8px;
 }
 
 .result-card-body{
-color:#111827;
-white-space:pre-wrap;
+  color:#111827;
+  white-space:pre-wrap;
+  line-height:1.7;
 }
 
-</style>
+@media (max-width:1100px){
+  .search-grid{
+    grid-template-columns:360px 1fr 90px;
+  }
+}
 
+@media (max-width:900px){
+  .search-grid{
+    grid-template-columns:1fr;
+  }
+
+  .search-button-col{
+    align-items:stretch;
+  }
+
+  .search-button-col .btn{
+    width:140px;
+  }
+}
+</style>
 </head>
 
 <body>
 
 <div class="page">
+  <div class="card">
 
-<div class="card">
+    <div class="header-row">
+      <h2>ナレッジ検索</h2>
 
-<div class="header-row">
+      <div class="header-actions">
+        <button class="btn">メニューに戻る</button>
+        <button class="btn">ログアウト</button>
+      </div>
+    </div>
 
-<h2>ナレッジ検索</h2>
+    <div class="search-panel">
+      <div class="search-grid">
 
-<div class="header-actions">
-<button class="btn">メニューに戻る</button>
-<button class="btn">ログアウト</button>
-</div>
+        <div class="search-col">
+          <label>データベース選択</label>
+          <select id="dbSelect">
+            <option>knowledge_20260314183446.sqlite</option>
+            <option>knowledge_20260315100512.sqlite</option>
+          </select>
+        </div>
 
-</div>
+        <div class="search-col">
+          <label>検索文字列</label>
+          <textarea id="queryText" rows="3" placeholder="検索文字列（複数行OK）"></textarea>
+        </div>
 
-<div class="search-panel">
+        <div class="search-button-col">
+          <button class="btn btn-primary" onclick="runSearch()">検索</button>
+        </div>
 
-<div class="search-grid">
+      </div>
+    </div>
 
-<div>
-<label>データベース選択</label>
-<select id="dbSelect">
-<option>knowledge_20260314183446.sqlite</option>
-<option>knowledge_20260315100512.sqlite</option>
-</select>
-</div>
+    <div class="tabs-header">
+      <button class="tab-btn active" data-tab="qa">QA類似</button>
+      <button class="tab-btn" data-tab="plain">プレインFTS</button>
+      <button class="tab-btn" data-tab="hybrid">両方</button>
+      <button class="tab-btn" data-tab="ai">両方＋AI整理</button>
+    </div>
 
-<div>
-<label>検索文字列</label>
-<textarea id="queryText" rows="3" placeholder="検索文字列（複数行OK）"></textarea>
-</div>
+    <div id="panel-qa" class="tab-panel active">
+      <div id="resultQa"></div>
+    </div>
 
-</div>
+    <div id="panel-plain" class="tab-panel">
+      <div id="resultPlain"></div>
+    </div>
 
-<div class="search-button-row">
-<button class="btn btn-primary" onclick="runSearch()">検索</button>
-</div>
+    <div id="panel-hybrid" class="tab-panel">
+      <div id="resultHybrid"></div>
+    </div>
 
-</div>
+    <div id="panel-ai" class="tab-panel">
+      <div id="resultAi"></div>
+    </div>
 
-
-<div class="tabs-header">
-
-<button class="tab-btn active" data-tab="qa">QA類似</button>
-
-<button class="tab-btn" data-tab="plain">プレインFTS</button>
-
-<button class="tab-btn" data-tab="hybrid">両方</button>
-
-<button class="tab-btn" data-tab="ai">両方＋AI整理</button>
-
-</div>
-
-
-<div id="panel-qa" class="tab-panel active">
-<div id="resultQa"></div>
-</div>
-
-<div id="panel-plain" class="tab-panel">
-<div id="resultPlain"></div>
-</div>
-
-<div id="panel-hybrid" class="tab-panel">
-<div id="resultHybrid"></div>
-</div>
-
-<div id="panel-ai" class="tab-panel">
-<div id="resultAi"></div>
-</div>
-
-
-</div>
+  </div>
 </div>
 
 <script>
-
-/* タブ切替 */
-
 document.querySelectorAll(".tab-btn").forEach(btn=>{
-btn.onclick=()=>{
-document.querySelectorAll(".tab-btn").forEach(b=>b.classList.remove("active"));
-btn.classList.add("active");
+  btn.onclick=()=>{
+    document.querySelectorAll(".tab-btn").forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
 
-const tab=btn.dataset.tab;
-
-document.querySelectorAll(".tab-panel").forEach(p=>p.classList.remove("active"));
-
-document.getElementById("panel-"+tab).classList.add("active");
-};
+    const tab=btn.dataset.tab;
+    document.querySelectorAll(".tab-panel").forEach(p=>p.classList.remove("active"));
+    document.getElementById("panel-"+tab).classList.add("active");
+  };
 });
 
-
-/* 仮検索 */
-
 function runSearch(){
-
-document.getElementById("resultQa").innerHTML=createCard("再エネ賦課金の質問","kokkai","QA検索結果");
-
-document.getElementById("resultPlain").innerHTML=createCard("制度説明","kokkai","FTS検索結果");
-
-document.getElementById("resultHybrid").innerHTML=createCard("統合候補","hybrid","QA + FTS");
-
-document.getElementById("resultAi").innerHTML=createCard("AI整理結果","ai","候補を整理");
-
+  document.getElementById("resultQa").innerHTML=createCard("再エネ賦課金の質問","kokkai","QA検索結果");
+  document.getElementById("resultPlain").innerHTML=createCard("制度説明","kokkai","FTS検索結果");
+  document.getElementById("resultHybrid").innerHTML=createCard("統合候補","hybrid","QA + FTS");
+  document.getElementById("resultAi").innerHTML=createCard("AI整理結果","ai","候補を整理");
 }
-
-
-/* カード生成 */
 
 function createCard(title,sub,body){
-
-return `
-<div class="result-card">
-<div class="result-card-title">${title}</div>
-<div class="result-card-sub">${sub}</div>
-<div class="result-card-body">${body}</div>
-</div>
-`;
-
+  return `
+  <div class="result-card">
+    <div class="result-card-title">${title}</div>
+    <div class="result-card-sub">${sub}</div>
+    <div class="result-card-body">${body}</div>
+  </div>
+  `;
 }
-
 </script>
 
 </body>
