@@ -43,6 +43,7 @@
     .data-table {
       width: 100%;
       border-collapse: collapse;
+      table-layout: fixed;
     }
 
     .data-table th,
@@ -138,6 +139,13 @@
       line-height: 1.6;
       margin: 0;
       font-family: inherit;
+    }
+
+    /* 親一覧を1行表示にする */
+    #parentTableBody td {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     @media (max-width: 960px) {
