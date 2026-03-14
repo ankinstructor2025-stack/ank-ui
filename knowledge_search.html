@@ -3,268 +3,285 @@
 <head>
 <meta charset="UTF-8">
 <title>ナレッジ検索</title>
-<link rel="stylesheet" href="./theme.css">
 
 <style>
 
+body{
+margin:0;
+font-family:sans-serif;
+background:#0f172a;
+color:#ffffff;
+}
+
+.page{
+max-width:1200px;
+margin:auto;
+padding:20px;
+}
+
+.card{
+background:#111827;
+border-radius:14px;
+padding:20px;
+}
+
+.header-row{
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:20px;
+}
+
+.header-actions button{
+margin-left:10px;
+}
+
+.btn{
+padding:8px 14px;
+border-radius:8px;
+border:1px solid rgba(255,255,255,0.15);
+background:#1f2937;
+color:#ffffff;
+cursor:pointer;
+}
+
+.btn-primary{
+background:#2563eb;
+border-color:#2563eb;
+}
+
 .search-panel{
-margin-top:12px;
-border:1px solid rgba(255,255,255,0.08);
-border-radius:16px;
-padding:16px;
-background:rgba(255,255,255,0.02);
+margin-bottom:16px;
 }
 
 .search-grid{
 display:grid;
-grid-template-columns:1fr 1.4fr auto;
-gap:12px;
+grid-template-columns:1fr 1.5fr auto;
+gap:10px;
 align-items:end;
 }
 
-.panel-title{
-margin:0 0 12px 0;
-font-size:18px;
-font-weight:700;
-}
-
-.summary-row{
-display:flex;
-justify-content:space-between;
-align-items:center;
-gap:12px;
-margin-bottom:12px;
-color:#d1d5db;
+label{
 font-size:14px;
-flex-wrap:wrap;
+display:block;
+margin-bottom:4px;
 }
 
-.muted-text{
-color:#9ca3af;
-font-size:13px;
+select,textarea{
+width:100%;
+border-radius:8px;
+border:1px solid #374151;
+background:#1f2937;
+color:#ffffff;
+padding:8px;
 }
 
-.work-panel{
-margin-top:16px;
-}
-
-.tabs-wrap{
-margin-top:12px;
+textarea{
+resize:vertical;
+min-height:60px;
 }
 
 .tabs-header{
 display:flex;
-gap:8px;
-flex-wrap:wrap;
-margin-bottom:12px;
+gap:10px;
+margin-top:20px;
+margin-bottom:10px;
 }
 
+/* タブボタン */
+
 .tab-btn{
-appearance:none;
-border:1px solid rgba(255,255,255,0.12);
-background:rgba(255,255,255,0.03);
-color:#d1d5db;
-padding:10px 14px;
-border-radius:10px;
+border:1px solid rgba(255,255,255,0.2);
+background:#1f2937;
+color:#e5e7eb;
+padding:8px 14px;
+border-radius:8px;
 cursor:pointer;
-font-size:14px;
 font-weight:600;
 }
 
 .tab-btn:hover{
-background:rgba(255,255,255,0.06);
-}
-
-.tab-btn.active{
-background:rgba(59,130,246,0.22);
-border-color:rgba(59,130,246,0.60);
+background:#2563eb;
 color:#ffffff;
 }
 
+/* アクティブタブ */
+
+.tab-btn.active{
+background:#1d4ed8;
+border-color:#1d4ed8;
+color:#ffffff;
+}
+
+/* タブパネル */
+
 .tab-panel{
 display:none;
-border:1px solid rgba(255,255,255,0.08);
-border-radius:12px;
-padding:14px;
-background:rgba(255,255,255,0.02);
-min-height:320px;
+background:#f3f4f6;
+border-radius:10px;
+padding:16px;
+min-height:300px;
 }
 
 .tab-panel.active{
 display:block;
 }
 
-.result-box{
-border:1px solid rgba(255,255,255,0.08);
-border-radius:12px;
-background:rgba(255,255,255,0.02);
-min-height:260px;
-max-height:420px;
-overflow:auto;
-padding:12px;
-}
-
-.result-empty{
-color:#9ca3af;
-white-space:pre-wrap;
-line-height:1.7;
-}
+/* 検索結果カード */
 
 .result-card{
-border:1px solid rgba(255,255,255,0.08);
-border-radius:10px;
+background:#ffffff;
+border-radius:8px;
 padding:12px;
 margin-bottom:10px;
-background:rgba(255,255,255,0.02);
-}
-
-.result-card:last-child{
-margin-bottom:0;
+border:1px solid #e5e7eb;
 }
 
 .result-card-title{
-font-size:15px;
 font-weight:700;
+color:#111827;
 margin-bottom:6px;
-color:#ffffff;
 }
 
 .result-card-sub{
 font-size:12px;
-color:#9ca3af;
-margin-bottom:8px;
+color:#6b7280;
+margin-bottom:6px;
 }
 
 .result-card-body{
+color:#111827;
 white-space:pre-wrap;
-word-break:break-word;
-line-height:1.6;
-font-size:14px;
-color:#e5e7eb;
-}
-
-#queryText{
-width:100%;
-resize:vertical;
-min-height:72px;
-line-height:1.5;
-padding:8px 10px;
-box-sizing:border-box;
-}
-
-@media (max-width:960px){
-
-.search-grid{
-grid-template-columns:1fr;
-}
-
-.tabs-header{
-gap:6px;
-}
-
-.tab-btn{
-width:100%;
-text-align:left;
-}
-
 }
 
 </style>
+
 </head>
 
 <body>
 
 <div class="page">
-  <div class="card">
 
-    <div class="header-row">
-      <h2>ナレッジ検索</h2>
+<div class="card">
 
-      <div class="header-actions">
-        <button id="btnMenu" class="btn">メニューに戻る</button>
-        <button id="btnLogout" class="btn">ログアウト</button>
-      </div>
-    </div>
+<div class="header-row">
 
-    <div class="search-panel">
-      <div class="search-grid">
+<h2>ナレッジ検索</h2>
 
-        <div>
-          <label for="databaseSelect">データベース選択</label>
-          <select id="databaseSelect"></select>
-        </div>
-
-        <div>
-          <label for="queryText">検索文字列</label>
-          <textarea id="queryText" rows="3" placeholder="検索文字列（複数行OK）"></textarea>
-        </div>
-
-        <div>
-          <button id="btnSearch" class="btn btn-primary">検索</button>
-        </div>
-
-      </div>
-    </div>
-
-    <div class="work-panel">
-
-      <div class="summary-row">
-        <div>
-          <span id="summaryText">0 件</span>
-          <span id="selectionSummary" class="muted-text" style="margin-left:12px;">未実行</span>
-        </div>
-
-        <div>
-          <span id="contextSummary" class="muted-text">検索結果</span>
-          <button id="btnReload" class="btn" style="margin-left:12px;">再読込</button>
-        </div>
-      </div>
-
-      <div class="tabs-wrap">
-
-        <div class="tabs-header">
-          <button class="tab-btn active" data-tab="qa_similarity">QA類似</button>
-          <button class="tab-btn" data-tab="plain_fts">プレインFTS</button>
-          <button class="tab-btn" data-tab="hybrid">両方</button>
-          <button class="tab-btn" data-tab="hybrid_ai">両方＋AI整理</button>
-        </div>
-
-        <div id="panel-qa_similarity" class="tab-panel active">
-          <h3 class="panel-title">QA類似</h3>
-          <div id="resultQaSimilarity" class="result-box">
-            <div class="result-empty">まだ結果はありません。</div>
-          </div>
-        </div>
-
-        <div id="panel-plain_fts" class="tab-panel">
-          <h3 class="panel-title">プレインFTS</h3>
-          <div id="resultPlainFts" class="result-box">
-            <div class="result-empty">まだ結果はありません。</div>
-          </div>
-        </div>
-
-        <div id="panel-hybrid" class="tab-panel">
-          <h3 class="panel-title">両方</h3>
-          <div id="resultHybrid" class="result-box">
-            <div class="result-empty">まだ結果はありません。</div>
-          </div>
-        </div>
-
-        <div id="panel-hybrid_ai" class="tab-panel">
-          <h3 class="panel-title">両方＋AI整理</h3>
-          <div id="resultHybridAi" class="result-box">
-            <div class="result-empty">まだ結果はありません。</div>
-          </div>
-        </div>
-
-      </div>
-
-    </div>
-
-  </div>
+<div class="header-actions">
+<button class="btn">メニューに戻る</button>
+<button class="btn">ログアウト</button>
 </div>
 
-<script src="./knowledge_search.js"></script>
+</div>
+
+<div class="search-panel">
+
+<div class="search-grid">
+
+<div>
+<label>データベース選択</label>
+<select id="dbSelect">
+<option>knowledge_20260314183446.sqlite</option>
+<option>knowledge_20260315100512.sqlite</option>
+</select>
+</div>
+
+<div>
+<label>検索文字列</label>
+<textarea id="queryText" rows="3" placeholder="検索文字列（複数行OK）"></textarea>
+</div>
+
+<div>
+<button class="btn btn-primary" onclick="runSearch()">検索</button>
+</div>
+
+</div>
+
+</div>
+
+
+<div class="tabs-header">
+
+<button class="tab-btn active" data-tab="qa">QA類似</button>
+
+<button class="tab-btn" data-tab="plain">プレインFTS</button>
+
+<button class="tab-btn" data-tab="hybrid">両方</button>
+
+<button class="tab-btn" data-tab="ai">両方＋AI整理</button>
+
+</div>
+
+
+<div id="panel-qa" class="tab-panel active">
+<div id="resultQa"></div>
+</div>
+
+<div id="panel-plain" class="tab-panel">
+<div id="resultPlain"></div>
+</div>
+
+<div id="panel-hybrid" class="tab-panel">
+<div id="resultHybrid"></div>
+</div>
+
+<div id="panel-ai" class="tab-panel">
+<div id="resultAi"></div>
+</div>
+
+
+</div>
+</div>
+
+<script>
+
+/* タブ切替 */
+
+document.querySelectorAll(".tab-btn").forEach(btn=>{
+btn.onclick=()=>{
+document.querySelectorAll(".tab-btn").forEach(b=>b.classList.remove("active"));
+btn.classList.add("active");
+
+const tab=btn.dataset.tab;
+
+document.querySelectorAll(".tab-panel").forEach(p=>p.classList.remove("active"));
+
+document.getElementById("panel-"+tab).classList.add("active");
+};
+});
+
+
+/* 仮検索 */
+
+function runSearch(){
+
+document.getElementById("resultQa").innerHTML=createCard("再エネ賦課金の質問","kokkai","QA検索結果");
+
+document.getElementById("resultPlain").innerHTML=createCard("制度説明","kokkai","FTS検索結果");
+
+document.getElementById("resultHybrid").innerHTML=createCard("統合候補","hybrid","QA + FTS");
+
+document.getElementById("resultAi").innerHTML=createCard("AI整理結果","ai","候補を整理");
+
+}
+
+
+/* カード生成 */
+
+function createCard(title,sub,body){
+
+return `
+<div class="result-card">
+<div class="result-card-title">${title}</div>
+<div class="result-card-sub">${sub}</div>
+<div class="result-card-body">${body}</div>
+</div>
+`;
+
+}
+
+</script>
 
 </body>
 </html>
