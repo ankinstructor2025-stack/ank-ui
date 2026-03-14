@@ -4,7 +4,6 @@ const databaseSelect = document.getElementById("databaseSelect");
 const queryText = document.getElementById("queryText");
 
 const btnSearch = document.getElementById("btnSearch");
-const btnReload = document.getElementById("btnReload");
 const btnMenu = document.getElementById("btnMenu");
 const btnLogout = document.getElementById("btnLogout");
 
@@ -16,6 +15,7 @@ const resultQaSimilarity = document.getElementById("resultQaSimilarity");
 const resultPlainFts = document.getElementById("resultPlainFts");
 const resultHybrid = document.getElementById("resultHybrid");
 const resultHybridAi = document.getElementById("resultHybridAi");
+const resultAiAnswer = document.getElementById("resultAiAnswer");
 
 const tabButtons = Array.from(document.querySelectorAll(".tab-btn"));
 const tabPanels = Array.from(document.querySelectorAll(".tab-panel"));
@@ -86,6 +86,7 @@ function resetAllResultAreas(message) {
   renderEmpty(resultPlainFts, message);
   renderEmpty(resultHybrid, message);
   renderEmpty(resultHybridAi, message);
+  renderEmpty(resultAiAnswer, message);
 }
 
 function getSearchLines() {
@@ -102,18 +103,27 @@ function executeSearch() {
   }
 
   const lines = getSearchLines();
-  const queryLabel = lines.length ? lines.join(" / ") : "(空)";
+  if (!lines.length) {
+    alert("検索文字列を入力してください");
+    return;
+  }
+
+  const queryLabel = lines.join(" / ");
 
   const qaSimilarityItems = [
     {
       title: "再エネ賦課金に関する質問",
       sub: "kokkai / 参議院 / 経済産業委員会 / score: 0.91",
-      body: `検索語: ${queryLabel}\n質問に近いQA候補をここに表示します。`
+      body:
+        `検索語: ${queryLabel}\n` +
+        "入力文をベクトル化し、QAデータとの類似度が高い候補を表示します。"
     },
     {
       title: "電気料金負担への対応",
       sub: "kokkai / 衆議院 / 本会議 / score: 0.84",
-      body: "QA類似度検索の結果をここに表示します。"
+      body:
+        "QA類似検索の結果サンプルです。\n" +
+        "質問と回答をセットで表示します。"
     }
   ];
 
@@ -121,7 +131,9 @@ function executeSearch() {
     {
       title: "制度見直しの背景説明",
       sub: "kokkai / 参議院 / 経済産業委員会 / bm25: 12.8",
-      body: `検索語: ${queryLabel}\nプレイン文書のFTS結果をここに表示します。`
+      body:
+        `検索語: ${queryLabel}\n` +
+        "プレイン文書のFTS結果をここに表示します。"
     }
   ];
 
@@ -141,22 +153,34 @@ function executeSearch() {
   const hybridAiItems = [
     {
       title: "AI整理結果",
-      sub: "統合候補を整理",
+      sub: "ハイブリッド結果を整理",
       body:
         "・主要論点: 再エネ賦課金\n" +
         "・関連テーマ: 電気料金負担、制度見直し\n" +
-        "・候補の重複をまとめた表示をここに出します。"
+        "・重複候補をまとめて表示する想定です。"
+    }
+  ];
+
+  const aiAnswerItems = [
+    {
+      title: "AI回答",
+      sub: "OpenAI への質問結果",
+      body:
+        `質問: ${queryLabel}\n\n` +
+        "ここにAIの回答を表示します。\n" +
+        "検索結果とは別に、質問文をそのままAIへ送って得た回答を表示する想定です。"
     }
   ];
 
   renderCards(resultQaSimilarity, qaSimilarityItems, "QA類似の結果はありません。");
   renderCards(resultPlainFts, plainFtsItems, "プレインFTSの結果はありません。");
-  renderCards(resultHybrid, hybridItems, "両方の結果はありません。");
-  renderCards(resultHybridAi, hybridAiItems, "AI整理の結果はありません。");
+  renderCards(resultHybrid, hybridItems, "ハイブリッドの結果はありません。");
+  renderCards(resultHybridAi, hybridAiItems, "ハイブリッド＋AI整理の結果はありません。");
+  renderCards(resultAiAnswer, aiAnswerItems, "AI回答はありません。");
 
-  summaryText.textContent = `${qaSimilarityItems.length + plainFtsItems.length} 件`;
+  summaryText.textContent = `${qaSimilarityItems.length + plainFtsItems.length + hybridItems.length} 件`;
   selectionSummary.textContent = `検索語 ${lines.length} 行`;
-  contextSummary.textContent = `DB: ${currentDatabase}`;
+  contextSummary.textContent = currentDatabase;
 }
 
 function bindTabEvents() {
@@ -173,17 +197,10 @@ function bindEvents() {
     resetAllResultAreas("検索文字列を入力して検索してください。");
     summaryText.textContent = "0 件";
     selectionSummary.textContent = "未実行";
-    contextSummary.textContent = `DB: ${currentDatabase || "-"}`;
+    contextSummary.textContent = currentDatabase || "-";
   });
 
   btnSearch.addEventListener("click", executeSearch);
-
-  btnReload.addEventListener("click", () => {
-    resetAllResultAreas("検索文字列を入力して検索してください。");
-    summaryText.textContent = "0 件";
-    selectionSummary.textContent = "未実行";
-    contextSummary.textContent = `DB: ${currentDatabase || "-"}`;
-  });
 
   btnMenu.addEventListener("click", () => {
     window.location.href = "./menu.html";
@@ -191,6 +208,9 @@ function bindEvents() {
 
   btnLogout.addEventListener("click", () => {
     sessionStorage.removeItem("idToken");
+    sessionStorage.removeItem("user");
+    localStorage.removeItem("idToken");
+    localStorage.removeItem("user");
     window.location.href = "./index.html";
   });
 
