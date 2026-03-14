@@ -1,69 +1,111 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ナレッジ作成</title>
-  <link rel="stylesheet" href="./theme.css">
+  <link rel="stylesheet" href="theme.css" />
   <style>
-    .split-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-      margin-top: 16px;
-    }
-
-    .panel-title {
-      margin: 0 0 12px 0;
-      font-size: 18px;
-      font-weight: 700;
-    }
-
-    .summary-row {
+    .kc-wrap {
       display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 12px;
-      color: #d1d5db;
-      font-size: 14px;
+      flex-direction: column;
+      gap: 16px;
     }
 
-    .muted-text {
-      color: #9ca3af;
+    .kc-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .kc-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .kc-sub {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 6px;
+    }
+
+    .kc-card {
+      min-height: 560px;
+    }
+
+    .kc-topline {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .kc-counts {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .kc-main {
+      display: grid;
+      grid-template-columns: 7fr 3fr;
+      gap: 18px;
+      align-items: start;
+      margin-bottom: 18px;
+    }
+
+    .kc-panel-title {
+      margin: 0 0 10px 0;
+      font-size: 16px;
+      font-weight: 700;
+      color: #111827;
+    }
+
+    .kc-panel {
+      background: #eef2f7;
+      border: 1px solid #d7dee8;
+      border-radius: 12px;
+      padding: 14px;
+      min-height: 140px;
+    }
+
+    .kc-detail {
+      background: #eef2f7;
+      border: 1px solid #d7dee8;
+      border-radius: 12px;
+      padding: 14px;
+      min-height: 250px;
+    }
+
+    .kc-table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+
+    .kc-table th,
+    .kc-table td {
+      padding: 10px 8px;
+      border-bottom: 1px solid #d7dee8;
+      text-align: left;
+      font-size: 14px;
+      color: #1f2937;
+      vertical-align: top;
+    }
+
+    .kc-table th {
+      color: #6b7280;
+      font-weight: 600;
       font-size: 13px;
     }
 
-    .table-wrap {
-      max-height: 220px;
-      overflow: auto;
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 12px;
-    }
-
-    .data-table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-
-    .data-table th,
-    .data-table td {
-      padding: 10px 12px;
-      border-bottom: 1px solid rgba(255,255,255,0.08);
-      text-align: left;
-      vertical-align: top;
-      font-size: 14px;
-    }
-
-    .data-table th {
-      background: rgba(255,255,255,0.04);
-      position: sticky;
-      top: 0;
-      z-index: 1;
-    }
-
-    .checkbox-cell {
-      width: 48px;
-      text-align: center;
+    .kc-table tr:last-child td {
+      border-bottom: none;
     }
 
     .clickable-row {
@@ -71,135 +113,114 @@
     }
 
     .clickable-row:hover {
-      background: rgba(255,255,255,0.04);
+      background: #e5edf8;
     }
 
     .selected-row {
-      background: rgba(59,130,246,0.12);
+      background: #dbe8fb;
     }
 
-    .placeholder-row td {
-      color: #9ca3af;
-      text-align: center;
-      padding: 16px;
+    .kc-process-col {
+      width: 200px;
+      min-width: 200px;
     }
 
-    .status-pill {
-      display: inline-block;
-      padding: 2px 8px;
-      border-radius: 9999px;
-      font-size: 12px;
-      font-weight: 700;
+    .kc-process-btn {
+      width: 100%;
+      min-height: 40px;
+      white-space: nowrap;
+      word-break: keep-all;
+      writing-mode: horizontal-tb;
+    }
+
+    .kc-child-no {
+      width: 56px;
+      color: #6b7280;
+      white-space: nowrap;
+    }
+
+    .kc-child-title {
+      word-break: break-word;
       line-height: 1.5;
     }
 
-    .status-new {
-      background: rgba(59,130,246,0.18);
-      color: #bfdbfe;
-    }
-
-    .status-done {
-      background: rgba(34,197,94,0.18);
-      color: #bbf7d0;
-    }
-
-    .status-error {
-      background: rgba(239,68,68,0.18);
-      color: #fecaca;
-    }
-
-    .detail-wrap {
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 12px;
-      padding: 12px 16px;
-      min-height: 220px;
-      max-height: 360px;
-      overflow: auto;
-      background: rgba(255,255,255,0.02);
-    }
-
-    .detail-pre {
+    .kc-pre {
+      margin: 0;
       white-space: pre-wrap;
       word-break: break-word;
-      line-height: 1.6;
-      margin: 0;
-      font-family: inherit;
+      line-height: 1.7;
+      color: #1f2937;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 13px;
     }
 
-    @media (max-width: 960px) {
-      .split-grid {
+    .kc-placeholder {
+      color: #6b7280;
+      font-size: 14px;
+      line-height: 1.6;
+      padding: 8px 2px;
+    }
+
+    @media (max-width: 980px) {
+      .kc-main {
         grid-template-columns: 1fr;
       }
     }
   </style>
 </head>
 <body>
+  <div class="page">
+    <div class="card kc-card">
+      <div class="kc-wrap">
+        <div class="kc-header">
+          <div>
+            <h1 style="margin:0;">ナレッジ作成</h1>
+            <div class="kc-sub">親一覧 → 子一覧 → 詳細表示</div>
+          </div>
 
-<div class="page">
-  <div class="card">
-
-    <div class="header-row">
-      <h2>ナレッジ作成</h2>
-
-      <div class="header-actions">
-        <button id="btnMenu" class="btn" type="button">メニューに戻る</button>
-        <button id="btnLogout" class="btn" type="button">ログアウト</button>
-      </div>
-    </div>
-
-    <div class="page-note">
-      親一覧 → 子一覧 → 詳細表示
-    </div>
-
-    <div class="work-panel">
-
-      <div class="summary-row">
-        <div>
-          <span id="summaryText">0 件</span>
-          <span id="selectionSummary" class="muted-text" style="margin-left:12px;">選択 0 件</span>
+          <div class="kc-actions">
+            <button id="btnMenu" class="btn" type="button">メニューに戻る</button>
+            <button id="btnLogout" class="btn" type="button">ログアウト</button>
+          </div>
         </div>
 
-        <div>
-          <span id="contextSummary" class="muted-text">親一覧</span>
-          <button id="btnReload" class="btn" type="button" style="margin-left:12px;">再読込</button>
+        <div class="kc-topline">
+          <div class="kc-counts">
+            <span id="summaryText">0 件</span>
+            <span id="selectionSummary">子 0 件</span>
+          </div>
+          <div>
+            <span id="contextSummary">親一覧</span>
+            <button id="btnReload" class="btn" type="button" style="margin-left:12px;">再読込</button>
+          </div>
         </div>
-      </div>
 
-      <div class="split-grid">
-        <div>
-          <h3 class="panel-title">親一覧</h3>
-          <div class="table-wrap">
-            <table class="data-table">
+        <div class="kc-main">
+          <section class="kc-panel">
+            <h2 class="kc-panel-title">親一覧</h2>
+            <table class="kc-table">
               <thead id="parentTableHead"></thead>
               <tbody id="parentTableBody"></tbody>
             </table>
-          </div>
-        </div>
+          </section>
 
-        <div>
-          <h3 class="panel-title">子一覧</h3>
-          <div class="table-wrap">
-            <table class="data-table">
+          <section class="kc-panel">
+            <h2 class="kc-panel-title">子一覧</h2>
+            <table class="kc-table">
               <thead id="childTableHead"></thead>
               <tbody id="childTableBody"></tbody>
             </table>
-          </div>
+          </section>
         </div>
-      </div>
 
-      <div style="margin-top:16px;">
-        <h3 class="panel-title">詳細表示</h3>
-        <div class="detail-wrap">
-          <pre id="detailPre" class="detail-pre">親一覧を読み込み中です...</pre>
-        </div>
+        <section class="kc-detail">
+          <h2 class="kc-panel-title">詳細表示</h2>
+          <pre id="detailPre" class="kc-pre">親一覧から1件選択してください</pre>
+        </section>
       </div>
-
     </div>
-
   </div>
-</div>
 
-<script src="./knowledge_create.js"></script>
-
+  <script src="knowledge_create.js"></script>
 </body>
 </html>
