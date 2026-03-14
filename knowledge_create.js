@@ -110,6 +110,14 @@ function renderChildPlaceholder(message) {
   `;
 }
 
+function clearChildAndDetailForParent() {
+  childRows = [];
+  selectedChildJobItemId = "";
+  selectionSummary.textContent = "子 0 件";
+  renderChildPlaceholder("親を選択してください。");
+  detailPre.textContent = "親一覧から1件選択してください";
+}
+
 function resetScreen() {
   renderParentPlaceholder("親一覧を読み込み中です...");
   renderChildPlaceholder("親を選択してください。");
@@ -138,35 +146,59 @@ function getNextAction(status) {
   }
 
   if (s === "vectorized" || s === "vectorize_done") {
-    return { label: "重複削除", action: "dedup" };
+    return { label: "重複削除", action: "deduplicate" };
+  }
+
+  if (s === "deduplicated" || s === "deduplicate_done") {
+    return { label: "ナレッジDB作成", action: "buildKnowledgeDb" };
   }
 
   return null;
 }
 
-async function executeParentAction(jobId, actionName) {
+function getActionPath(jobId, actionName) {
   if (actionName === "normalize") {
-    await apiPost(`/knowledge/refine/jobs/${jobId}/normalize`);
-    await reloadAfterAction(jobId);
-    return;
+    return `/knowledge/refine/jobs/${jobId}/normalize`;
   }
 
   if (actionName === "vectorize") {
-    await apiPost(`/knowledge/refine/jobs/${jobId}/vectorize`);
-    await reloadAfterAction(jobId);
-    return;
+    return `/knowledge/refine/jobs/${jobId}/vectorize`;
   }
 
-  const label =
-    actionName === "dedup"
-      ? "重複削除"
-      : actionName;
+  if (actionName === "deduplicate") {
+    return `/knowledge/refine/jobs/${jobId}/deduplicate`;
+  }
 
-  alert(`${label} API は次段階で接続します\njob_id=${jobId}`);
+  if (actionName === "buildKnowledgeDb") {
+    return `/knowledge/refine/jobs/${jobId}/build-knowledge-db`;
+  }
+
+  throw new Error(`未対応の処理です: ${actionName}`);
+}
+
+async function executeParentAction(jobId, actionName, buttonEl) {
+  const path = getActionPath(jobId, actionName);
+
+  const originalText = buttonEl ? buttonEl.textContent : "";
+  if (buttonEl) {
+    buttonEl.disabled = true;
+    buttonEl.textContent = "処理中...";
+  }
+
+  try {
+    await apiPost(path);
+    await reloadAfterAction(jobId);
+  } finally {
+    if (buttonEl) {
+      buttonEl.disabled = false;
+      buttonEl.textContent = originalText;
+    }
+  }
 }
 
 async function reloadAfterAction(jobId) {
   await loadParentRows(jobId);
+
   if (jobId) {
     await loadChildRows(jobId);
     loadDetailFromParent(jobId);
@@ -203,7 +235,10 @@ function renderParentTable(rows) {
            >${escapeHtml(action.label)}</button>`
         : "-";
 
-      const rowClass = row.job_id === selectedParentJobId ? "clickable-row selected-row" : "clickable-row";
+      const rowClass =
+        row.job_id === selectedParentJobId
+          ? "clickable-row selected-row"
+          : "clickable-row";
 
       return `
         <tr class="${rowClass}" data-job-id="${escapeHtml(row.job_id)}">
@@ -218,36 +253,32 @@ function renderParentTable(rows) {
     })
     .join("");
 
-  parentTableBody
-    .querySelectorAll("tr[data-job-id]")
-    .forEach((tr) => {
-      tr.addEventListener("click", async () => {
-        selectedParentJobId = tr.dataset.jobId || "";
-        selectedChildJobItemId = "";
+  parentTableBody.querySelectorAll("tr[data-job-id]").forEach((tr) => {
+    tr.addEventListener("click", async () => {
+      selectedParentJobId = tr.dataset.jobId || "";
+      selectedChildJobItemId = "";
 
-        renderParentTable(parentRows);
-        await loadChildRows(selectedParentJobId);
-        loadDetailFromParent(selectedParentJobId);
-      });
+      renderParentTable(parentRows);
+      await loadChildRows(selectedParentJobId);
+      loadDetailFromParent(selectedParentJobId);
     });
+  });
 
-  parentTableBody
-    .querySelectorAll(".parent-action-btn")
-    .forEach((btn) => {
-      btn.addEventListener("click", async (e) => {
-        e.stopPropagation();
+  parentTableBody.querySelectorAll(".parent-action-btn").forEach((btn) => {
+    btn.addEventListener("click", async (e) => {
+      e.stopPropagation();
 
-        const jobId = btn.dataset.jobId || "";
-        const actionName = btn.dataset.action || "";
+      const jobId = btn.dataset.jobId || "";
+      const actionName = btn.dataset.action || "";
 
-        try {
-          await executeParentAction(jobId, actionName);
-        } catch (err) {
-          console.error(err);
-          alert(err.message || "処理に失敗しました");
-        }
-      });
+      try {
+        await executeParentAction(jobId, actionName, btn);
+      } catch (err) {
+        console.error(err);
+        alert(err.message || "処理に失敗しました");
+      }
     });
+  });
 }
 
 function renderChildTable(rows) {
@@ -266,7 +297,10 @@ function renderChildTable(rows) {
 
   childTableBody.innerHTML = rows
     .map((row) => {
-      const rowClass = row.job_item_id === selectedChildJobItemId ? "clickable-row selected-row" : "clickable-row";
+      const rowClass =
+        row.job_item_id === selectedChildJobItemId
+          ? "clickable-row selected-row"
+          : "clickable-row";
 
       return `
         <tr class="${rowClass}" data-job-item-id="${escapeHtml(row.job_item_id)}">
@@ -278,15 +312,13 @@ function renderChildTable(rows) {
     })
     .join("");
 
-  childTableBody
-    .querySelectorAll("tr[data-job-item-id]")
-    .forEach((tr) => {
-      tr.addEventListener("click", () => {
-        selectedChildJobItemId = tr.dataset.jobItemId || "";
-        renderChildTable(childRows);
-        loadDetailFromChild(selectedChildJobItemId);
-      });
+  childTableBody.querySelectorAll("tr[data-job-item-id]").forEach((tr) => {
+    tr.addEventListener("click", () => {
+      selectedChildJobItemId = tr.dataset.jobItemId || "";
+      renderChildTable(childRows);
+      loadDetailFromChild(selectedChildJobItemId);
     });
+  });
 }
 
 function buildParentDetailText(row) {
@@ -304,7 +336,7 @@ requested_at: ${row.requested_at}
 started_at: ${row.started_at}
 finished_at: ${row.finished_at}
 error_message: ${row.error_message}
-`;
+`.trim();
 }
 
 function buildChildDetailText(row) {
@@ -318,7 +350,10 @@ qa_count: ${row.qa_count}
 plain_count: ${row.plain_count}
 error_count: ${row.error_count}
 error_message: ${row.error_message}
-`;
+requested_at: ${row.requested_at}
+started_at: ${row.started_at}
+finished_at: ${row.finished_at}
+`.trim();
 }
 
 function loadDetailFromParent(jobId) {
@@ -333,8 +368,10 @@ function loadDetailFromChild(jobItemId) {
   detailPre.textContent = buildChildDetailText(row);
 }
 
-async function loadParentRows(preferredJobId = "") {
-  resetScreen();
+async function loadParentRows(preferredJobId = "", keepScreen = false) {
+  if (!keepScreen) {
+    resetScreen();
+  }
 
   const data = await apiGet("/knowledge/refine/jobs");
   parentRows = Array.isArray(data.jobs) ? data.jobs : [];
@@ -344,6 +381,8 @@ async function loadParentRows(preferredJobId = "") {
 
   if (preferredJobId && parentRows.some((x) => x.job_id === preferredJobId)) {
     selectedParentJobId = preferredJobId;
+  } else if (selectedParentJobId && !parentRows.some((x) => x.job_id === selectedParentJobId)) {
+    selectedParentJobId = "";
   }
 
   renderParentTable(parentRows);
@@ -351,7 +390,7 @@ async function loadParentRows(preferredJobId = "") {
   if (selectedParentJobId) {
     loadDetailFromParent(selectedParentJobId);
   } else {
-    detailPre.textContent = "親一覧から1件選択してください";
+    clearChildAndDetailForParent();
   }
 }
 
@@ -368,9 +407,10 @@ async function loadChildRows(jobId) {
 function bindEvents() {
   btnReload?.addEventListener("click", async () => {
     try {
-      await loadParentRows(selectedParentJobId);
+      await loadParentRows(selectedParentJobId, true);
       if (selectedParentJobId) {
         await loadChildRows(selectedParentJobId);
+        loadDetailFromParent(selectedParentJobId);
       }
     } catch (err) {
       console.error(err);
