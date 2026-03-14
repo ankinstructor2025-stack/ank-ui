@@ -56,9 +56,8 @@ margin-bottom:16px;
 
 .search-grid{
 display:grid;
-grid-template-columns:1fr 1.5fr auto;
-gap:10px;
-align-items:end;
+grid-template-columns:1fr 1.5fr;
+gap:12px;
 }
 
 label{
@@ -78,8 +77,15 @@ padding:8px;
 
 textarea{
 resize:vertical;
-min-height:60px;
+min-height:70px;
 }
+
+.search-button-row{
+margin-top:12px;
+text-align:right;
+}
+
+/* タブ */
 
 .tabs-header{
 display:flex;
@@ -87,8 +93,6 @@ gap:10px;
 margin-top:20px;
 margin-bottom:10px;
 }
-
-/* タブボタン */
 
 .tab-btn{
 border:1px solid rgba(255,255,255,0.2);
@@ -105,15 +109,13 @@ background:#2563eb;
 color:#ffffff;
 }
 
-/* アクティブタブ */
-
 .tab-btn.active{
 background:#1d4ed8;
 border-color:#1d4ed8;
 color:#ffffff;
 }
 
-/* タブパネル */
+/* 結果エリア */
 
 .tab-panel{
 display:none;
@@ -127,7 +129,7 @@ min-height:300px;
 display:block;
 }
 
-/* 検索結果カード */
+/* 結果カード */
 
 .result-card{
 background:#ffffff;
@@ -192,10 +194,10 @@ white-space:pre-wrap;
 <textarea id="queryText" rows="3" placeholder="検索文字列（複数行OK）"></textarea>
 </div>
 
-<div>
-<button class="btn btn-primary" onclick="runSearch()">検索</button>
 </div>
 
+<div class="search-button-row">
+<button class="btn btn-primary" onclick="runSearch()">検索</button>
 </div>
 
 </div>
