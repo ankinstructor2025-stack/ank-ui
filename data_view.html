@@ -1,376 +1,304 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <title>データ照会</title>
-  <link rel="stylesheet" href="./theme.css">
-  <style>
-    :root {
-      --page-padding-y: 8px;
-      --page-padding-x: 8px;
-      --card-padding: 16px;
-      --gap-md: 12px;
-      --header-block-height: 150px;
-    }
+<meta charset="UTF-8">
+<title>データ照会</title>
 
-    * {
-      box-sizing: border-box;
-    }
+<link rel="stylesheet" href="./theme.css">
 
-    html, body {
-      width: 100%;
-      height: 100%;
-      margin: 0;
-      overflow: hidden;
-    }
+<style>
 
-    body {
-      min-height: 100vh;
-    }
+*{
+  box-sizing:border-box;
+}
 
-    .page {
-      width: 100%;
-      height: 100vh;
-      padding: var(--page-padding-y) var(--page-padding-x);
-      display: flex;
-      justify-content: center;
-      align-items: stretch;
-    }
+/* ===== 画面全体 ===== */
 
-    .card {
-      width: min(1800px, 100%);
-      height: calc(100vh - (var(--page-padding-y) * 2));
-      display: flex;
-      flex-direction: column;
-      padding: var(--card-padding);
-      overflow: hidden;
-    }
+html,body{
+  width:100%;
+  height:100%;
+  margin:0;
+  padding:0;
+  overflow:hidden;
+}
 
-    .header-row {
-      flex: 0 0 auto;
-      margin-bottom: 6px;
-    }
+/* ===== 外側の濃いブルー帯を消す ===== */
 
-    .page-note {
-      flex: 0 0 auto;
-      margin-bottom: 6px;
-    }
+.page{
+  width:100vw !important;
+  height:100vh !important;
+  max-width:none !important;
+  margin:0 !important;
+  padding:0 !important;
+  display:block !important;
+}
 
-    .common-panel {
-      flex: 0 0 auto;
-      margin-bottom: 10px;
-    }
+/* ===== メインカードを画面全幅に ===== */
 
-    .work-panel {
-      flex: 1 1 auto;
-      min-height: 0;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
+.card{
+  width:100vw !important;
+  height:100vh !important;
+  max-width:none !important;
+  margin:0 !important;
 
-    .panel-title {
-      margin: 0 0 8px 0;
-      font-size: 18px;
-      font-weight: 700;
-      line-height: 1.2;
-    }
+  border-radius:0 !important;
 
-    .summary-row {
-      flex: 0 0 auto;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 10px;
-      color: #d1d5db;
-      font-size: 14px;
-      flex-wrap: wrap;
-    }
+  padding:16px 20px;
 
-    .muted-text {
-      color: #9ca3af;
-      font-size: 13px;
-    }
+  display:flex;
+  flex-direction:column;
 
-    /* 上下を 50% : 50% */
-    .content-split {
-      flex: 1 1 auto;
-      min-height: 0;
-      display: grid;
-      grid-template-rows: 1fr 1fr;
-      gap: 12px;
-    }
+  overflow:hidden;
+}
 
-    .top-section,
-    .bottom-section {
-      min-height: 0;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
+/* ===== 上部 ===== */
 
-    /* 親子を 50% : 50% */
-    .split-grid {
-      flex: 1 1 auto;
-      min-height: 0;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      align-items: stretch;
-    }
+.header-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
 
-    .split-grid > div {
-      min-width: 0;
-      min-height: 0;
-      display: flex;
-      flex-direction: column;
-    }
+.page-note{
+  margin-bottom:8px;
+}
 
-    .table-wrap {
-      flex: 1 1 auto;
-      min-height: 0;
-      overflow-y: auto;
-      overflow-x: hidden;
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 12px;
-      background: rgba(255,255,255,0.02);
-    }
+/* ===== 作業エリア ===== */
 
-    .data-table {
-      width: 100%;
-      border-collapse: collapse;
-      table-layout: fixed;
-    }
+.work-panel{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
 
-    .data-table th,
-    .data-table td {
-      padding: 10px 12px;
-      border-bottom: 1px solid rgba(255,255,255,0.08);
-      text-align: left;
-      vertical-align: top;
-      font-size: 14px;
-    }
+/* ===== 件数行 ===== */
 
-    .data-table th {
-      background: #d9dee7;
-      position: sticky;
-      top: 0;
-      z-index: 2;
-    }
+.summary-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:10px;
+}
 
-    .checkbox-cell {
-      width: 48px;
-      text-align: center;
-    }
+/* ===== 上下50% ===== */
 
-    .narrow-cell {
-      width: 100px;
-    }
+.content-split{
+  flex:1;
+  display:grid;
+  grid-template-rows:1fr 1fr;
+  gap:12px;
+  min-height:0;
+}
 
-    .medium-cell {
-      width: 140px;
-    }
+/* ===== 親子50% ===== */
 
-    .clickable-row {
-      cursor: pointer;
-    }
+.split-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+  min-height:0;
+}
 
-    .clickable-row:hover {
-      background: rgba(255,255,255,0.04);
-    }
+/* ===== テーブル ===== */
 
-    .selected-row {
-      background: rgba(59,130,246,0.12);
-    }
+.table-wrap{
+  flex:1;
+  overflow:auto;
+  border:1px solid rgba(255,255,255,0.08);
+  border-radius:12px;
+}
 
-    .placeholder-row td {
-      color: #9ca3af;
-      text-align: center;
-      padding: 16px;
-    }
+.data-table{
+  width:100%;
+  border-collapse:collapse;
+}
 
-    .status-pill {
-      display: inline-block;
-      padding: 2px 8px;
-      border-radius: 9999px;
-      font-size: 12px;
-      font-weight: 700;
-      line-height: 1.5;
-    }
+.data-table th,
+.data-table td{
+  padding:10px 12px;
+  border-bottom:1px solid rgba(255,255,255,0.08);
+}
 
-    .status-new {
-      background: rgba(59,130,246,0.18);
-      color: #bfdbfe;
-    }
+.data-table th{
+  background:#d9dee7;
+  position:sticky;
+  top:0;
+  z-index:2;
+}
 
-    .status-done {
-      background: rgba(34,197,94,0.18);
-      color: #bbf7d0;
-    }
+/* ===== 行 hover ===== */
 
-    .status-error {
-      background: rgba(239,68,68,0.18);
-      color: #fecaca;
-    }
+.clickable-row{
+  cursor:pointer;
+}
 
-    .table-cell-link a {
-      color: #bfdbfe;
-      text-decoration: underline;
-      word-break: break-all;
-    }
+.clickable-row:hover{
+  background:rgba(255,255,255,0.05);
+}
 
-    .detail-wrap {
-      flex: 1 1 auto;
-      min-height: 0;
-      overflow: auto;
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 12px;
-      padding: 12px 16px;
-      background: rgba(255,255,255,0.02);
-    }
+.selected-row{
+  background:rgba(59,130,246,0.15);
+}
 
-    .detail-pre {
-      white-space: pre-wrap;
-      word-break: break-word;
-      line-height: 1.6;
-      margin: 0;
-      font-family: inherit;
-    }
+/* ===== 詳細 ===== */
 
-    #parentTableBody td,
-    #childTableBody td {
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
+.detail-wrap{
+  flex:1;
+  overflow:auto;
+  border:1px solid rgba(255,255,255,0.08);
+  border-radius:12px;
+  padding:12px 16px;
+}
 
-    @media (max-width: 960px) {
-      html, body {
-        overflow: auto;
-      }
+.detail-pre{
+  white-space:pre-wrap;
+  word-break:break-word;
+}
 
-      .page {
-        height: auto;
-        min-height: 100vh;
-        padding: 8px;
-      }
+/* ===== 文字省略 ===== */
 
-      .card {
-        height: auto;
-        min-height: calc(100vh - 16px);
-      }
+#parentTableBody td,
+#childTableBody td{
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
 
-      .content-split {
-        display: block;
-      }
+</style>
 
-      .top-section,
-      .bottom-section {
-        min-height: auto;
-      }
-
-      .split-grid {
-        grid-template-columns: 1fr;
-        gap: 12px;
-      }
-
-      .table-wrap {
-        min-height: 260px;
-      }
-
-      .detail-wrap {
-        min-height: 240px;
-      }
-    }
-  </style>
 </head>
+
 <body>
 
 <div class="page">
-  <div class="card">
+<div class="card">
 
-    <div class="header-row">
-      <h2>データ照会</h2>
+<div class="header-row">
 
-      <div class="header-actions">
-        <button id="btnMenu" class="btn" type="button">メニューに戻る</button>
-        <button id="btnLogout" class="btn" type="button">ログアウト</button>
-      </div>
-    </div>
+<h2>データ照会</h2>
 
-    <div class="page-note">
-      親一覧 → 子一覧 → 詳細表示
-    </div>
-
-    <div class="common-panel">
-      <div class="common-grid">
-        <div>
-          <label for="sourceSelect">データ種別</label>
-          <select id="sourceSelect"></select>
-        </div>
-
-        <div>
-          <label for="sourceName">名称</label>
-          <input id="sourceName" readonly>
-        </div>
-      </div>
-    </div>
-
-    <div class="work-panel">
-
-      <div class="summary-row">
-        <div>
-          <span id="summaryText">0 件</span>
-          <span id="selectionSummary" class="muted-text" style="margin-left:12px;">選択 0 件</span>
-        </div>
-
-        <div>
-          <span id="contextSummary" class="muted-text">親一覧</span>
-          <button id="btnReload" class="btn" type="button" style="margin-left:12px;">再読込</button>
-          <button id="btnKnowledge" class="btn btn-primary" type="button" disabled style="margin-left:8px;">
-            選択対象をナレッジ化
-          </button>
-        </div>
-      </div>
-
-      <div class="content-split">
-        <div class="top-section">
-          <div class="split-grid">
-            <div>
-              <h3 class="panel-title">親一覧</h3>
-              <div class="table-wrap">
-                <table class="data-table">
-                  <thead id="parentTableHead"></thead>
-                  <tbody id="parentTableBody"></tbody>
-                </table>
-              </div>
-            </div>
-
-            <div>
-              <h3 class="panel-title">子一覧</h3>
-              <div class="table-wrap">
-                <table class="data-table">
-                  <thead id="childTableHead"></thead>
-                  <tbody id="childTableBody"></tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="bottom-section">
-          <h3 class="panel-title">詳細表示</h3>
-          <div class="detail-wrap">
-            <pre id="detailPre" class="detail-pre">データ種別を選択してください。</pre>
-          </div>
-        </div>
-      </div>
-
-    </div>
-
-  </div>
+<div class="header-actions">
+<button id="btnMenu" class="btn">メニューに戻る</button>
+<button id="btnLogout" class="btn">ログアウト</button>
 </div>
+
+</div>
+
+<div class="page-note">
+親一覧 → 子一覧 → 詳細表示
+</div>
+
+<div class="common-panel">
+
+<div class="common-grid">
+
+<div>
+<label>データ種別</label>
+<select id="sourceSelect"></select>
+</div>
+
+<div>
+<label>名称</label>
+<input id="sourceName" readonly>
+</div>
+
+</div>
+
+</div>
+
+<div class="work-panel">
+
+<div class="summary-row">
+
+<div>
+<span id="summaryText">0 件</span>
+<span id="selectionSummary">選択 0 件</span>
+</div>
+
+<div>
+
+<span id="contextSummary">親一覧</span>
+
+<button id="btnReload" class="btn">
+再読込
+</button>
+
+<button id="btnKnowledge" class="btn btn-primary" disabled>
+選択対象をナレッジ化
+</button>
+
+</div>
+
+</div>
+
+
+<div class="content-split">
+
+<!-- 上半分 -->
+
+<div>
+
+<div class="split-grid">
+
+<div>
+
+<h3>親一覧</h3>
+
+<div class="table-wrap">
+
+<table class="data-table">
+<thead id="parentTableHead"></thead>
+<tbody id="parentTableBody"></tbody>
+</table>
+
+</div>
+
+</div>
+
+<div>
+
+<h3>子一覧</h3>
+
+<div class="table-wrap">
+
+<table class="data-table">
+<thead id="childTableHead"></thead>
+<tbody id="childTableBody"></tbody>
+</table>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+
+<!-- 下半分 -->
+
+<div>
+
+<h3>詳細表示</h3>
+
+<div class="detail-wrap">
+
+<pre id="detailPre" class="detail-pre">
+データ種別を選択してください。
+</pre>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+</div>
+
 
 <script src="./data_view_upload.js"></script>
 <script src="./data_view_kokkai.js"></script>
