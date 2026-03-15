@@ -6,15 +6,11 @@
   <link rel="stylesheet" href="./theme.css">
   <style>
     :root {
-      --page-padding-y: 12px;
-      --page-padding-x: 16px;
-      --card-padding: 20px;
-      --gap-md: 16px;
-      --summary-height: 44px;
-      --detail-title-height: 32px;
-      --panel-title-height: 32px;
-      --detail-min-height: 180px;
-      --table-min-height: 220px;
+      --page-padding-y: 8px;
+      --page-padding-x: 8px;
+      --card-padding: 16px;
+      --gap-md: 12px;
+      --header-block-height: 150px;
     }
 
     * {
@@ -42,7 +38,7 @@
     }
 
     .card {
-      width: min(1600px, 100%);
+      width: min(1800px, 100%);
       height: calc(100vh - (var(--page-padding-y) * 2));
       display: flex;
       flex-direction: column;
@@ -52,12 +48,12 @@
 
     .header-row {
       flex: 0 0 auto;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
     }
 
     .page-note {
       flex: 0 0 auto;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
     }
 
     .common-panel {
@@ -78,14 +74,10 @@
       font-size: 18px;
       font-weight: 700;
       line-height: 1.2;
-      min-height: var(--panel-title-height);
-      display: flex;
-      align-items: center;
     }
 
     .summary-row {
       flex: 0 0 auto;
-      min-height: var(--summary-height);
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -101,25 +93,43 @@
       font-size: 13px;
     }
 
+    /* 上下を 50% : 50% */
+    .content-split {
+      flex: 1 1 auto;
+      min-height: 0;
+      display: grid;
+      grid-template-rows: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .top-section,
+    .bottom-section {
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* 親子を 50% : 50% */
     .split-grid {
-      flex: 0 0 auto;
+      flex: 1 1 auto;
+      min-height: 0;
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 16px;
-      align-items: start;
-      margin-bottom: 12px;
+      gap: 12px;
+      align-items: stretch;
     }
 
     .split-grid > div {
       min-width: 0;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
     }
 
     .table-wrap {
-      height: clamp(
-        var(--table-min-height),
-        calc(100vh - 460px),
-        420px
-      );
+      flex: 1 1 auto;
+      min-height: 0;
       overflow-y: auto;
       overflow-x: hidden;
       border: 1px solid rgba(255,255,255,0.08);
@@ -210,17 +220,9 @@
       word-break: break-all;
     }
 
-    .detail-section {
-      flex: 1 1 auto;
-      min-height: 0;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-
     .detail-wrap {
       flex: 1 1 auto;
-      min-height: var(--detail-min-height);
+      min-height: 0;
       overflow: auto;
       border: 1px solid rgba(255,255,255,0.08);
       border-radius: 12px;
@@ -236,14 +238,7 @@
       font-family: inherit;
     }
 
-    /* 親一覧は1行 */
-    #parentTableBody td {
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    /* 子一覧も基本1行寄りにして横幅を活かす */
+    #parentTableBody td,
     #childTableBody td {
       white-space: nowrap;
       overflow: hidden;
@@ -258,24 +253,34 @@
       .page {
         height: auto;
         min-height: 100vh;
-        padding: 12px;
+        padding: 8px;
       }
 
       .card {
         height: auto;
-        min-height: calc(100vh - 24px);
+        min-height: calc(100vh - 16px);
+      }
+
+      .content-split {
+        display: block;
+      }
+
+      .top-section,
+      .bottom-section {
+        min-height: auto;
       }
 
       .split-grid {
         grid-template-columns: 1fr;
+        gap: 12px;
       }
 
       .table-wrap {
-        height: 260px;
+        min-height: 260px;
       }
 
       .detail-wrap {
-        min-height: 220px;
+        min-height: 240px;
       }
     }
   </style>
@@ -329,32 +334,36 @@
         </div>
       </div>
 
-      <div class="split-grid">
-        <div>
-          <h3 class="panel-title">親一覧</h3>
-          <div class="table-wrap">
-            <table class="data-table">
-              <thead id="parentTableHead"></thead>
-              <tbody id="parentTableBody"></tbody>
-            </table>
+      <div class="content-split">
+        <div class="top-section">
+          <div class="split-grid">
+            <div>
+              <h3 class="panel-title">親一覧</h3>
+              <div class="table-wrap">
+                <table class="data-table">
+                  <thead id="parentTableHead"></thead>
+                  <tbody id="parentTableBody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <div>
+              <h3 class="panel-title">子一覧</h3>
+              <div class="table-wrap">
+                <table class="data-table">
+                  <thead id="childTableHead"></thead>
+                  <tbody id="childTableBody"></tbody>
+                </table>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div>
-          <h3 class="panel-title">子一覧</h3>
-          <div class="table-wrap">
-            <table class="data-table">
-              <thead id="childTableHead"></thead>
-              <tbody id="childTableBody"></tbody>
-            </table>
+        <div class="bottom-section">
+          <h3 class="panel-title">詳細表示</h3>
+          <div class="detail-wrap">
+            <pre id="detailPre" class="detail-pre">データ種別を選択してください。</pre>
           </div>
-        </div>
-      </div>
-
-      <div class="detail-section">
-        <h3 class="panel-title">詳細表示</h3>
-        <div class="detail-wrap">
-          <pre id="detailPre" class="detail-pre">データ種別を選択してください。</pre>
         </div>
       </div>
 
