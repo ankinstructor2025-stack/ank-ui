@@ -357,41 +357,46 @@ function bindEvents() {
 ============================== */
 
 document.addEventListener("DOMContentLoaded", async () => {
-  renderEmpty(
-    resultPlainFts,
-    "データベースを読み込み中です。"
-  );
 
   bindEvents();
 
   try {
-    const dbList = await fetchDatabaseList();
 
-    renderDatabaseOptions(dbList);
-    applyInitialDatabase(dbList);
+    const idToken = getIdToken();
 
-    summaryText.textContent = "件数: 0 件";
-    selectionSummary.textContent = "入力:未実行";
+    const res = await fetch(
+      `${API_BASE}/knowledge/dbs`,
+      {
+        headers: {
+          "Authorization": idToken
+            ? `Bearer ${idToken}`
+            : ""
+        }
+      }
+    );
+
+    const data = await res.json();
+
+    const list = data.items || [];
+
+    renderDatabaseOptions(list);
 
     renderEmpty(
       resultPlainFts,
-      dbList.length
+      list.length
         ? "検索文字列を入力してください。"
-        : "利用可能なデータベースがありません。"
+        : "データベースがありません。"
     );
 
   } catch (err) {
+
     console.error("db list load error", err);
-
-    summaryText.textContent = "件数: 0 件";
-    selectionSummary.textContent = "入力:未実行";
-    contextSummary.textContent = "DB:-";
-
-    renderDatabaseOptions([]);
 
     renderEmpty(
       resultPlainFts,
-      err.message || "DB一覧の取得に失敗しました。"
+      "DB一覧の取得に失敗しました。"
     );
+
   }
+
 });
