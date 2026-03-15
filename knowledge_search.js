@@ -111,7 +111,7 @@ function renderDatabaseOptions(list) {
 function applyInitialDatabase(list) {
   if (!list || !list.length) {
     currentDatabase = "";
-    contextSummary.textContent = "-";
+    contextSummary.textContent = "DB:-";
     return;
   }
 
@@ -119,13 +119,13 @@ function applyInitialDatabase(list) {
 
   if (!firstDb) {
     currentDatabase = "";
-    contextSummary.textContent = "-";
+    contextSummary.textContent = "DB:-";
     return;
   }
 
   databaseSelect.value = firstDb;
   currentDatabase = firstDb;
-  contextSummary.textContent = firstDb;
+  contextSummary.textContent = `DB:${firstDb}`;
 }
 
 /* ==============================
@@ -261,7 +261,7 @@ function buildPlainCards(items) {
     return {
       title: row.title || "タイトルなし",
       sub: subParts.join(" / "),
-      body: row.content_preview || row.content || ""
+      body: row.content_preview || ""
     };
   });
 }
@@ -289,7 +289,7 @@ async function executeSearch() {
   contextSummary.textContent =
     `DB:${currentDatabase}`;
 
-  summaryText.textContent = "検索中...";
+  summaryText.textContent = "件数:検索中";
   renderEmpty(resultPlainFts, "検索中...");
 
   try {
@@ -306,12 +306,12 @@ async function executeSearch() {
     );
 
     summaryText.textContent =
-      `件数: ${plainResult.count || 0} 件`;
+      `件数:${plainResult.count || 0}件`;
 
   } catch (err) {
     console.error("search error", err);
 
-    summaryText.textContent = "件数: 0 件";
+    summaryText.textContent = "件数:0件";
 
     renderEmpty(
       resultPlainFts,
@@ -328,7 +328,7 @@ function bindEvents() {
   databaseSelect.addEventListener("change", () => {
     currentDatabase = databaseSelect.value || "";
 
-    summaryText.textContent = "件数: 0 件";
+    summaryText.textContent = "件数:0件";
     selectionSummary.textContent = "入力:未実行";
     contextSummary.textContent =
       currentDatabase ? `DB:${currentDatabase}` : "DB:-";
@@ -357,46 +357,34 @@ function bindEvents() {
 ============================== */
 
 document.addEventListener("DOMContentLoaded", async () => {
-
   bindEvents();
 
   try {
+    const dbList = await fetchDatabaseList();
 
-    const idToken = getIdToken();
+    renderDatabaseOptions(dbList);
+    applyInitialDatabase(dbList);
 
-    const res = await fetch(
-      `${API_BASE}/knowledge/dbs`,
-      {
-        headers: {
-          "Authorization": idToken
-            ? `Bearer ${idToken}`
-            : ""
-        }
-      }
-    );
-
-    const data = await res.json();
-
-    const list = data.items || [];
-
-    renderDatabaseOptions(list);
+    summaryText.textContent = "件数:0件";
+    selectionSummary.textContent = "入力:未実行";
 
     renderEmpty(
       resultPlainFts,
-      list.length
+      dbList.length
         ? "検索文字列を入力してください。"
         : "データベースがありません。"
     );
 
   } catch (err) {
-
     console.error("db list load error", err);
+
+    summaryText.textContent = "件数:0件";
+    selectionSummary.textContent = "入力:未実行";
+    contextSummary.textContent = "DB:-";
 
     renderEmpty(
       resultPlainFts,
       "DB一覧の取得に失敗しました。"
     );
-
   }
-
 });
