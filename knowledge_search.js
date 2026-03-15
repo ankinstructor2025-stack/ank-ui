@@ -56,72 +56,102 @@ function getIdToken() {
 }
 
 function normalizeTabName(tabName) {
-  const src = String(tabName || "").trim().toLowerCase();
+  const src = String(tabName || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_-]/g, "");
 
-  if (src === "qa" || src === "qa-similarity") return "qa";
-  if (src === "plain-fts" || src === "plain_fts" || src === "fts") return "plain-fts";
-  if (src === "hybrid") return "hybrid";
-  if (src === "hybrid-ai" || src === "hybrid_ai") return "hybrid-ai";
-  if (src === "ai-answer" || src === "ai_answer" || src === "ai") return "ai-answer";
+  if (
+    src === "qa" ||
+    src === "qasimilarity" ||
+    src === "qaresult" ||
+    src === "qasimilar"
+  ) {
+    return "qa";
+  }
+
+  if (
+    src === "plainfts" ||
+    src === "fts" ||
+    src === "plain" ||
+    src === "plainsearch"
+  ) {
+    return "plain";
+  }
+
+  if (src === "hybrid") {
+    return "hybrid";
+  }
+
+  if (
+    src === "hybridai" ||
+    src === "hybridai整理" ||
+    src === "hybridwithai"
+  ) {
+    return "hybrid-ai";
+  }
+
+  if (
+    src === "aianswer" ||
+    src === "ai" ||
+    src === "answer"
+  ) {
+    return "ai-answer";
+  }
+
+  return "qa";
+}
+
+function getModeByTab(tabName) {
+  const tab = normalizeTabName(tabName);
+
+  if (tab === "qa") return "qa";
+  if (tab === "plain") return "plain_fts";
+  if (tab === "hybrid") return "hybrid";
+  if (tab === "hybrid-ai") return "hybrid_ai";
+  if (tab === "ai-answer") return "ai_answer";
 
   return "qa";
 }
 
 function getResultBoxByTab(tabName) {
-  const normalized = normalizeTabName(tabName);
+  const tab = normalizeTabName(tabName);
 
-  switch (normalized) {
-    case "qa":
-      return resultQaSimilarity;
-    case "plain-fts":
-      return resultPlainFts;
-    case "hybrid":
-      return resultHybrid;
-    case "hybrid-ai":
-      return resultHybridAi;
-    case "ai-answer":
-      return resultAiAnswer;
-    default:
-      return resultQaSimilarity;
-  }
-}
+  if (tab === "qa") return resultQaSimilarity;
+  if (tab === "plain") return resultPlainFts;
+  if (tab === "hybrid") return resultHybrid;
+  if (tab === "hybrid-ai") return resultHybridAi;
+  if (tab === "ai-answer") return resultAiAnswer;
 
-function getModeByTab(tabName) {
-  const normalized = normalizeTabName(tabName);
-
-  switch (normalized) {
-    case "qa":
-      return "qa";
-    case "plain-fts":
-      return "plain_fts";
-    case "hybrid":
-      return "hybrid";
-    case "hybrid-ai":
-      return "hybrid_ai";
-    case "ai-answer":
-      return "ai_answer";
-    default:
-      return "qa";
-  }
+  return resultQaSimilarity;
 }
 
 function getEmptyMessageByTab(tabName) {
-  const normalized = normalizeTabName(tabName);
+  const tab = normalizeTabName(tabName);
 
-  switch (normalized) {
-    case "qa":
-      return "QA類似の結果はありません。";
-    case "plain-fts":
-      return "プレインFTSの結果はありません。";
-    case "hybrid":
-      return "ハイブリッドの結果はありません。";
-    case "hybrid-ai":
-      return "ハイブリッド+AI整理の結果はありません。";
-    case "ai-answer":
-      return "AI回答はありません。";
-    default:
-      return "結果はありません。";
+  if (tab === "qa") return "QA類似の結果はありません。";
+  if (tab === "plain") return "プレインFTSの結果はありません。";
+  if (tab === "hybrid") return "ハイブリッドの結果はありません。";
+  if (tab === "hybrid-ai") return "ハイブリッド+AI整理の結果はありません。";
+  if (tab === "ai-answer") return "AI回答はありません。";
+
+  return "結果はありません。";
+}
+
+function detectTabFromButton(btn) {
+  const datasetTab = btn?.dataset?.tab;
+  if (datasetTab) {
+    return normalizeTabName(datasetTab);
   }
+
+  const text = (btn?.textContent || "").trim();
+  if (text.includes("QA")) return "qa";
+  if (text.includes("プレイン")) return "plain";
+  if (text.includes("ハイブリッド+AI")) return "hybrid-ai";
+  if (text.includes("ハイブリッド")) return "hybrid";
+  if (text.includes("AI回答")) return "ai-answer";
+
+  return "qa";
 }
 
 /* ==============================
@@ -230,27 +260,46 @@ function renderCards(box, items, emptyMessage) {
 }
 
 /* ==============================
-   Tab
+   タブ切替
 ============================== */
+
+function showOnlyActivePanel(activeTab) {
+  const activeBox = getResultBoxByTab(activeTab);
+
+  const allBoxes = [
+    resultQaSimilarity,
+    resultPlainFts,
+    resultHybrid,
+    resultHybridAi,
+    resultAiAnswer
+  ];
+
+  allBoxes.forEach((box) => {
+    if (!box) return;
+    box.style.display = box === activeBox ? "" : "none";
+  });
+}
 
 function setActiveTab(tabName) {
   currentTab = normalizeTabName(tabName);
 
   tabButtons.forEach((btn) => {
-    const btnTab = normalizeTabName(btn.dataset.tab);
+    const btnTab = detectTabFromButton(btn);
     btn.classList.toggle("active", btnTab === currentTab);
   });
 
   tabPanels.forEach((panel) => {
-    const panelTab = normalizeTabName(panel.id.replace("panel-", ""));
-    panel.classList.toggle("active", panelTab === currentTab);
+    panel.classList.remove("active");
   });
+
+  showOnlyActivePanel(currentTab);
 }
 
 function bindTabEvents() {
   tabButtons.forEach((btn) => {
     btn.addEventListener("click", () => {
-      setActiveTab(btn.dataset.tab);
+      const tab = detectTabFromButton(btn);
+      setActiveTab(tab);
     });
   });
 }
@@ -313,17 +362,9 @@ function buildPlainCards(items) {
   return (items || []).map((row) => {
     const subParts = [];
 
-    if (row.source_type) {
-      subParts.push(row.source_type);
-    }
-
-    if (row.source_label) {
-      subParts.push(row.source_label);
-    }
-
-    if (row.score !== undefined) {
-      subParts.push(`bm25: ${row.score}`);
-    }
+    if (row.source_type) subParts.push(row.source_type);
+    if (row.source_label) subParts.push(row.source_label);
+    if (row.score !== undefined) subParts.push(`bm25: ${row.score}`);
 
     const body = (row.content_preview || "").trim();
     const rawTitle = (row.title || "").trim();
@@ -340,14 +381,8 @@ function buildQaCards(items) {
   return (items || []).map((row) => {
     const subParts = [];
 
-    if (row.source_type) {
-      subParts.push(row.source_type);
-    }
-
-    if (row.source_label) {
-      subParts.push(row.source_label);
-    }
-
+    if (row.source_type) subParts.push(row.source_type);
+    if (row.source_label) subParts.push(row.source_label);
     if (row.score !== undefined) {
       subParts.push(`similarity: ${Number(row.score).toFixed(4)}`);
     }
@@ -369,14 +404,8 @@ function buildHybridCards(qaItems, plainItems) {
   (qaItems || []).forEach((row) => {
     const subParts = ["QA類似"];
 
-    if (row.source_type) {
-      subParts.push(row.source_type);
-    }
-
-    if (row.source_label) {
-      subParts.push(row.source_label);
-    }
-
+    if (row.source_type) subParts.push(row.source_type);
+    if (row.source_label) subParts.push(row.source_label);
     if (row.score !== undefined) {
       subParts.push(`similarity: ${Number(row.score).toFixed(4)}`);
     }
@@ -391,17 +420,9 @@ function buildHybridCards(qaItems, plainItems) {
   (plainItems || []).forEach((row) => {
     const subParts = ["FTS"];
 
-    if (row.source_type) {
-      subParts.push(row.source_type);
-    }
-
-    if (row.source_label) {
-      subParts.push(row.source_label);
-    }
-
-    if (row.score !== undefined) {
-      subParts.push(`bm25: ${row.score}`);
-    }
+    if (row.source_type) subParts.push(row.source_type);
+    if (row.source_label) subParts.push(row.source_label);
+    if (row.score !== undefined) subParts.push(`bm25: ${row.score}`);
 
     const body = (row.content_preview || "").trim();
     const rawTitle = (row.title || "").trim();
@@ -439,7 +460,6 @@ async function executeSearch() {
 
   selectionSummary.textContent =
     `入力:検索語 ${lines.length} 行`;
-
   contextSummary.textContent =
     `DB:${currentDatabase}`;
 
@@ -465,20 +485,13 @@ async function executeSearch() {
       cards = buildPlainCards(result.items || []);
     }
 
-    renderCards(
-      resultBox,
-      cards,
-      emptyMessage
-    );
-
+    renderCards(resultBox, cards, emptyMessage);
     summaryText.textContent =
       `件数:${result.count || 0}件`;
 
   } catch (err) {
     console.error("search error", err);
-
     summaryText.textContent = "件数:0件";
-
     renderEmpty(
       resultBox,
       err.message || "検索に失敗しました。"
@@ -493,17 +506,13 @@ async function executeSearch() {
 function bindEvents() {
   databaseSelect.addEventListener("change", () => {
     currentDatabase = databaseSelect.value || "";
-
     summaryText.textContent = "件数:0件";
     selectionSummary.textContent = "入力:未実行";
     contextSummary.textContent =
       currentDatabase ? `DB:${currentDatabase}` : "DB:-";
   });
 
-  btnSearch.addEventListener(
-    "click",
-    executeSearch
-  );
+  btnSearch.addEventListener("click", executeSearch);
 
   btnMenu.addEventListener("click", () => {
     window.location.href = "./menu.html";
@@ -524,7 +533,7 @@ function bindEvents() {
 
 document.addEventListener("DOMContentLoaded", async () => {
   bindEvents();
-  setActiveTab(currentTab);
+  setActiveTab("qa");
 
   try {
     const dbList = await fetchDatabaseList();
@@ -537,33 +546,23 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     renderEmpty(
       resultQaSimilarity,
-      dbList.length
-        ? "検索文字列を入力してください。"
-        : "データベースがありません。"
+      dbList.length ? "検索文字列を入力してください。" : "データベースがありません。"
     );
     renderEmpty(
       resultPlainFts,
-      dbList.length
-        ? "検索文字列を入力してください。"
-        : "データベースがありません。"
+      dbList.length ? "検索文字列を入力してください。" : "データベースがありません。"
     );
     renderEmpty(
       resultHybrid,
-      dbList.length
-        ? "検索文字列を入力してください。"
-        : "データベースがありません。"
+      dbList.length ? "検索文字列を入力してください。" : "データベースがありません。"
     );
     renderEmpty(
       resultHybridAi,
-      dbList.length
-        ? "検索文字列を入力してください。"
-        : "データベースがありません。"
+      dbList.length ? "検索文字列を入力してください。" : "データベースがありません。"
     );
     renderEmpty(
       resultAiAnswer,
-      dbList.length
-        ? "検索文字列を入力してください。"
-        : "データベースがありません。"
+      dbList.length ? "検索文字列を入力してください。" : "データベースがありません。"
     );
 
   } catch (err) {
