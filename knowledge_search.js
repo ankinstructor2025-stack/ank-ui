@@ -137,35 +137,14 @@ function renderEmpty(box, message) {
     `<div class="result-empty">${escapeHtml(message)}</div>`;
 }
 
-function buildPlainCards(items) {
-  return (items || []).map((row) => {
-    const subParts = [];
-
-    if (row.source_type) {
-      subParts.push(row.source_type);
-    }
-
-    if (row.source_label) {
-      subParts.push(row.source_label);
-    }
-
-    if (row.score !== undefined) {
-      subParts.push(`bm25: ${row.score}`);
-    }
-
-    const body = row.content_preview || "";
-    const rawTitle = row.title || "";
-    const normalizedTitle = rawTitle.trim();
-    const normalizedBody = body.trim();
-
-    return {
-      title: normalizedTitle && normalizedTitle !== normalizedBody
-        ? normalizedTitle
-        : "",
-      sub: subParts.join(" / "),
-      body: body
-    };
-  });
+function buildCardHtml(item) {
+  return `
+<div class="result-card">
+  ${item.title ? `<div class="result-card-title">${escapeHtml(item.title)}</div>` : ""}
+  <div class="result-card-sub">${escapeHtml(item.sub || "")}</div>
+  <div class="result-card-body">${escapeHtml(item.body || "")}</div>
+</div>
+`;
 }
 
 function renderCards(box, items, emptyMessage) {
@@ -279,10 +258,13 @@ function buildPlainCards(items) {
       subParts.push(`bm25: ${row.score}`);
     }
 
+    const body = (row.content_preview || "").trim();
+    const rawTitle = (row.title || "").trim();
+
     return {
-      title: row.title || "タイトルなし",
+      title: rawTitle && rawTitle !== body ? rawTitle : "",
       sub: subParts.join(" / "),
-      body: row.content_preview || ""
+      body: body
     };
   });
 }
