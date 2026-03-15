@@ -161,6 +161,31 @@
     font-weight: 700;
   }
 
+  .panel-title-row {
+    flex: 0 0 auto;
+    margin: 0 0 8px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .panel-title-row .panel-title {
+    margin: 0;
+  }
+
+  .panel-title-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .btn-small {
+    padding: 6px 10px;
+    font-size: 12px;
+    line-height: 1.2;
+  }
+
   .table-wrap {
     flex: 1 1 auto;
     min-height: 0;
@@ -329,6 +354,11 @@
     .detail-wrap {
       min-height: 240px;
     }
+
+    .panel-title-row {
+      align-items: flex-start;
+      flex-direction: column;
+    }
   }
 </style>
 </head>
@@ -381,7 +411,14 @@
         <div class="top-section">
           <div class="split-grid">
             <div>
-              <h3 class="panel-title">親一覧</h3>
+              <div class="panel-title-row">
+                <h3 class="panel-title">親一覧</h3>
+                <div class="panel-title-actions">
+                  <button id="btnParentCheckAll" class="btn btn-small" type="button">全チェック</button>
+                  <button id="btnParentClearAll" class="btn btn-small" type="button">全解除</button>
+                </div>
+              </div>
+
               <div class="table-wrap">
                 <table class="data-table">
                   <thead id="parentTableHead"></thead>
@@ -427,6 +464,8 @@
   const STORAGE_KEY = "data_view_vertical_split_ratio";
   const split = document.getElementById("contentSplit");
   const splitter = document.getElementById("horizontalSplitter");
+  const btnParentCheckAll = document.getElementById("btnParentCheckAll");
+  const btnParentClearAll = document.getElementById("btnParentClearAll");
 
   if (!split || !splitter) return;
 
@@ -434,6 +473,10 @@
 
   function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
+  }
+
+  function getKokkaiModule() {
+    return window.DataViewKokkai || null;
   }
 
   function applyRatio(topPercent) {
@@ -494,6 +537,26 @@
   window.addEventListener("pointerup", stopDragging);
   window.addEventListener("pointercancel", stopDragging);
   window.addEventListener("blur", stopDragging);
+
+  splitter.addEventListener("dblclick", () => {
+    applyRatio(55);
+  });
+
+  if (btnParentCheckAll) {
+    btnParentCheckAll.addEventListener("click", () => {
+      const module = getKokkaiModule();
+      if (!module || typeof module.checkAll !== "function") return;
+      module.checkAll();
+    });
+  }
+
+  if (btnParentClearAll) {
+    btnParentClearAll.addEventListener("click", () => {
+      const module = getKokkaiModule();
+      if (!module || typeof module.clearAllChecks !== "function") return;
+      module.clearAllChecks();
+    });
+  }
 
   window.addEventListener("DOMContentLoaded", () => {
     let saved = 55;

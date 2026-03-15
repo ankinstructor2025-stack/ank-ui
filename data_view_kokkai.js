@@ -95,6 +95,16 @@ function updateCheckedSummary() {
   }
 }
 
+function syncParentCheckboxUi() {
+  if (!ctx?.parentTableBody) return;
+
+  const checkboxes = ctx.parentTableBody.querySelectorAll(".parent-check");
+  checkboxes.forEach((checkbox) => {
+    const index = Number(checkbox.dataset.index || "-1");
+    checkbox.checked = checkedParentIndexes.has(index);
+  });
+}
+
 function clearChildArea(message = "親一覧から1件選択してください。") {
   currentChildRows = [];
   selectedChildIndex = -1;
@@ -460,9 +470,25 @@ function getCheckedRows() {
     .filter(Boolean);
 }
 
+function checkAll() {
+  checkedParentIndexes = new Set(
+    currentParentRows.map((_, index) => index)
+  );
+  syncParentCheckboxUi();
+  updateCheckedSummary();
+}
+
+function clearAllChecks() {
+  checkedParentIndexes = new Set();
+  syncParentCheckboxUi();
+  updateCheckedSummary();
+}
+
 return {
   load,
-  getCheckedRows
+  getCheckedRows,
+  checkAll,
+  clearAllChecks
 };
 
 })();
