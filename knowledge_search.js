@@ -55,12 +55,22 @@ function getIdToken() {
   );
 }
 
-function getPanelElement(tabName) {
-  return document.getElementById(`panel-${tabName}`);
+function normalizeTabName(tabName) {
+  const src = String(tabName || "").trim().toLowerCase();
+
+  if (src === "qa" || src === "qa-similarity") return "qa";
+  if (src === "plain-fts" || src === "plain_fts" || src === "fts") return "plain-fts";
+  if (src === "hybrid") return "hybrid";
+  if (src === "hybrid-ai" || src === "hybrid_ai") return "hybrid-ai";
+  if (src === "ai-answer" || src === "ai_answer" || src === "ai") return "ai-answer";
+
+  return "qa";
 }
 
 function getResultBoxByTab(tabName) {
-  switch (tabName) {
+  const normalized = normalizeTabName(tabName);
+
+  switch (normalized) {
     case "qa":
       return resultQaSimilarity;
     case "plain-fts":
@@ -72,12 +82,14 @@ function getResultBoxByTab(tabName) {
     case "ai-answer":
       return resultAiAnswer;
     default:
-      return resultPlainFts;
+      return resultQaSimilarity;
   }
 }
 
 function getModeByTab(tabName) {
-  switch (tabName) {
+  const normalized = normalizeTabName(tabName);
+
+  switch (normalized) {
     case "qa":
       return "qa";
     case "plain-fts":
@@ -89,12 +101,14 @@ function getModeByTab(tabName) {
     case "ai-answer":
       return "ai_answer";
     default:
-      return "plain_fts";
+      return "qa";
   }
 }
 
 function getEmptyMessageByTab(tabName) {
-  switch (tabName) {
+  const normalized = normalizeTabName(tabName);
+
+  switch (normalized) {
     case "qa":
       return "QA類似の結果はありません。";
     case "plain-fts":
@@ -220,20 +234,16 @@ function renderCards(box, items, emptyMessage) {
 ============================== */
 
 function setActiveTab(tabName) {
-  currentTab = tabName;
+  currentTab = normalizeTabName(tabName);
 
   tabButtons.forEach((btn) => {
-    btn.classList.toggle(
-      "active",
-      btn.dataset.tab === tabName
-    );
+    const btnTab = normalizeTabName(btn.dataset.tab);
+    btn.classList.toggle("active", btnTab === currentTab);
   });
 
   tabPanels.forEach((panel) => {
-    panel.classList.toggle(
-      "active",
-      panel.id === `panel-${tabName}`
-    );
+    const panelTab = normalizeTabName(panel.id.replace("panel-", ""));
+    panel.classList.toggle("active", panelTab === currentTab);
   });
 }
 
@@ -353,6 +363,59 @@ function buildQaCards(items) {
   });
 }
 
+function buildHybridCards(qaItems, plainItems) {
+  const cards = [];
+
+  (qaItems || []).forEach((row) => {
+    const subParts = ["QA類似"];
+
+    if (row.source_type) {
+      subParts.push(row.source_type);
+    }
+
+    if (row.source_label) {
+      subParts.push(row.source_label);
+    }
+
+    if (row.score !== undefined) {
+      subParts.push(`similarity: ${Number(row.score).toFixed(4)}`);
+    }
+
+    cards.push({
+      title: (row.question || "").trim() || "質問なし",
+      sub: subParts.join(" / "),
+      body: (row.answer || row.content_preview || "").trim() || "回答なし"
+    });
+  });
+
+  (plainItems || []).forEach((row) => {
+    const subParts = ["FTS"];
+
+    if (row.source_type) {
+      subParts.push(row.source_type);
+    }
+
+    if (row.source_label) {
+      subParts.push(row.source_label);
+    }
+
+    if (row.score !== undefined) {
+      subParts.push(`bm25: ${row.score}`);
+    }
+
+    const body = (row.content_preview || "").trim();
+    const rawTitle = (row.title || "").trim();
+
+    cards.push({
+      title: rawTitle && rawTitle !== body ? rawTitle : "",
+      sub: subParts.join(" / "),
+      body: body
+    });
+  });
+
+  return cards;
+}
+
 /* ==============================
    検索実行
 ============================== */
@@ -391,6 +454,13 @@ async function executeSearch() {
 
     if (mode === "qa") {
       cards = buildQaCards(result.items || []);
+    } else if (mode === "plain_fts") {
+      cards = buildPlainCards(result.items || []);
+    } else if (mode === "hybrid") {
+      cards = buildHybridCards(
+        result.qa_items || [],
+        result.plain_items || []
+      );
     } else {
       cards = buildPlainCards(result.items || []);
     }
@@ -503,25 +573,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     selectionSummary.textContent = "入力:未実行";
     contextSummary.textContent = "DB:-";
 
-    renderEmpty(
-      resultQaSimilarity,
-      "DB一覧の取得に失敗しました。"
-    );
-    renderEmpty(
-      resultPlainFts,
-      "DB一覧の取得に失敗しました。"
-    );
-    renderEmpty(
-      resultHybrid,
-      "DB一覧の取得に失敗しました。"
-    );
-    renderEmpty(
-      resultHybridAi,
-      "DB一覧の取得に失敗しました。"
-    );
-    renderEmpty(
-      resultAiAnswer,
-      "DB一覧の取得に失敗しました。"
-    );
+    renderEmpty(resultQaSimilarity, "DB一覧の取得に失敗しました。");
+    renderEmpty(resultPlainFts, "DB一覧の取得に失敗しました。");
+    renderEmpty(resultHybrid, "DB一覧の取得に失敗しました。");
+    renderEmpty(resultHybridAi, "DB一覧の取得に失敗しました。");
+    renderEmpty(resultAiAnswer, "DB一覧の取得に失敗しました。");
   }
 });
