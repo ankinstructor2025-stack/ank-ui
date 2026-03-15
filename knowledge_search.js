@@ -64,16 +64,16 @@ function normalizeTabName(tabName) {
   if (
     src === "qa" ||
     src === "qasimilarity" ||
-    src === "qaresult" ||
-    src === "qasimilar"
+    src === "qasimilar" ||
+    src === "qaresult"
   ) {
     return "qa";
   }
 
   if (
     src === "plainfts" ||
-    src === "fts" ||
     src === "plain" ||
+    src === "fts" ||
     src === "plainsearch"
   ) {
     return "plain";
@@ -85,7 +85,6 @@ function normalizeTabName(tabName) {
 
   if (
     src === "hybridai" ||
-    src === "hybridai整理" ||
     src === "hybridwithai"
   ) {
     return "hybrid-ai";
@@ -100,6 +99,36 @@ function normalizeTabName(tabName) {
   }
 
   return "qa";
+}
+
+function detectTabFromButton(btn) {
+  if (btn?.dataset?.tab) {
+    return normalizeTabName(btn.dataset.tab);
+  }
+
+  const text = (btn?.textContent || "").trim();
+
+  if (text.includes("QA")) return "qa";
+  if (text.includes("プレイン")) return "plain";
+  if (text.includes("ハイブリッド+AI")) return "hybrid-ai";
+  if (text.includes("ハイブリッド")) return "hybrid";
+  if (text.includes("AI回答")) return "ai-answer";
+
+  return "qa";
+}
+
+function detectTabFromPanel(panel) {
+  const id = panel?.id || "";
+  if (id) {
+    return normalizeTabName(id.replace(/^panel-/, ""));
+  }
+
+  const dataTab = panel?.dataset?.tab || "";
+  if (dataTab) {
+    return normalizeTabName(dataTab);
+  }
+
+  return "";
 }
 
 function getModeByTab(tabName) {
@@ -138,22 +167,6 @@ function getEmptyMessageByTab(tabName) {
   return "結果はありません。";
 }
 
-function detectTabFromButton(btn) {
-  const datasetTab = btn?.dataset?.tab;
-  if (datasetTab) {
-    return normalizeTabName(datasetTab);
-  }
-
-  const text = (btn?.textContent || "").trim();
-  if (text.includes("QA")) return "qa";
-  if (text.includes("プレイン")) return "plain";
-  if (text.includes("ハイブリッド+AI")) return "hybrid-ai";
-  if (text.includes("ハイブリッド")) return "hybrid";
-  if (text.includes("AI回答")) return "ai-answer";
-
-  return "qa";
-}
-
 /* ==============================
    DB一覧取得
 ============================== */
@@ -182,9 +195,7 @@ async function fetchDatabaseList() {
   }
 
   if (!response.ok) {
-    throw new Error(
-      data.detail || "DB一覧の取得に失敗しました。"
-    );
+    throw new Error(data.detail || "DB一覧の取得に失敗しました。");
   }
 
   return data.items || [];
@@ -234,8 +245,7 @@ function applyInitialDatabase(list) {
 
 function renderEmpty(box, message) {
   if (!box) return;
-  box.innerHTML =
-    `<div class="result-empty">${escapeHtml(message)}</div>`;
+  box.innerHTML = `<div class="result-empty">${escapeHtml(message)}</div>`;
 }
 
 function buildCardHtml(item) {
@@ -263,23 +273,6 @@ function renderCards(box, items, emptyMessage) {
    タブ切替
 ============================== */
 
-function showOnlyActivePanel(activeTab) {
-  const activeBox = getResultBoxByTab(activeTab);
-
-  const allBoxes = [
-    resultQaSimilarity,
-    resultPlainFts,
-    resultHybrid,
-    resultHybridAi,
-    resultAiAnswer
-  ];
-
-  allBoxes.forEach((box) => {
-    if (!box) return;
-    box.style.display = box === activeBox ? "" : "none";
-  });
-}
-
 function setActiveTab(tabName) {
   currentTab = normalizeTabName(tabName);
 
@@ -288,18 +281,18 @@ function setActiveTab(tabName) {
     btn.classList.toggle("active", btnTab === currentTab);
   });
 
-  tabPanels.forEach((panel) => {
-    panel.classList.remove("active");
-  });
-
-  showOnlyActivePanel(currentTab);
+  if (tabPanels.length > 0) {
+    tabPanels.forEach((panel) => {
+      const panelTab = detectTabFromPanel(panel);
+      panel.classList.toggle("active", panelTab === currentTab);
+    });
+  }
 }
 
 function bindTabEvents() {
   tabButtons.forEach((btn) => {
     btn.addEventListener("click", () => {
-      const tab = detectTabFromButton(btn);
-      setActiveTab(tab);
+      setActiveTab(detectTabFromButton(btn));
     });
   });
 }
@@ -325,9 +318,7 @@ async function searchByMode(dbName, lines, mode) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": idToken
-          ? `Bearer ${idToken}`
-          : ""
+        "Authorization": idToken ? `Bearer ${idToken}` : ""
       },
       body: JSON.stringify({
         db_name: dbName,
@@ -346,9 +337,7 @@ async function searchByMode(dbName, lines, mode) {
   }
 
   if (!response.ok) {
-    throw new Error(
-      data.detail || "検索に失敗しました。"
-    );
+    throw new Error(data.detail || "検索に失敗しました。");
   }
 
   return data;
@@ -458,17 +447,14 @@ async function executeSearch() {
   const resultBox = getResultBoxByTab(currentTab);
   const emptyMessage = getEmptyMessageByTab(currentTab);
 
-  selectionSummary.textContent =
-    `入力:検索語 ${lines.length} 行`;
-  contextSummary.textContent =
-    `DB:${currentDatabase}`;
+  selectionSummary.textContent = `入力:検索語 ${lines.length} 行`;
+  contextSummary.textContent = `DB:${currentDatabase}`;
 
   summaryText.textContent = "件数:検索中";
   renderEmpty(resultBox, "検索中...");
 
   try {
-    const result =
-      await searchByMode(currentDatabase, lines, mode);
+    const result = await searchByMode(currentDatabase, lines, mode);
 
     let cards = [];
 
@@ -486,16 +472,12 @@ async function executeSearch() {
     }
 
     renderCards(resultBox, cards, emptyMessage);
-    summaryText.textContent =
-      `件数:${result.count || 0}件`;
+    summaryText.textContent = `件数:${result.count || 0}件`;
 
   } catch (err) {
     console.error("search error", err);
     summaryText.textContent = "件数:0件";
-    renderEmpty(
-      resultBox,
-      err.message || "検索に失敗しました。"
-    );
+    renderEmpty(resultBox, err.message || "検索に失敗しました。");
   }
 }
 
