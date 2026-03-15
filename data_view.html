@@ -5,10 +5,27 @@
   <title>データ照会</title>
   <link rel="stylesheet" href="./theme.css">
   <style>
+    :root {
+      --page-padding-y: 12px;
+      --page-padding-x: 16px;
+      --card-padding: 20px;
+      --gap-md: 16px;
+      --summary-height: 44px;
+      --detail-title-height: 32px;
+      --panel-title-height: 32px;
+      --detail-min-height: 180px;
+      --table-min-height: 220px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
     html, body {
       width: 100%;
       height: 100%;
       margin: 0;
+      overflow: hidden;
     }
 
     body {
@@ -17,48 +34,63 @@
 
     .page {
       width: 100%;
-      max-width: none;
-      min-height: 100vh;
-      padding: 20px 24px;
-      box-sizing: border-box;
+      height: 100vh;
+      padding: var(--page-padding-y) var(--page-padding-x);
       display: flex;
       justify-content: center;
-      align-items: flex-start;
+      align-items: stretch;
     }
 
     .card {
-      width: 100%;
-      max-width: 1500px;
-      min-height: calc(100vh - 40px);
-      box-sizing: border-box;
+      width: min(1600px, 100%);
+      height: calc(100vh - (var(--page-padding-y) * 2));
+      display: flex;
+      flex-direction: column;
+      padding: var(--card-padding);
+      overflow: hidden;
     }
 
-    .common-panel,
+    .header-row {
+      flex: 0 0 auto;
+      margin-bottom: 8px;
+    }
+
+    .page-note {
+      flex: 0 0 auto;
+      margin-bottom: 8px;
+    }
+
+    .common-panel {
+      flex: 0 0 auto;
+      margin-bottom: 10px;
+    }
+
     .work-panel {
-      width: 100%;
-      box-sizing: border-box;
-    }
-
-    .split-grid {
-      display: grid;
-      grid-template-columns: 34% 66%;
-      gap: 20px;
-      margin-top: 16px;
-      align-items: start;
+      flex: 1 1 auto;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
     }
 
     .panel-title {
-      margin: 0 0 12px 0;
+      margin: 0 0 8px 0;
       font-size: 18px;
       font-weight: 700;
+      line-height: 1.2;
+      min-height: var(--panel-title-height);
+      display: flex;
+      align-items: center;
     }
 
     .summary-row {
+      flex: 0 0 auto;
+      min-height: var(--summary-height);
       display: flex;
       justify-content: space-between;
       align-items: center;
       gap: 12px;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
       color: #d1d5db;
       font-size: 14px;
       flex-wrap: wrap;
@@ -69,8 +101,25 @@
       font-size: 13px;
     }
 
+    .split-grid {
+      flex: 0 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      align-items: start;
+      margin-bottom: 12px;
+    }
+
+    .split-grid > div {
+      min-width: 0;
+    }
+
     .table-wrap {
-      height: 360px;
+      height: clamp(
+        var(--table-min-height),
+        calc(100vh - 460px),
+        420px
+      );
       overflow-y: auto;
       overflow-x: hidden;
       border: 1px solid rgba(255,255,255,0.08);
@@ -161,13 +210,21 @@
       word-break: break-all;
     }
 
+    .detail-section {
+      flex: 1 1 auto;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
     .detail-wrap {
+      flex: 1 1 auto;
+      min-height: var(--detail-min-height);
+      overflow: auto;
       border: 1px solid rgba(255,255,255,0.08);
       border-radius: 12px;
       padding: 12px 16px;
-      min-height: 300px;
-      max-height: 520px;
-      overflow: auto;
       background: rgba(255,255,255,0.02);
     }
 
@@ -179,46 +236,34 @@
       font-family: inherit;
     }
 
-    /* 親一覧は1行で収める */
+    /* 親一覧は1行 */
     #parentTableBody td {
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
 
-    /* 子一覧は少し内容を見せる */
+    /* 子一覧も基本1行寄りにして横幅を活かす */
     #childTableBody td {
-      white-space: normal;
-      line-height: 1.4;
-      word-break: break-word;
-    }
-
-    @media (min-width: 1600px) {
-      .card {
-        max-width: 1650px;
-      }
-
-      .split-grid {
-        grid-template-columns: 32% 68%;
-      }
-
-      .table-wrap {
-        height: 400px;
-      }
-
-      .detail-wrap {
-        min-height: 340px;
-        max-height: 560px;
-      }
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     @media (max-width: 960px) {
+      html, body {
+        overflow: auto;
+      }
+
       .page {
+        height: auto;
+        min-height: 100vh;
         padding: 12px;
       }
 
       .card {
-        min-height: auto;
+        height: auto;
+        min-height: calc(100vh - 24px);
       }
 
       .split-grid {
@@ -231,7 +276,6 @@
 
       .detail-wrap {
         min-height: 220px;
-        max-height: 360px;
       }
     }
   </style>
@@ -307,7 +351,7 @@
         </div>
       </div>
 
-      <div style="margin-top:16px;">
+      <div class="detail-section">
         <h3 class="panel-title">詳細表示</h3>
         <div class="detail-wrap">
           <pre id="detailPre" class="detail-pre">データ種別を選択してください。</pre>
