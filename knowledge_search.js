@@ -96,7 +96,64 @@ function getSearchLines() {
     .filter((line) => line);
 }
 
-function executeSearch() {
+function getIdToken() {
+  return (
+    sessionStorage.getItem("idToken") ||
+    localStorage.getItem("idToken") ||
+    ""
+  );
+}
+
+function buildPlainCards(items) {
+  return (items || []).map((row) => {
+    const subParts = [];
+
+    if (row.source_type) subParts.push(row.source_type);
+    if (row.source_label) subParts.push(row.source_label);
+    if (row.score !== undefined && row.score !== null) {
+      subParts.push(`bm25: ${row.score}`);
+    }
+
+    return {
+      title: row.title || "タイトルなし",
+      sub: subParts.join(" / "),
+      body: row.content_preview || row.content || ""
+    };
+  });
+}
+
+async function searchPlainFts(dbName, lines) {
+  const query = lines.join("\n");
+  const idToken = getIdToken();
+
+  const response = await fetch("/v1/knowledge/search", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": idToken ? `Bearer ${idToken}` : ""
+    },
+    body: JSON.stringify({
+      db_name: dbName,
+      query: query,
+      mode: "plain_fts"
+    })
+  });
+
+  let data = {};
+  try {
+    data = await response.json();
+  } catch (e) {
+    data = {};
+  }
+
+  if (!response.ok) {
+    throw new Error(data.detail || "プレインFTS検索に失敗しました。");
+  }
+
+  return data;
+}
+
+async function executeSearch() {
   if (!currentDatabase) {
     alert("データベースを選択してください");
     return;
@@ -108,79 +165,36 @@ function executeSearch() {
     return;
   }
 
-  const queryLabel = lines.join(" / ");
-
-  const qaSimilarityItems = [
-    {
-      title: "再エネ賦課金に関する質問",
-      sub: "kokkai / 参議院 / 経済産業委員会 / score: 0.91",
-      body:
-        `検索語: ${queryLabel}\n` +
-        "入力文をベクトル化し、QAデータとの類似度が高い候補を表示します。"
-    },
-    {
-      title: "電気料金負担への対応",
-      sub: "kokkai / 衆議院 / 本会議 / score: 0.84",
-      body:
-        "QA類似検索の結果サンプルです。\n" +
-        "質問と回答をセットで表示します。"
-    }
-  ];
-
-  const plainFtsItems = [
-    {
-      title: "制度見直しの背景説明",
-      sub: "kokkai / 参議院 / 経済産業委員会 / bm25: 12.8",
-      body:
-        `検索語: ${queryLabel}\n` +
-        "プレイン文書のFTS結果をここに表示します。"
-    }
-  ];
-
-  const hybridItems = [
-    {
-      title: "再エネ賦課金に関する質問",
-      sub: "QA / score: 91",
-      body: "QA類似検索から採用した候補です。"
-    },
-    {
-      title: "制度見直しの背景説明",
-      sub: "plain / score: 83",
-      body: "プレインFTSから採用した候補です。"
-    }
-  ];
-
-  const hybridAiItems = [
-    {
-      title: "AI整理結果",
-      sub: "ハイブリッド結果を整理",
-      body:
-        "・主要論点: 再エネ賦課金\n" +
-        "・関連テーマ: 電気料金負担、制度見直し\n" +
-        "・重複候補をまとめて表示する想定です。"
-    }
-  ];
-
-  const aiAnswerItems = [
-    {
-      title: "AI回答",
-      sub: "OpenAI への質問結果",
-      body:
-        `質問: ${queryLabel}\n\n` +
-        "ここにAIの回答を表示します。\n" +
-        "検索結果とは別に、質問文をそのままAIへ送って得た回答を表示する想定です。"
-    }
-  ];
-
-  renderCards(resultQaSimilarity, qaSimilarityItems, "QA類似の結果はありません。");
-  renderCards(resultPlainFts, plainFtsItems, "プレインFTSの結果はありません。");
-  renderCards(resultHybrid, hybridItems, "ハイブリッドの結果はありません。");
-  renderCards(resultHybridAi, hybridAiItems, "ハイブリッド＋AI整理の結果はありません。");
-  renderCards(resultAiAnswer, aiAnswerItems, "AI回答はありません。");
-
-  summaryText.textContent = `${qaSimilarityItems.length + plainFtsItems.length + hybridItems.length} 件`;
   selectionSummary.textContent = `検索語 ${lines.length} 行`;
   contextSummary.textContent = currentDatabase;
+  summaryText.textContent = "検索中...";
+
+  renderEmpty(resultQaSimilarity, "未実装です。");
+  renderEmpty(resultPlainFts, "検索中...");
+  renderEmpty(resultHybrid, "未実装です。");
+  renderEmpty(resultHybridAi, "未実装です。");
+  renderEmpty(resultAiAnswer, "未実装です。");
+
+  try {
+    const plainResult = await searchPlainFts(currentDatabase, lines);
+    const plainCards = buildPlainCards(plainResult.items || []);
+
+    renderCards(
+      resultPlainFts,
+      plainCards,
+      "プレインFTSの結果はありません。"
+    );
+
+    summaryText.textContent = `${plainResult.count || 0} 件`;
+
+  } catch (err) {
+    console.error("executeSearch error:", err);
+    summaryText.textContent = "0 件";
+    renderEmpty(
+      resultPlainFts,
+      err.message || "プレインFTS検索でエラーが発生しました。"
+    );
+  }
 }
 
 function bindTabEvents() {
