@@ -32,6 +32,7 @@ const tabButtons = Array.from(document.querySelectorAll(".tab-btn"));
 const tabPanels = Array.from(document.querySelectorAll(".tab-panel"));
 
 let currentDatabase = "";
+let currentTab = "qa";
 
 /* ==============================
    Utils
@@ -52,6 +53,61 @@ function getIdToken() {
     localStorage.getItem("idToken") ||
     ""
   );
+}
+
+function getPanelElement(tabName) {
+  return document.getElementById(`panel-${tabName}`);
+}
+
+function getResultBoxByTab(tabName) {
+  switch (tabName) {
+    case "qa":
+      return resultQaSimilarity;
+    case "plain-fts":
+      return resultPlainFts;
+    case "hybrid":
+      return resultHybrid;
+    case "hybrid-ai":
+      return resultHybridAi;
+    case "ai-answer":
+      return resultAiAnswer;
+    default:
+      return resultPlainFts;
+  }
+}
+
+function getModeByTab(tabName) {
+  switch (tabName) {
+    case "qa":
+      return "qa";
+    case "plain-fts":
+      return "plain_fts";
+    case "hybrid":
+      return "hybrid";
+    case "hybrid-ai":
+      return "hybrid_ai";
+    case "ai-answer":
+      return "ai_answer";
+    default:
+      return "plain_fts";
+  }
+}
+
+function getEmptyMessageByTab(tabName) {
+  switch (tabName) {
+    case "qa":
+      return "QA類似の結果はありません。";
+    case "plain-fts":
+      return "プレインFTSの結果はありません。";
+    case "hybrid":
+      return "ハイブリッドの結果はありません。";
+    case "hybrid-ai":
+      return "ハイブリッド+AI整理の結果はありません。";
+    case "ai-answer":
+      return "AI回答はありません。";
+    default:
+      return "結果はありません。";
+  }
 }
 
 /* ==============================
@@ -133,6 +189,7 @@ function applyInitialDatabase(list) {
 ============================== */
 
 function renderEmpty(box, message) {
+  if (!box) return;
   box.innerHTML =
     `<div class="result-empty">${escapeHtml(message)}</div>`;
 }
@@ -148,6 +205,8 @@ function buildCardHtml(item) {
 }
 
 function renderCards(box, items, emptyMessage) {
+  if (!box) return;
+
   if (!items || !items.length) {
     renderEmpty(box, emptyMessage);
     return;
@@ -161,6 +220,8 @@ function renderCards(box, items, emptyMessage) {
 ============================== */
 
 function setActiveTab(tabName) {
+  currentTab = tabName;
+
   tabButtons.forEach((btn) => {
     btn.classList.toggle(
       "active",
@@ -195,11 +256,7 @@ function getSearchLines() {
     .filter((line) => line);
 }
 
-/* ==============================
-   プレインFTS検索
-============================== */
-
-async function searchPlainFts(dbName, lines) {
+async function searchByMode(dbName, lines, mode) {
   const query = lines.join("\n");
   const idToken = getIdToken();
 
@@ -216,7 +273,7 @@ async function searchPlainFts(dbName, lines) {
       body: JSON.stringify({
         db_name: dbName,
         query: query,
-        mode: "plain_fts"
+        mode: mode
       })
     }
   );
@@ -231,7 +288,7 @@ async function searchPlainFts(dbName, lines) {
 
   if (!response.ok) {
     throw new Error(
-      data.detail || "プレインFTS検索に失敗しました。"
+      data.detail || "検索に失敗しました。"
     );
   }
 
@@ -269,6 +326,33 @@ function buildPlainCards(items) {
   });
 }
 
+function buildQaCards(items) {
+  return (items || []).map((row) => {
+    const subParts = [];
+
+    if (row.source_type) {
+      subParts.push(row.source_type);
+    }
+
+    if (row.source_label) {
+      subParts.push(row.source_label);
+    }
+
+    if (row.score !== undefined) {
+      subParts.push(`similarity: ${Number(row.score).toFixed(4)}`);
+    }
+
+    const question = (row.question || "").trim();
+    const answer = (row.answer || row.content_preview || "").trim();
+
+    return {
+      title: question || "質問なし",
+      sub: subParts.join(" / "),
+      body: answer || "回答なし"
+    };
+  });
+}
+
 /* ==============================
    検索実行
 ============================== */
@@ -286,6 +370,10 @@ async function executeSearch() {
     return;
   }
 
+  const mode = getModeByTab(currentTab);
+  const resultBox = getResultBoxByTab(currentTab);
+  const emptyMessage = getEmptyMessageByTab(currentTab);
+
   selectionSummary.textContent =
     `入力:検索語 ${lines.length} 行`;
 
@@ -293,23 +381,28 @@ async function executeSearch() {
     `DB:${currentDatabase}`;
 
   summaryText.textContent = "件数:検索中";
-  renderEmpty(resultPlainFts, "検索中...");
+  renderEmpty(resultBox, "検索中...");
 
   try {
-    const plainResult =
-      await searchPlainFts(currentDatabase, lines);
+    const result =
+      await searchByMode(currentDatabase, lines, mode);
 
-    const plainCards =
-      buildPlainCards(plainResult.items || []);
+    let cards = [];
+
+    if (mode === "qa") {
+      cards = buildQaCards(result.items || []);
+    } else {
+      cards = buildPlainCards(result.items || []);
+    }
 
     renderCards(
-      resultPlainFts,
-      plainCards,
-      "プレインFTSの結果はありません。"
+      resultBox,
+      cards,
+      emptyMessage
     );
 
     summaryText.textContent =
-      `件数:${plainResult.count || 0}件`;
+      `件数:${result.count || 0}件`;
 
   } catch (err) {
     console.error("search error", err);
@@ -317,7 +410,7 @@ async function executeSearch() {
     summaryText.textContent = "件数:0件";
 
     renderEmpty(
-      resultPlainFts,
+      resultBox,
       err.message || "検索に失敗しました。"
     );
   }
@@ -361,6 +454,7 @@ function bindEvents() {
 
 document.addEventListener("DOMContentLoaded", async () => {
   bindEvents();
+  setActiveTab(currentTab);
 
   try {
     const dbList = await fetchDatabaseList();
@@ -372,7 +466,31 @@ document.addEventListener("DOMContentLoaded", async () => {
     selectionSummary.textContent = "入力:未実行";
 
     renderEmpty(
+      resultQaSimilarity,
+      dbList.length
+        ? "検索文字列を入力してください。"
+        : "データベースがありません。"
+    );
+    renderEmpty(
       resultPlainFts,
+      dbList.length
+        ? "検索文字列を入力してください。"
+        : "データベースがありません。"
+    );
+    renderEmpty(
+      resultHybrid,
+      dbList.length
+        ? "検索文字列を入力してください。"
+        : "データベースがありません。"
+    );
+    renderEmpty(
+      resultHybridAi,
+      dbList.length
+        ? "検索文字列を入力してください。"
+        : "データベースがありません。"
+    );
+    renderEmpty(
+      resultAiAnswer,
       dbList.length
         ? "検索文字列を入力してください。"
         : "データベースがありません。"
@@ -386,7 +504,23 @@ document.addEventListener("DOMContentLoaded", async () => {
     contextSummary.textContent = "DB:-";
 
     renderEmpty(
+      resultQaSimilarity,
+      "DB一覧の取得に失敗しました。"
+    );
+    renderEmpty(
       resultPlainFts,
+      "DB一覧の取得に失敗しました。"
+    );
+    renderEmpty(
+      resultHybrid,
+      "DB一覧の取得に失敗しました。"
+    );
+    renderEmpty(
+      resultHybridAi,
+      "DB一覧の取得に失敗しました。"
+    );
+    renderEmpty(
+      resultAiAnswer,
       "DB一覧の取得に失敗しました。"
     );
   }
