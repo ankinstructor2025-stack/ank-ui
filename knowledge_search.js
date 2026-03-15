@@ -141,18 +141,6 @@ function detectTabFromPanel(panel) {
   return "";
 }
 
-function getModeByTab(tabName) {
-  const tab = normalizeTabName(tabName);
-
-  if (tab === "qa") return "qa";
-  if (tab === "plain") return "plain_fts";
-  if (tab === "hybrid") return "hybrid";
-  if (tab === "hybrid-ai") return "hybrid_ai";
-  if (tab === "ai-answer") return "ai_answer";
-
-  return "qa";
-}
-
 function getResultBoxByTab(tabName) {
   const tab = normalizeTabName(tabName);
 
@@ -163,18 +151,6 @@ function getResultBoxByTab(tabName) {
   if (tab === "ai-answer") return resultAiAnswer;
 
   return resultQaSimilarity;
-}
-
-function getEmptyMessageByTab(tabName) {
-  const tab = normalizeTabName(tabName);
-
-  if (tab === "qa") return "QA類似の結果はありません。";
-  if (tab === "plain") return "プレインFTSの結果はありません。";
-  if (tab === "hybrid") return "ハイブリッドの結果はありません。";
-  if (tab === "hybrid-ai") return "ハイブリッド+AI整理の結果はありません。";
-  if (tab === "ai-answer") return "AI回答はありません。";
-
-  return "結果はありません。";
 }
 
 /* ==============================
@@ -402,40 +378,73 @@ function buildQaCards(items) {
 function buildHybridCards(qaItems, plainItems) {
   const cards = [];
 
-  (qaItems || []).forEach((row) => {
-    const subParts = ["QA類似"];
-
-    if (row.source_type) subParts.push(row.source_type);
-    if (row.source_label) subParts.push(row.source_label);
-    if (row.score !== undefined) {
-      subParts.push(`similarity: ${Number(row.score).toFixed(4)}`);
-    }
-
+  if (!qaItems || qaItems.length === 0) {
     cards.push({
-      title: (row.question || "").trim() || "質問なし",
-      sub: subParts.join(" / "),
-      body: (row.answer || row.content_preview || "").trim() || "回答なし"
+      title: "QA類似結果なし",
+      sub: "QA類似",
+      body: "QA類似の結果はありません。"
     });
-  });
+  } else {
+    qaItems.forEach((row) => {
+      const subParts = ["QA類似"];
 
-  (plainItems || []).forEach((row) => {
-    const subParts = ["FTS"];
+      if (row.source_type) subParts.push(row.source_type);
+      if (row.source_label) subParts.push(row.source_label);
+      if (row.score !== undefined) {
+        subParts.push(`similarity: ${Number(row.score).toFixed(4)}`);
+      }
 
-    if (row.source_type) subParts.push(row.source_type);
-    if (row.source_label) subParts.push(row.source_label);
-    if (row.score !== undefined) subParts.push(`bm25: ${row.score}`);
+      cards.push({
+        title: (row.question || "").trim() || "質問なし",
+        sub: subParts.join(" / "),
+        body: (row.answer || row.content_preview || "").trim() || "回答なし"
+      });
+    });
+  }
 
-    const body = (row.content_preview || "").trim();
-    const rawTitle = (row.title || "").trim();
-
+  if (!plainItems || plainItems.length === 0) {
     cards.push({
-      title: rawTitle && rawTitle !== body ? rawTitle : "",
-      sub: subParts.join(" / "),
-      body: body
+      title: "FTS結果なし",
+      sub: "FTS",
+      body: "プレインFTSの結果はありません。"
     });
-  });
+  } else {
+    plainItems.forEach((row) => {
+      const subParts = ["FTS"];
+
+      if (row.source_type) subParts.push(row.source_type);
+      if (row.source_label) subParts.push(row.source_label);
+      if (row.score !== undefined) subParts.push(`bm25: ${row.score}`);
+
+      const body = (row.content_preview || "").trim();
+      const rawTitle = (row.title || "").trim();
+
+      cards.push({
+        title: rawTitle && rawTitle !== body ? rawTitle : "",
+        sub: subParts.join(" / "),
+        body: body
+      });
+    });
+  }
 
   return cards;
+}
+
+function buildAiAnswerCards(items) {
+  return (items || []).map((row) => {
+    const subParts = [];
+
+    if (row.source_type) subParts.push(row.source_type);
+    if (row.source_label) subParts.push(row.source_label);
+
+    const body = (row.answer || row.content_preview || row.content || "").trim();
+
+    return {
+      title: (row.title || "AI回答").trim(),
+      sub: subParts.join(" / "),
+      body: body || "回答なし"
+    };
+  });
 }
 
 /* ==============================
@@ -474,7 +483,11 @@ function renderHybridAiResult() {
 }
 
 function renderAiAnswerResult() {
-  renderEmpty(resultAiAnswer, "未実装です。");
+  renderCards(
+    resultAiAnswer,
+    buildAiAnswerCards(lastAiAnswerResult?.items || []),
+    "AI回答はありません。"
+  );
 }
 
 function renderCurrentTab() {
@@ -532,17 +545,20 @@ async function executeSearch() {
   renderEmpty(resultQaSimilarity, "検索中...");
   renderEmpty(resultPlainFts, "検索中...");
   renderEmpty(resultHybrid, "検索中...");
+  renderEmpty(resultAiAnswer, "検索中...");
 
   try {
-    const [qaResult, plainResult, hybridResult] = await Promise.all([
+    const [qaResult, plainResult, hybridResult, aiAnswerResult] = await Promise.all([
       searchByMode(currentDatabase, lines, "qa"),
       searchByMode(currentDatabase, lines, "plain_fts"),
-      searchByMode(currentDatabase, lines, "hybrid")
+      searchByMode(currentDatabase, lines, "hybrid"),
+      searchByMode(currentDatabase, lines, "ai_answer")
     ]);
 
     lastQaResult = qaResult;
     lastPlainResult = plainResult;
     lastHybridResult = hybridResult;
+    lastAiAnswerResult = aiAnswerResult;
 
     const qaCount = qaResult?.count || 0;
     const plainCount = plainResult?.count || 0;
@@ -554,6 +570,7 @@ async function executeSearch() {
     renderQaResult();
     renderPlainResult();
     renderHybridResult();
+    renderAiAnswerResult();
     renderCurrentTab();
 
   } catch (err) {
@@ -563,6 +580,7 @@ async function executeSearch() {
     renderEmpty(resultQaSimilarity, err.message || "検索に失敗しました。");
     renderEmpty(resultPlainFts, err.message || "検索に失敗しました。");
     renderEmpty(resultHybrid, err.message || "検索に失敗しました。");
+    renderEmpty(resultAiAnswer, err.message || "検索に失敗しました。");
   }
 }
 
@@ -628,7 +646,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     );
     renderEmpty(
       resultAiAnswer,
-      dbList.length ? "未実装です。" : "データベースがありません。"
+      dbList.length ? "検索文字列を入力してください。" : "データベースがありません。"
     );
 
     setActiveTab("qa");
