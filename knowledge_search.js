@@ -35,6 +35,16 @@ let currentDatabase = "";
 let currentTab = "qa";
 
 /* ==============================
+   検索結果保持
+============================== */
+
+let lastQaResult = null;
+let lastPlainResult = null;
+let lastHybridResult = null;
+let lastHybridAiResult = null;
+let lastAiAnswerResult = null;
+
+/* ==============================
    Utils
 ============================== */
 
@@ -287,6 +297,8 @@ function setActiveTab(tabName) {
       panel.classList.toggle("active", panelTab === currentTab);
     });
   }
+
+  renderCurrentTab();
 }
 
 function bindTabEvents() {
@@ -427,6 +439,76 @@ function buildHybridCards(qaItems, plainItems) {
 }
 
 /* ==============================
+   結果保持から描画
+============================== */
+
+function renderQaResult() {
+  renderCards(
+    resultQaSimilarity,
+    buildQaCards(lastQaResult?.items || []),
+    "QA類似の結果はありません。"
+  );
+}
+
+function renderPlainResult() {
+  renderCards(
+    resultPlainFts,
+    buildPlainCards(lastPlainResult?.items || []),
+    "プレインFTSの結果はありません。"
+  );
+}
+
+function renderHybridResult() {
+  renderCards(
+    resultHybrid,
+    buildHybridCards(
+      lastHybridResult?.qa_items || [],
+      lastHybridResult?.plain_items || []
+    ),
+    "ハイブリッドの結果はありません。"
+  );
+}
+
+function renderHybridAiResult() {
+  renderEmpty(resultHybridAi, "未実装です。");
+}
+
+function renderAiAnswerResult() {
+  renderEmpty(resultAiAnswer, "未実装です。");
+}
+
+function renderCurrentTab() {
+  const tab = normalizeTabName(currentTab);
+
+  if (tab === "qa") {
+    renderQaResult();
+    return;
+  }
+
+  if (tab === "plain") {
+    renderPlainResult();
+    return;
+  }
+
+  if (tab === "hybrid") {
+    renderHybridResult();
+    return;
+  }
+
+  if (tab === "hybrid-ai") {
+    renderHybridAiResult();
+    return;
+  }
+
+  if (tab === "ai-answer") {
+    renderAiAnswerResult();
+    return;
+  }
+
+  renderQaResult();
+}
+
+/* ==============================
    検索実行
 ============================== */
 
@@ -443,41 +525,44 @@ async function executeSearch() {
     return;
   }
 
-  const mode = getModeByTab(currentTab);
-  const resultBox = getResultBoxByTab(currentTab);
-  const emptyMessage = getEmptyMessageByTab(currentTab);
-
   selectionSummary.textContent = `入力:検索語 ${lines.length} 行`;
   contextSummary.textContent = `DB:${currentDatabase}`;
-
   summaryText.textContent = "件数:検索中";
-  renderEmpty(resultBox, "検索中...");
+
+  renderEmpty(resultQaSimilarity, "検索中...");
+  renderEmpty(resultPlainFts, "検索中...");
+  renderEmpty(resultHybrid, "検索中...");
 
   try {
-    const result = await searchByMode(currentDatabase, lines, mode);
+    const [qaResult, plainResult, hybridResult] = await Promise.all([
+      searchByMode(currentDatabase, lines, "qa"),
+      searchByMode(currentDatabase, lines, "plain_fts"),
+      searchByMode(currentDatabase, lines, "hybrid")
+    ]);
 
-    let cards = [];
+    lastQaResult = qaResult;
+    lastPlainResult = plainResult;
+    lastHybridResult = hybridResult;
 
-    if (mode === "qa") {
-      cards = buildQaCards(result.items || []);
-    } else if (mode === "plain_fts") {
-      cards = buildPlainCards(result.items || []);
-    } else if (mode === "hybrid") {
-      cards = buildHybridCards(
-        result.qa_items || [],
-        result.plain_items || []
-      );
-    } else {
-      cards = buildPlainCards(result.items || []);
-    }
+    const qaCount = qaResult?.count || 0;
+    const plainCount = plainResult?.count || 0;
+    const hybridCount = hybridResult?.count || 0;
 
-    renderCards(resultBox, cards, emptyMessage);
-    summaryText.textContent = `件数:${result.count || 0}件`;
+    summaryText.textContent =
+      `QA:${qaCount}件 / FTS:${plainCount}件 / Hybrid:${hybridCount}件`;
+
+    renderQaResult();
+    renderPlainResult();
+    renderHybridResult();
+    renderCurrentTab();
 
   } catch (err) {
     console.error("search error", err);
     summaryText.textContent = "件数:0件";
-    renderEmpty(resultBox, err.message || "検索に失敗しました。");
+
+    renderEmpty(resultQaSimilarity, err.message || "検索に失敗しました。");
+    renderEmpty(resultPlainFts, err.message || "検索に失敗しました。");
+    renderEmpty(resultHybrid, err.message || "検索に失敗しました。");
   }
 }
 
@@ -515,7 +600,6 @@ function bindEvents() {
 
 document.addEventListener("DOMContentLoaded", async () => {
   bindEvents();
-  setActiveTab("qa");
 
   try {
     const dbList = await fetchDatabaseList();
@@ -540,12 +624,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     );
     renderEmpty(
       resultHybridAi,
-      dbList.length ? "検索文字列を入力してください。" : "データベースがありません。"
+      dbList.length ? "未実装です。" : "データベースがありません。"
     );
     renderEmpty(
       resultAiAnswer,
-      dbList.length ? "検索文字列を入力してください。" : "データベースがありません。"
+      dbList.length ? "未実装です。" : "データベースがありません。"
     );
+
+    setActiveTab("qa");
 
   } catch (err) {
     console.error("db list load error", err);
