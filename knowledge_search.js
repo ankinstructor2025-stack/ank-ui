@@ -1,5 +1,16 @@
 console.log("knowledge_search.js loaded");
 
+/* ==============================
+   API設定
+============================== */
+
+const API_BASE =
+  "https://ank-api-986862757498.asia-northeast1.run.app/v1";
+
+/* ==============================
+   DOM
+============================== */
+
 const databaseSelect = document.getElementById("databaseSelect");
 const queryText = document.getElementById("queryText");
 
@@ -22,10 +33,18 @@ const tabPanels = Array.from(document.querySelectorAll(".tab-panel"));
 
 let currentDatabase = "";
 
+/* ==============================
+   仮DB一覧
+============================== */
+
 const demoDatabases = [
   { db_name: "knowledge_20260314183446.sqlite" },
   { db_name: "knowledge_20260315100512.sqlite" }
 ];
+
+/* ==============================
+   Utils
+============================== */
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -36,66 +55,6 @@ function escapeHtml(value) {
     .replace(/'/g, "&#39;");
 }
 
-function renderDatabaseOptions(list) {
-  const html = [`<option value="" selected disabled>選択してください</option>`];
-
-  list.forEach((item) => {
-    html.push(
-      `<option value="${escapeHtml(item.db_name)}">${escapeHtml(item.db_name)}</option>`
-    );
-  });
-
-  databaseSelect.innerHTML = html.join("");
-}
-
-function renderEmpty(box, message) {
-  box.innerHTML = `<div class="result-empty">${escapeHtml(message)}</div>`;
-}
-
-function buildCardHtml(item) {
-  return `
-    <div class="result-card">
-      <div class="result-card-title">${escapeHtml(item.title || "-")}</div>
-      <div class="result-card-sub">${escapeHtml(item.sub || "")}</div>
-      <div class="result-card-body">${escapeHtml(item.body || "")}</div>
-    </div>
-  `;
-}
-
-function renderCards(box, items, emptyMessage) {
-  if (!items || !items.length) {
-    renderEmpty(box, emptyMessage);
-    return;
-  }
-
-  box.innerHTML = items.map(buildCardHtml).join("");
-}
-
-function setActiveTab(tabName) {
-  tabButtons.forEach((btn) => {
-    btn.classList.toggle("active", btn.dataset.tab === tabName);
-  });
-
-  tabPanels.forEach((panel) => {
-    panel.classList.toggle("active", panel.id === `panel-${tabName}`);
-  });
-}
-
-function resetAllResultAreas(message) {
-  renderEmpty(resultQaSimilarity, message);
-  renderEmpty(resultPlainFts, message);
-  renderEmpty(resultHybrid, message);
-  renderEmpty(resultHybridAi, message);
-  renderEmpty(resultAiAnswer, message);
-}
-
-function getSearchLines() {
-  return (queryText.value || "")
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter((line) => line);
-}
-
 function getIdToken() {
   return (
     sessionStorage.getItem("idToken") ||
@@ -104,80 +63,239 @@ function getIdToken() {
   );
 }
 
-function buildPlainCards(items) {
-  return (items || []).map((row) => {
-    const subParts = [];
+/* ==============================
+   DB選択
+============================== */
 
-    if (row.source_type) subParts.push(row.source_type);
-    if (row.source_label) subParts.push(row.source_label);
-    if (row.score !== undefined && row.score !== null) {
-      subParts.push(`bm25: ${row.score}`);
-    }
+function renderDatabaseOptions(list) {
 
-    return {
-      title: row.title || "タイトルなし",
-      sub: subParts.join(" / "),
-      body: row.content_preview || row.content || ""
-    };
+  const html = [
+    `<option value="" selected disabled>選択してください</option>`
+  ];
+
+  list.forEach((item) => {
+
+    html.push(
+      `<option value="${escapeHtml(item.db_name)}">${escapeHtml(item.db_name)}</option>`
+    );
+
   });
+
+  databaseSelect.innerHTML = html.join("");
 }
 
-async function searchPlainFts(dbName, lines) {
-  const query = lines.join("\n");
-  const idToken = getIdToken();
+/* ==============================
+   表示
+============================== */
 
-  const response = await fetch("/v1/knowledge/search", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": idToken ? `Bearer ${idToken}` : ""
-    },
-    body: JSON.stringify({
-      db_name: dbName,
-      query: query,
-      mode: "plain_fts"
-    })
+function renderEmpty(box, message) {
+
+  box.innerHTML =
+    `<div class="result-empty">${escapeHtml(message)}</div>`;
+
+}
+
+function buildCardHtml(item) {
+
+  return `
+<div class="result-card">
+  <div class="result-card-title">${escapeHtml(item.title || "-")}</div>
+  <div class="result-card-sub">${escapeHtml(item.sub || "")}</div>
+  <div class="result-card-body">${escapeHtml(item.body || "")}</div>
+</div>
+`;
+
+}
+
+function renderCards(box, items, emptyMessage) {
+
+  if (!items || !items.length) {
+
+    renderEmpty(box, emptyMessage);
+    return;
+
+  }
+
+  box.innerHTML = items.map(buildCardHtml).join("");
+
+}
+
+/* ==============================
+   Tab
+============================== */
+
+function setActiveTab(tabName) {
+
+  tabButtons.forEach((btn) => {
+
+    btn.classList.toggle(
+      "active",
+      btn.dataset.tab === tabName
+    );
+
   });
 
+  tabPanels.forEach((panel) => {
+
+    panel.classList.toggle(
+      "active",
+      panel.id === `panel-${tabName}`
+    );
+
+  });
+
+}
+
+function bindTabEvents() {
+
+  tabButtons.forEach((btn) => {
+
+    btn.addEventListener("click", () => {
+
+      setActiveTab(btn.dataset.tab);
+
+    });
+
+  });
+
+}
+
+/* ==============================
+   検索
+============================== */
+
+function getSearchLines() {
+
+  return (queryText.value || "")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line);
+
+}
+
+/* ==============================
+   プレインFTS検索
+============================== */
+
+async function searchPlainFts(dbName, lines) {
+
+  const query = lines.join("\n");
+
+  const idToken = getIdToken();
+
+  const response = await fetch(
+    `${API_BASE}/knowledge/search`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": idToken
+          ? `Bearer ${idToken}`
+          : ""
+      },
+      body: JSON.stringify({
+        db_name: dbName,
+        query: query,
+        mode: "plain_fts"
+      })
+    }
+  );
+
   let data = {};
+
   try {
+
     data = await response.json();
-  } catch (e) {
+
+  } catch {
+
     data = {};
+
   }
 
   if (!response.ok) {
-    throw new Error(data.detail || "プレインFTS検索に失敗しました。");
+
+    throw new Error(
+      data.detail || "プレインFTS検索に失敗しました。"
+    );
+
   }
 
   return data;
+
 }
 
+/* ==============================
+   カード変換
+============================== */
+
+function buildPlainCards(items) {
+
+  return (items || []).map((row) => {
+
+    const subParts = [];
+
+    if (row.source_type)
+      subParts.push(row.source_type);
+
+    if (row.source_label)
+      subParts.push(row.source_label);
+
+    if (row.score !== undefined)
+      subParts.push(`bm25: ${row.score}`);
+
+    return {
+
+      title: row.title || "タイトルなし",
+
+      sub: subParts.join(" / "),
+
+      body: row.content_preview || row.content || ""
+
+    };
+
+  });
+
+}
+
+/* ==============================
+   検索実行
+============================== */
+
 async function executeSearch() {
+
   if (!currentDatabase) {
+
     alert("データベースを選択してください");
     return;
+
   }
 
   const lines = getSearchLines();
+
   if (!lines.length) {
+
     alert("検索文字列を入力してください");
     return;
+
   }
 
-  selectionSummary.textContent = `検索語 ${lines.length} 行`;
+  selectionSummary.textContent =
+    `検索語 ${lines.length} 行`;
+
   contextSummary.textContent = currentDatabase;
+
   summaryText.textContent = "検索中...";
 
-  renderEmpty(resultQaSimilarity, "未実装です。");
   renderEmpty(resultPlainFts, "検索中...");
-  renderEmpty(resultHybrid, "未実装です。");
-  renderEmpty(resultHybridAi, "未実装です。");
-  renderEmpty(resultAiAnswer, "未実装です。");
 
   try {
-    const plainResult = await searchPlainFts(currentDatabase, lines);
-    const plainCards = buildPlainCards(plainResult.items || []);
+
+    const plainResult =
+      await searchPlainFts(currentDatabase, lines);
+
+    const plainCards =
+      buildPlainCards(plainResult.items || []);
 
     renderCards(
       resultPlainFts,
@@ -185,54 +303,80 @@ async function executeSearch() {
       "プレインFTSの結果はありません。"
     );
 
-    summaryText.textContent = `${plainResult.count || 0} 件`;
+    summaryText.textContent =
+      `${plainResult.count || 0} 件`;
 
   } catch (err) {
-    console.error("executeSearch error:", err);
+
+    console.error("search error", err);
+
     summaryText.textContent = "0 件";
+
     renderEmpty(
       resultPlainFts,
-      err.message || "プレインFTS検索でエラーが発生しました。"
+      err.message
     );
+
   }
+
 }
 
-function bindTabEvents() {
-  tabButtons.forEach((btn) => {
-    btn.addEventListener("click", () => {
-      setActiveTab(btn.dataset.tab);
-    });
-  });
-}
+/* ==============================
+   イベント
+============================== */
 
 function bindEvents() {
+
   databaseSelect.addEventListener("change", () => {
+
     currentDatabase = databaseSelect.value || "";
-    resetAllResultAreas("検索文字列を入力して検索してください。");
+
     summaryText.textContent = "0 件";
+
     selectionSummary.textContent = "未実行";
-    contextSummary.textContent = currentDatabase || "-";
+
+    contextSummary.textContent =
+      currentDatabase || "-";
+
   });
 
-  btnSearch.addEventListener("click", executeSearch);
+  btnSearch.addEventListener(
+    "click",
+    executeSearch
+  );
 
   btnMenu.addEventListener("click", () => {
+
     window.location.href = "./menu.html";
+
   });
 
   btnLogout.addEventListener("click", () => {
+
     sessionStorage.removeItem("idToken");
-    sessionStorage.removeItem("user");
     localStorage.removeItem("idToken");
-    localStorage.removeItem("user");
+
     window.location.href = "./index.html";
+
   });
 
   bindTabEvents();
+
 }
 
+/* ==============================
+   Init
+============================== */
+
 document.addEventListener("DOMContentLoaded", () => {
+
   renderDatabaseOptions(demoDatabases);
-  resetAllResultAreas("データベースを選択してください。");
+
+  renderEmpty(
+    resultPlainFts,
+    "データベースを選択してください。"
+  );
+
   bindEvents();
+
 });
