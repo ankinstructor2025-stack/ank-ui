@@ -43,34 +43,34 @@ console.log("data_source_opendata.js loaded");
     wrap.innerHTML = items.map((item) => {
       const status = item.status || "new";
       const done = status === "done";
-      const ext = item.ext || "-";
       const rowCount = item.row_count ?? "-";
 
       return `
         <div class="choice-row">
-          <div class="choice-text">
+          <div class="choice-title-line" title="${escapeHtml(item.title)}">
             ${escapeHtml(item.title)}
-            &nbsp;&nbsp;
-            dataset_id: ${escapeHtml(item.dataset_id)},
-            ext: ${escapeHtml(ext)},
-            status: ${escapeHtml(status)},
+          </div>
+
+          <div class="choice-meta-line">
             rows: ${escapeHtml(rowCount)}
           </div>
 
-          ${
-            done
-              ? ``
-              : `
-              <button
-                type="button"
-                class="btn btn-primary btn-dataset-expand"
-                data-dataset-id="${escapeHtml(item.dataset_id)}"
-                data-dataset-title="${escapeHtml(item.title)}"
-              >
-                分解
-              </button>
-            `
-      }
+          <div class="choice-button-line">
+            ${
+              done
+                ? `<span class="choice-done-text">完了</span>`
+                : `
+                  <button
+                    type="button"
+                    class="btn btn-primary btn-dataset-expand"
+                    data-dataset-id="${escapeHtml(item.dataset_id)}"
+                    data-dataset-title="${escapeHtml(item.title)}"
+                  >
+                    分解
+                  </button>
+                `
+            }
+          </div>
         </div>
       `;
     }).join("");
