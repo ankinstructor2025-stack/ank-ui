@@ -196,20 +196,14 @@ textarea{
 .common-grid input,
 .common-grid select{
   width:100%;
-  box-sizing:border-box;
   border:1px solid #8390a5;
   border-radius:10px;
   padding:10px 12px;
   font-size:14px;
   outline:none;
   background:#7c8696;
-  color:#fff;
+  color:#ffffff;
 }
-
-.common-grid input[readonly]{
-  opacity:0.95;
-}
-
 .work-panel{
   border:1px solid var(--panel-border);
   border-radius:12px;
