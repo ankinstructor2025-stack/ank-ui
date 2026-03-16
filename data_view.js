@@ -373,7 +373,7 @@ async function createKnowledgeJob() {
       detailPre.textContent = "ナレッジ化を実行中です...";
     }
 
-    const res = await fetch(`${API_BASE}/knowledge/jobs`, {
+    const res = await fetch(`${API_BASE}/knowledge/kokkai/jobs`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
