@@ -313,7 +313,7 @@ async function previewKnowledge() {
       }))
     };
 
-    const data = await apiPostJson("/knowledge/jobs", body);
+    const data = await apiPostJson("/knowledge/kokkai/jobs", body);
     const previews = Array.isArray(data?.prompt_previews) ? data.prompt_previews : [];
 
     renderPromptPreviews(previews);
