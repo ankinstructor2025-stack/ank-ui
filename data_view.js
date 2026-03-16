@@ -82,6 +82,36 @@ async function apiGet(path, query = {}) {
   return await res.json();
 }
 
+async function apiPost(path, body = null, query = {}) {
+  const idToken = requireIdToken();
+  const url = buildApiUrl(path, query);
+
+  const headers = {
+    Authorization: `Bearer ${idToken}`
+  };
+
+  if (body !== null) {
+    headers["Content-Type"] = "application/json";
+  }
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers,
+    body: body !== null ? JSON.stringify(body) : undefined
+  });
+
+  if (!res.ok) {
+    let detail = `APIエラー (HTTP ${res.status})`;
+    try {
+      const data = await res.json();
+      if (data && data.detail) detail = data.detail;
+    } catch (_) {}
+    throw new Error(detail);
+  }
+
+  return await res.json();
+}
+
 function getStatusClass(status) {
   const s = String(status || "").toLowerCase();
   if (s === "done") return "status-pill status-done";
@@ -229,6 +259,7 @@ function createViewContext() {
     childTableBody,
     detailPre,
     apiGet,
+    apiPost,
     escapeHtml,
     getStatusClass,
     renderParentPlaceholder,
@@ -258,83 +289,47 @@ async function refreshParentList() {
 }
 
 async function handleSourceChange() {
-  currentSourceKey = sourceSelect ? sourceSelect.value : "";
+  currentSourceKey = sourceSelect?.value || "";
   updateSourceName();
   await refreshParentList();
 }
 
-async function loadSourceMaster() {
-  try {
-    const res = await fetch("./source_master.json", { cache: "no-store" });
-    if (!res.ok) {
-      throw new Error(`HTTP ${res.status}`);
-    }
-
-    const json = await res.json();
-    sourceList = normalizeSourceMaster(json);
-    sourceMap = {};
-
-    sourceList.forEach((item) => {
-      sourceMap[item.key] = item;
-    });
-
-    renderSourceOptions(sourceList);
-    updateSourceName();
-  } catch (e) {
-    console.error(e);
-
-    if (sourceSelect) {
-      sourceSelect.innerHTML =
-        `<option value="" selected disabled>データ種別読込失敗</option>`;
-    }
-
-    if (detailPre) {
-      detailPre.textContent = `データ種別読込失敗: ${e.message}`;
-    }
-  }
-}
-
 function buildKnowledgeResultText(data) {
-  const lines = [];
+  const lines = [
+    `job_id: ${data?.job_id ?? ""}`,
+    `status: ${data?.status ?? ""}`,
+    `selected_count: ${data?.selected_count ?? 0}`,
+    `created_item_count: ${data?.created_item_count ?? 0}`,
+    ""
+  ];
 
-  lines.push(`job_id: ${data?.job_id ?? ""}`);
-  lines.push(`status: ${data?.status ?? ""}`);
-  lines.push(`selected_count: ${data?.selected_count ?? 0}`);
-  lines.push(`created_item_count: ${data?.created_item_count ?? 0}`);
-  lines.push("");
+  const debugItems = Array.isArray(data?.debug_items) ? data.debug_items : [];
+  if (debugItems.length > 0) {
+    lines.push("debug_items:");
+    debugItems.forEach((item, idx) => {
+      lines.push(`- [${idx + 1}] ${item?.parent_label || ""}`);
+      lines.push(`  status: ${item?.status || ""}`);
+      lines.push(`  qa_count: ${item?.qa_count || 0}`);
+      lines.push(`  plain_count: ${item?.plain_count || 0}`);
+      lines.push(`  error_message: ${item?.error_message || ""}`);
+    });
+    lines.push("");
+  }
 
   const previews = Array.isArray(data?.prompt_previews) ? data.prompt_previews : [];
   if (previews.length > 0) {
-    previews.forEach((item, index) => {
-      lines.push(`--- prompt ${index + 1} ---`);
+    lines.push("prompt_previews:");
+    previews.forEach((item, idx) => {
+      lines.push(`--- prompt ${idx + 1} ---`);
+      lines.push(`対象: ${item?.parent_label || item?.parent_source_id || ""}`);
+      lines.push(`job_item_id: ${item?.job_item_id || ""}`);
+      lines.push("");
       lines.push(item?.prompt_text || "");
       lines.push("");
     });
   }
 
-  const debugItems = Array.isArray(data?.debug_items) ? data.debug_items : [];
-  if (debugItems.length > 0) {
-    lines.push("=== debug_items ===");
-    debugItems.forEach((item, index) => {
-      lines.push(`--- debug ${index + 1} ---`);
-      lines.push(`job_item_id: ${item?.job_item_id ?? ""}`);
-      lines.push(`parent_label: ${item?.parent_label ?? ""}`);
-      lines.push(`status: ${item?.status ?? ""}`);
-      lines.push(`qa_count: ${item?.qa_count ?? 0}`);
-      lines.push(`error_message: ${item?.error_message ?? ""}`);
-      if (item?.llm_result !== undefined && item?.llm_result !== null) {
-        lines.push("llm_result:");
-        lines.push(JSON.stringify(item.llm_result, null, 2));
-      }
-      lines.push("");
-    });
-  }
-
-  if (previews.length === 0 && debugItems.length === 0) {
-    lines.push(JSON.stringify(data, null, 2));
-  }
-
-  return lines.join("\n");
+  return lines.join("\n").trim();
 }
 
 async function createKnowledgeJob() {
@@ -345,66 +340,68 @@ async function createKnowledgeJob() {
   }
 
   const checkedRows = module.getCheckedRows();
-
   if (!checkedRows || checkedRows.length === 0) {
     alert("対象を選択してください");
     return;
   }
 
-  const payload = {
-    source_type: "kokkai",
-    source_name: "国会議事録",
-    request_type: "extract_knowledge",
-    preview_only: false,
-    items: checkedRows.map((row) => ({
-      source_type: "kokkai",
-      parent_source_id: row.source_id ?? null,
-      parent_key1: row.name_of_house ?? null,
-      parent_key2: row.name_of_meeting ?? null,
-      parent_label: `${row.name_of_house ?? ""} / ${row.name_of_meeting ?? ""}`,
-      row_count: row.row_count ?? 0
-    }))
-  };
+  const source = sourceMap[currentSourceKey];
+  if (!source || !source.sourceType) {
+    alert("sourceType が判定できません");
+    return;
+  }
 
-  const idToken = requireIdToken();
+  let endpoint = "";
+  let payload = null;
+
+  if (source.sourceType === "kokkai") {
+    endpoint = "/knowledge/kokkai/job";
+    payload = {
+      source_type: "kokkai",
+      source_name: "国会議事録",
+      request_type: "extract_knowledge",
+      preview_only: false,
+      items: checkedRows.map((row) => ({
+        source_type: "kokkai",
+        parent_source_id: row.source_id ?? null,
+        parent_key1: row.name_of_house ?? null,
+        parent_key2: row.name_of_meeting ?? null,
+        parent_label: `${row.name_of_house ?? ""} / ${row.name_of_meeting ?? ""}`,
+        row_count: row.row_count ?? 0
+      }))
+    };
+  } else if (source.sourceType === "opendata") {
+    endpoint = "/knowledge/opendata/job";
+    payload = {
+      source_type: "opendata",
+      source_name: "オープンデータ",
+      request_type: "extract_knowledge",
+      preview_only: false,
+      items: checkedRows.map((row) => ({
+        source_type: "opendata",
+        parent_source_id: row.source_id ?? null,
+        parent_key1: row.dataset_id ?? null,
+        parent_key2: row.ext ?? null,
+        parent_label: row.title || row.dataset_id || row.source_id || "",
+        row_count: row.row_count ?? 0
+      }))
+    };
+  } else {
+    alert("このデータ種別のナレッジ化は未対応です");
+    return;
+  }
 
   try {
     if (detailPre) {
       detailPre.textContent = "ナレッジ化を実行中です...";
     }
 
-    const res = await fetch(`${API_BASE}/knowledge/kokkai/job`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${idToken}`
-      },
-      body: JSON.stringify(payload)
-    });
-
-    const rawText = await res.text();
-
-    let data = null;
-    try {
-      data = rawText ? JSON.parse(rawText) : null;
-    } catch (_) {
-      data = null;
-    }
-
-    if (!res.ok) {
-      const errorText = data ? JSON.stringify(data, null, 2) : rawText;
-      if (detailPre) {
-        detailPre.textContent = errorText || `APIエラー (HTTP ${res.status})`;
-      }
-      alert("ナレッジ化ジョブ作成エラー");
-      return;
-    }
+    const data = await apiPost(endpoint, payload);
+    const previews = Array.isArray(data?.prompt_previews) ? data.prompt_previews : [];
 
     if (detailPre) {
       detailPre.textContent = buildKnowledgeResultText(data || {});
     }
-
-    const previews = Array.isArray(data?.prompt_previews) ? data.prompt_previews : [];
 
     if (contextSummary) {
       contextSummary.textContent = `ナレッジ化: ${data?.status ?? "unknown"}`;
@@ -423,36 +420,70 @@ async function createKnowledgeJob() {
 }
 
 function bindEvents() {
-  if (sourceSelect) {
-    sourceSelect.addEventListener("change", handleSourceChange);
-  }
+  sourceSelect?.addEventListener("change", async () => {
+    try {
+      await handleSourceChange();
+    } catch (e) {
+      console.error(e);
+      renderParentPlaceholder(e.message || "読込に失敗しました");
+      renderChildPlaceholder("親一覧から1件選択してください。");
+      if (detailPre) detailPre.textContent = e.message || "読込に失敗しました";
+    }
+  });
 
-  if (btnReload) {
-    btnReload.addEventListener("click", async () => {
+  btnReload?.addEventListener("click", async () => {
+    try {
       await refreshParentList();
-    });
-  }
+    } catch (e) {
+      console.error(e);
+      renderParentPlaceholder(e.message || "再読込に失敗しました");
+      renderChildPlaceholder("親一覧から1件選択してください。");
+      if (detailPre) detailPre.textContent = e.message || "再読込に失敗しました";
+    }
+  });
 
-  if (btnMenu) {
-    btnMenu.addEventListener("click", () => {
-      window.location.href = "./menu.html";
-    });
-  }
+  btnKnowledge?.addEventListener("click", async () => {
+    try {
+      await createKnowledgeJob();
+    } catch (e) {
+      console.error(e);
+      alert(e.message || "ナレッジ化に失敗しました");
+    }
+  });
 
-  if (btnLogout) {
-    btnLogout.addEventListener("click", () => {
-      sessionStorage.removeItem("idToken");
-      window.location.href = "./index.html";
-    });
-  }
+  btnMenu?.addEventListener("click", () => {
+    window.location.href = "./menu.html";
+  });
 
-  if (btnKnowledge) {
-    btnKnowledge.addEventListener("click", createKnowledgeJob);
-  }
+  btnLogout?.addEventListener("click", () => {
+    sessionStorage.removeItem("idToken");
+    window.location.href = "./index.html";
+  });
+}
+
+async function loadSourceMaster() {
+  const data = await apiGet("/search/source_master");
+  const list = Array.isArray(data?.items) ? data.items : [];
+  sourceList = normalizeSourceMaster(list);
+  sourceMap = {};
+
+  sourceList.forEach((item) => {
+    sourceMap[item.key] = item;
+  });
+
+  renderSourceOptions(sourceList);
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
-  renderInitialScreen();
   bindEvents();
-  await loadSourceMaster();
+  renderInitialScreen();
+
+  try {
+    await loadSourceMaster();
+  } catch (e) {
+    console.error(e);
+    renderParentPlaceholder(e.message || "source master の取得に失敗しました");
+    renderChildPlaceholder("親一覧から1件選択してください。");
+    if (detailPre) detailPre.textContent = e.message || "source master の取得に失敗しました";
+  }
 });
