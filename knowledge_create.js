@@ -1,6 +1,5 @@
 console.log("knowledge_create.js loaded");
 
-const btnReload = document.getElementById("btnReload");
 const btnMenu = document.getElementById("btnMenu");
 const btnLogout = document.getElementById("btnLogout");
 
@@ -405,19 +404,6 @@ async function loadChildRows(jobId) {
 }
 
 function bindEvents() {
-  btnReload?.addEventListener("click", async () => {
-    try {
-      await loadParentRows(selectedParentJobId, true);
-      if (selectedParentJobId) {
-        await loadChildRows(selectedParentJobId);
-        loadDetailFromParent(selectedParentJobId);
-      }
-    } catch (err) {
-      console.error(err);
-      alert(err.message || "再読込に失敗しました");
-    }
-  });
-
   btnMenu?.addEventListener("click", () => {
     window.location.href = "./menu.html";
   });
