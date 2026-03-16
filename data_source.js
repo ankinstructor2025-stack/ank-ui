@@ -186,12 +186,18 @@ function applySelection(key) {
 
 async function loadSourceMaster() {
   try {
-    const res = await fetch("./source_master.json", { cache: "no-store" });
+    const res = await fetch("./source_master.json", {
+      method: "GET",
+      cache: "no-store"
+    });
+
     if (!res.ok) {
-      throw new Error(`HTTP ${res.status}`);
+      throw new Error("source_master.json の取得に失敗しました");
     }
 
-    sourceList = await res.json();
+    const list = await res.json();
+
+    sourceList = Array.isArray(list) ? list : [];
     sourceMap = Object.fromEntries(sourceList.map((item) => [item.key, item]));
     renderSourceOptions(sourceList);
   } catch (e) {
