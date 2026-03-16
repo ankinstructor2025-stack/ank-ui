@@ -462,9 +462,18 @@ function bindEvents() {
 }
 
 async function loadSourceMaster() {
-  const data = await apiGet("/search/source_master");
-  const list = Array.isArray(data?.items) ? data.items : [];
-  sourceList = normalizeSourceMaster(list);
+  const res = await fetch("./source_master.json", {
+    method: "GET",
+    cache: "no-store"
+  });
+
+  if (!res.ok) {
+    throw new Error("source_master.json の取得に失敗しました");
+  }
+
+  const list = await res.json();
+
+  sourceList = normalizeSourceMaster(Array.isArray(list) ? list : []);
   sourceMap = {};
 
   sourceList.forEach((item) => {
