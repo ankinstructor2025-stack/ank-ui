@@ -204,6 +204,7 @@ textarea{
   background:#7c8696;
   color:#ffffff;
 }
+
 .work-panel{
   border:1px solid var(--panel-border);
   border-radius:12px;
@@ -339,6 +340,47 @@ textarea{
   white-space:nowrap;
 }
 
+/* open data dataset row */
+
+.choice-item{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:12px;
+}
+
+.choice-main{
+  flex:1;
+  min-width:0;
+}
+
+.choice-title{
+  font-size:16px;
+  font-weight:400;
+  line-height:1.45;
+  margin:0 0 6px 0;
+  color:#0f172a;
+}
+
+.choice-meta{
+  font-size:13px;
+  color:#475569;
+  line-height:1.6;
+  word-break:break-word;
+}
+
+.choice-actions{
+  display:flex;
+  align-items:flex-start;
+  justify-content:flex-end;
+  gap:8px;
+  flex-shrink:0;
+}
+
+.choice-actions .btn{
+  white-space:nowrap;
+}
+
 @media (max-width: 980px){
   .common-grid{
     grid-template-columns:1fr;
@@ -358,6 +400,14 @@ textarea{
   }
 
   .dataset-actions{
+    justify-content:flex-start;
+  }
+
+  .choice-item{
+    flex-direction:column;
+  }
+
+  .choice-actions{
     justify-content:flex-start;
   }
 }
