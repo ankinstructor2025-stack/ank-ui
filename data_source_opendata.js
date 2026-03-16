@@ -47,52 +47,30 @@ console.log("data_source_opendata.js loaded");
       const rowCount = item.row_count ?? "-";
 
       return `
-        <div
-          class="choice-item"
-          style="
-            display:flex;
-            justify-content:space-between;
-            align-items:flex-start;
-            gap:12px;
-            margin-bottom:10px;
-          "
-        >
-          <div
-            class="choice-main"
-            style="
-              flex:1;
-              min-width:0;
-            "
-          >
-            <div class="choice-title">${escapeHtml(item.title)}</div>
-            <div class="choice-meta">
-              dataset_id: ${escapeHtml(item.dataset_id)}, ext: ${escapeHtml(ext)}, status: ${escapeHtml(status)}, rows: ${escapeHtml(rowCount)}
-            </div>
+        <div class="choice-row">
+          <div class="choice-text">
+            ${escapeHtml(item.title)}
+            &nbsp;&nbsp;
+            dataset_id: ${escapeHtml(item.dataset_id)},
+            ext: ${escapeHtml(ext)},
+            status: ${escapeHtml(status)},
+            rows: ${escapeHtml(rowCount)}
           </div>
-          <div
-            class="choice-actions"
-            style="
-              flex-shrink:0;
-              display:flex;
-              align-items:flex-start;
-            "
-          >
-            ${
-              done
-                ? ``
-                : `
-                  <button
-                    type="button"
-                    class="btn btn-primary btn-dataset-expand"
-                    data-dataset-id="${escapeHtml(item.dataset_id)}"
-                    data-dataset-title="${escapeHtml(item.title)}"
-                    style="white-space:nowrap;"
-                  >
-                    分解
-                  </button>
-                `
-            }
-          </div>
+
+          ${
+            done
+              ? ``
+              : `
+              <button
+                type="button"
+                class="btn btn-primary btn-dataset-expand"
+                data-dataset-id="${escapeHtml(item.dataset_id)}"
+                data-dataset-title="${escapeHtml(item.title)}"
+              >
+                分解
+              </button>
+            `
+      }
         </div>
       `;
     }).join("");
