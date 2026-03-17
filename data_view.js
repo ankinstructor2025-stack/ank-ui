@@ -492,16 +492,20 @@ async function pollOpedataJobStatus(jobId) {
       detailPre.textContent = buildStatusResultText(data);
     }
 
-    if (contextSummary) {
-      contextSummary.textContent = `ナレッジ化: ${data?.status ?? "unknown"} (${attempt})`;
-    }
-
     const items = Array.isArray(data?.items) ? data.items : [];
+    const total = items.length;
     const doneCount = items.filter((x) => isTerminalJobStatus(x?.status)).length;
+    const runningCount = items.filter((x) => String(x?.status || "").toLowerCase() === "running").length;
+    const queuedCount = items.filter((x) => String(x?.status || "").toLowerCase() === "queued").length;
+    const remaining = Math.max(0, total - doneCount);
+
+    if (contextSummary) {
+      contextSummary.textContent = `ナレッジ化: ${data?.status ?? "unknown"}（試行 ${attempt}）`;
+    }
 
     if (selectionSummary) {
       selectionSummary.textContent =
-        `選択 ${data?.selected_count ?? 0} 件 / 完了 ${doneCount} / ${items.length}`;
+        `完了 ${doneCount} / ${total}（残り ${remaining}｜実行中 ${runningCount}｜待機 ${queuedCount}）`;
     }
 
     if (isTerminalJobStatus(data?.status)) {
@@ -634,7 +638,7 @@ async function createKnowledgeJob() {
       } else if (statusData && String(statusData.status || "").toLowerCase() === "error") {
         alert("ナレッジ化でエラーが発生しました");
       } else {
-        alert("ナレッジ化の状態確認がタイムアウトしました");
+        alert("処理は継続中の可能性があります。画面を更新して再確認してください。");
       }
 
       return;
