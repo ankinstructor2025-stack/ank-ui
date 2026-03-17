@@ -3,6 +3,9 @@ console.log("data_view_opendata.js loaded");
 window.DataViewOpenData = (() => {
 
 let currentParentRows = [];
+let currentChildRows = [];
+let selectedParentIndex = -1;
+let selectedChildIndex = -1;
 let checkedParentIndexes = new Set();
 let ctx = null;
 
@@ -13,6 +16,66 @@ function formatParentLabel(row) {
     row?.source_id ||
     "(名称なし)"
   );
+}
+
+function formatChildTitle(row) {
+  return (
+    row?.resource_name ||
+    row?.source_item_id ||
+    row?.row_index ||
+    "(名称なし)"
+  );
+}
+
+function parseRowContent(row) {
+  const raw = row?.content || row?.text || row?.body || row?.detail || "";
+
+  if (row?.data && typeof row.data === "object") {
+    return row.data;
+  }
+
+  if (typeof raw === "object" && raw !== null) {
+    return raw;
+  }
+
+  if (typeof raw === "string" && raw.trim()) {
+    try {
+      return JSON.parse(raw);
+    } catch (_) {
+      return raw;
+    }
+  }
+
+  return raw;
+}
+
+function formatChildContent(row) {
+  const parsed = parseRowContent(row);
+
+  if (parsed && typeof parsed === "object") {
+    if (parsed.data && typeof parsed.data === "object") {
+      try {
+        return JSON.stringify(parsed.data, null, 2);
+      } catch (_) {}
+    }
+
+    try {
+      return JSON.stringify(parsed, null, 2);
+    } catch (_) {
+      return String(parsed);
+    }
+  }
+
+  return String(parsed || "");
+}
+
+function extractRowsFromResponse(data) {
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data.rows)) return data.rows;
+  if (Array.isArray(data.items)) return data.items;
+  if (Array.isArray(data.children)) return data.children;
+  if (Array.isArray(data.results)) return data.results;
+  return [];
 }
 
 function updateCheckedSummary() {
@@ -57,7 +120,10 @@ function bindParentCheckboxEvents() {
   });
 }
 
-function clearChildArea(message = "オープンデータは一覧表示のみです。") {
+function clearChildArea(message = "親一覧から1件選択してください。") {
+  currentChildRows = [];
+  selectedChildIndex = -1;
+
   if (ctx.childTableHead) {
     ctx.childTableHead.innerHTML = "";
   }
@@ -71,17 +137,190 @@ function clearChildArea(message = "オープンデータは一覧表示のみで
   }
 }
 
+function renderDetailFromChild(row, parentRow) {
+  const parsed = parseRowContent(row);
+  const lines = [
+    `dataset: ${formatParentLabel(parentRow)}`,
+    `dataset_id: ${parentRow?.dataset_id ?? parentRow?.source_item_id ?? ""}`,
+    `source_id: ${parentRow?.source_id ?? ""}`,
+    `row_index: ${row?.row_index ?? ""}`,
+    `source_item_id: ${row?.source_item_id ?? ""}`,
+    ""
+  ];
+
+  if (parsed && typeof parsed === "object") {
+    try {
+      lines.push(JSON.stringify(parsed, null, 2));
+    } catch (_) {
+      lines.push(String(parsed));
+    }
+  } else {
+    lines.push(formatChildContent(row) || formatChildTitle(row) || "詳細データがありません。");
+  }
+
+  if (ctx.detailPre) {
+    ctx.detailPre.textContent = lines.join("\n");
+  }
+}
+
+function setSelectedParentRow(index) {
+  selectedParentIndex = index;
+
+  const rows = ctx.parentTableBody.querySelectorAll(".parent-row");
+  rows.forEach((el, i) => {
+    el.classList.toggle("selected-row", i === index);
+  });
+}
+
+function setSelectedChildRow(index) {
+  selectedChildIndex = index;
+
+  const rows = ctx.childTableBody.querySelectorAll(".child-row");
+  rows.forEach((el, i) => {
+    el.classList.toggle("selected-row", i === index);
+  });
+}
+
+function bindChildRowEvents() {
+  const rows = ctx.childTableBody.querySelectorAll(".child-row");
+
+  rows.forEach((tr) => {
+    tr.addEventListener("click", () => {
+      const index = Number(tr.dataset.index || "-1");
+      const row = currentChildRows[index];
+      const parentRow = currentParentRows[selectedParentIndex];
+
+      if (!row) return;
+
+      setSelectedChildRow(index);
+      renderDetailFromChild(row, parentRow);
+    });
+  });
+}
+
+function renderChildTable(rows, parentRow) {
+  currentChildRows = Array.isArray(rows) ? rows : [];
+  selectedChildIndex = -1;
+
+  if (!Array.isArray(rows) || rows.length === 0) {
+    clearChildArea("子データがありません。");
+
+    if (ctx.contextSummary) {
+      ctx.contextSummary.textContent = `子一覧: ${formatParentLabel(parentRow)}`;
+    }
+
+    if (ctx.detailPre) {
+      ctx.detailPre.textContent = `選択中: ${formatParentLabel(parentRow)}\n子データがありません。`;
+    }
+
+    return;
+  }
+
+  ctx.childTableHead.innerHTML = `
+    <tr>
+      <th class="narrow-cell">行</th>
+      <th>内容</th>
+    </tr>
+  `;
+
+  ctx.childTableBody.innerHTML = rows.map((row, index) => {
+    const rowNo = row.row_index ?? index + 1;
+    const title = formatChildTitle(row);
+    const content = formatChildContent(row);
+    const preview = content ? String(content).replace(/\s+/g, " ").slice(0, 80) : title;
+
+    return `
+      <tr class="clickable-row child-row" data-index="${index}">
+        <td>${ctx.escapeHtml(rowNo)}</td>
+        <td>${ctx.escapeHtml(preview)}</td>
+      </tr>
+    `;
+  }).join("");
+
+  bindChildRowEvents();
+
+  if (ctx.contextSummary) {
+    ctx.contextSummary.textContent = `子一覧: ${formatParentLabel(parentRow)}`;
+  }
+
+  if (ctx.detailPre) {
+    ctx.detailPre.textContent = `選択中: ${formatParentLabel(parentRow)}\n子一覧を表示しました。`;
+  }
+}
+
+async function loadChildren(parentRow) {
+  const sourceId = parentRow?.source_id;
+
+  if (!sourceId) {
+    throw new Error("source_id がありません。");
+  }
+
+  const data = await ctx.apiGet("/row_data/rows", {
+    source_type: "opendata",
+    file_id: sourceId
+  });
+
+  const rows = extractRowsFromResponse(data);
+
+  if (!Array.isArray(rows)) {
+    throw new Error("子一覧データの形式が不正です。");
+  }
+
+  return rows;
+}
+
+function bindParentRowEvents() {
+  const rows = ctx.parentTableBody.querySelectorAll(".parent-row");
+
+  rows.forEach((tr) => {
+    tr.addEventListener("click", async (event) => {
+      if (event.target.closest(".parent-check")) {
+        return;
+      }
+
+      const index = Number(tr.dataset.index || "-1");
+      const row = currentParentRows[index];
+
+      if (!row) return;
+
+      setSelectedParentRow(index);
+      clearChildArea("子一覧を読み込み中です...");
+
+      if (ctx.contextSummary) {
+        ctx.contextSummary.textContent = `子一覧: ${formatParentLabel(row)}`;
+      }
+
+      if (ctx.detailPre) {
+        ctx.detailPre.textContent =
+          `選択中: ${formatParentLabel(row)}\n子一覧を読み込み中です...`;
+      }
+
+      try {
+        const children = await loadChildren(row);
+        renderChildTable(children, row);
+      } catch (e) {
+        console.error(e);
+        clearChildArea(e.message || "子一覧の読み込みに失敗しました。");
+        if (ctx.detailPre) {
+          ctx.detailPre.textContent = e.message || "子一覧の読み込みに失敗しました。";
+        }
+      }
+    });
+  });
+}
+
 function renderParentTable(rows) {
-  const filteredRows = (Array.isArray(rows) ? rows : []).filter(
-    (row) => String(row?.status || "").toLowerCase() === "done"
-  );
+  const filteredRows = Array.isArray(rows) ? rows : [];
 
   currentParentRows = filteredRows;
+  currentChildRows = [];
+  selectedParentIndex = -1;
+  selectedChildIndex = -1;
   checkedParentIndexes = new Set();
 
   if (filteredRows.length === 0) {
     ctx.renderParentPlaceholder("データがありません。");
-    clearChildArea("オープンデータは一覧表示のみです。");
+    clearChildArea("親一覧から1件選択してください。");
 
     if (ctx.summaryText) ctx.summaryText.textContent = "0 件";
     if (ctx.contextSummary) ctx.contextSummary.textContent = "親一覧: オープンデータ";
@@ -102,7 +341,7 @@ function renderParentTable(rows) {
 
   ctx.parentTableBody.innerHTML = filteredRows.map((row, index) => {
     return `
-      <tr data-index="${index}">
+      <tr class="clickable-row parent-row" data-index="${index}">
         <td class="checkbox-cell">
           <input
             type="checkbox"
@@ -118,15 +357,14 @@ function renderParentTable(rows) {
   }).join("");
 
   bindParentCheckboxEvents();
+  bindParentRowEvents();
   syncParentCheckboxUi();
 
-  clearChildArea("オープンデータは一覧表示のみです。");
+  clearChildArea("親一覧から1件選択してください。");
 
   if (ctx.summaryText) ctx.summaryText.textContent = `${filteredRows.length} 件`;
   if (ctx.contextSummary) ctx.contextSummary.textContent = "親一覧: オープンデータ";
-  if (ctx.detailPre) {
-    ctx.detailPre.textContent = "オープンデータはテーブル参照のみです。外部サイトへの再取得は行いません。";
-  }
+  if (ctx.detailPre) ctx.detailPre.textContent = "親一覧を表示しました。";
 
   updateCheckedSummary();
 }
@@ -135,9 +373,12 @@ async function load(viewContext) {
   ctx = viewContext;
 
   currentParentRows = [];
+  currentChildRows = [];
+  selectedParentIndex = -1;
+  selectedChildIndex = -1;
   checkedParentIndexes = new Set();
 
-  clearChildArea("オープンデータは一覧表示のみです。");
+  clearChildArea("親一覧から1件選択してください。");
 
   try {
     ctx.renderParentPlaceholder("親一覧を読み込み中です...");
@@ -152,11 +393,11 @@ async function load(viewContext) {
     renderParentTable(rows);
   } catch (e) {
     console.error(e);
-    ctx.renderParentPlaceholder(e.message);
-    clearChildArea("オープンデータは一覧表示のみです。");
+    ctx.renderParentPlaceholder(e.message || "親一覧の読み込みに失敗しました。");
+    clearChildArea("親一覧から1件選択してください。");
 
     if (ctx.detailPre) {
-      ctx.detailPre.textContent = e.message;
+      ctx.detailPre.textContent = e.message || "親一覧の読み込みに失敗しました。";
     }
   }
 }
