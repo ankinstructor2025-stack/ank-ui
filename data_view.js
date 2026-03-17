@@ -24,6 +24,7 @@ const API_BASE = "https://ank-api-986862757498.asia-northeast1.run.app/v1";
 let sourceList = [];
 let sourceMap = {};
 let currentSourceKey = "";
+let knowledgeRunning = false;
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -59,6 +60,28 @@ function buildApiUrl(path, query = {}) {
   return url.toString();
 }
 
+async function readErrorDetail(res) {
+  let detail = `APIエラー (HTTP ${res.status})`;
+
+  try {
+    const contentType = res.headers.get("content-type") || "";
+
+    if (contentType.includes("application/json")) {
+      const data = await res.json();
+      if (data && data.detail) {
+        detail = data.detail;
+      }
+    } else {
+      const text = await res.text();
+      if (text) {
+        detail = text;
+      }
+    }
+  } catch (_) {}
+
+  return detail;
+}
+
 async function apiGet(path, query = {}) {
   const idToken = requireIdToken();
   const url = buildApiUrl(path, query);
@@ -71,12 +94,7 @@ async function apiGet(path, query = {}) {
   });
 
   if (!res.ok) {
-    let detail = `APIエラー (HTTP ${res.status})`;
-    try {
-      const data = await res.json();
-      if (data && data.detail) detail = data.detail;
-    } catch (_) {}
-    throw new Error(detail);
+    throw new Error(await readErrorDetail(res));
   }
 
   return await res.json();
@@ -101,15 +119,31 @@ async function apiPost(path, body = null, query = {}) {
   });
 
   if (!res.ok) {
-    let detail = `APIエラー (HTTP ${res.status})`;
-    try {
-      const data = await res.json();
-      if (data && data.detail) detail = data.detail;
-    } catch (_) {}
-    throw new Error(detail);
+    throw new Error(await readErrorDetail(res));
   }
 
   return await res.json();
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function setKnowledgeBusy(isBusy) {
+  knowledgeRunning = isBusy;
+
+  if (btnKnowledge) {
+    btnKnowledge.disabled = isBusy;
+    btnKnowledge.textContent = isBusy ? "ナレッジ化 実行中..." : "選択対象をナレッジ化";
+  }
+
+  if (btnReload) {
+    btnReload.disabled = isBusy;
+  }
+
+  if (sourceSelect) {
+    sourceSelect.disabled = isBusy;
+  }
 }
 
 function getStatusClass(status) {
@@ -332,7 +366,95 @@ function buildKnowledgeResultText(data) {
   return lines.join("\n").trim();
 }
 
+function buildStatusResultText(data) {
+  const lines = [
+    `job_id: ${data?.job_id ?? ""}`,
+    `status: ${data?.status ?? ""}`,
+    `selected_count: ${data?.selected_count ?? 0}`,
+    `qa_count: ${data?.qa_count ?? 0}`,
+    `plain_count: ${data?.plain_count ?? 0}`,
+    `error_count: ${data?.error_count ?? 0}`,
+    `requested_at: ${data?.requested_at ?? ""}`,
+    `started_at: ${data?.started_at ?? ""}`,
+    `finished_at: ${data?.finished_at ?? ""}`,
+    `error_message: ${data?.error_message ?? ""}`,
+    ""
+  ];
+
+  const items = Array.isArray(data?.items) ? data.items : [];
+  if (items.length > 0) {
+    lines.push("items:");
+    items.forEach((item, idx) => {
+      lines.push(`- [${idx + 1}] ${item?.parent_label || item?.parent_source_id || ""}`);
+      lines.push(`  job_item_id: ${item?.job_item_id || ""}`);
+      lines.push(`  status: ${item?.status || ""}`);
+      lines.push(`  knowledge_count: ${item?.knowledge_count || 0}`);
+      lines.push(`  row_count: ${item?.row_count || 0}`);
+      lines.push(`  started_at: ${item?.started_at || ""}`);
+      lines.push(`  finished_at: ${item?.finished_at || ""}`);
+      lines.push(`  error_message: ${item?.error_message || ""}`);
+    });
+  }
+
+  return lines.join("\n").trim();
+}
+
+function isTerminalJobStatus(status) {
+  const s = String(status || "").toLowerCase();
+  return s === "ready" || s === "partial_error" || s === "error" || s === "preview";
+}
+
+async function pollOpedataJobStatus(jobId, options = {}) {
+  const intervalMs = options.intervalMs || 3000;
+  const maxAttempts = options.maxAttempts || 120;
+
+  let lastData = null;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    const data = await apiGet("/knowledge/opendata/status", { job_id: jobId });
+    lastData = data;
+
+    if (detailPre) {
+      detailPre.textContent = buildStatusResultText(data);
+    }
+
+    if (contextSummary) {
+      contextSummary.textContent = `ナレッジ化: ${data?.status ?? "unknown"} (${attempt})`;
+    }
+
+    const items = Array.isArray(data?.items) ? data.items : [];
+    const doneCount = items.filter((x) => isTerminalJobStatus(x?.status)).length;
+
+    if (selectionSummary) {
+      selectionSummary.textContent =
+        `選択 ${data?.selected_count ?? 0} 件 / 完了 ${doneCount} / ${items.length}`;
+    }
+
+    if (isTerminalJobStatus(data?.status)) {
+      return data;
+    }
+
+    await sleep(intervalMs);
+  }
+
+  return lastData;
+}
+
+function fireAndForgetRunOpedataJob(jobId) {
+  apiPost("/knowledge/opendata/run", { job_id: jobId })
+    .then((data) => {
+      console.log("run_opendata_job finished", data);
+    })
+    .catch((e) => {
+      console.error("run_opendata_job failed", e);
+    });
+}
+
 async function createKnowledgeJob() {
+  if (knowledgeRunning) {
+    return;
+  }
+
   const module = getCurrentModule();
   if (!module || typeof module.getCheckedRows !== "function") {
     alert("対象取得に失敗しました");
@@ -392,8 +514,59 @@ async function createKnowledgeJob() {
   }
 
   try {
+    setKnowledgeBusy(true);
+
     if (detailPre) {
-      detailPre.textContent = "ナレッジ化を実行中です...";
+      detailPre.textContent = "ナレッジ化ジョブを作成中です...";
+    }
+
+    if (source.sourceType === "opendata") {
+      const jobData = await apiPost(endpoint, payload);
+      const jobId = jobData?.job_id;
+
+      if (!jobId) {
+        throw new Error("job_id が取得できませんでした");
+      }
+
+      if (detailPre) {
+        detailPre.textContent =
+          `ジョブを作成しました。\n\n${buildKnowledgeResultText(jobData || {})}\n\nバックグラウンド実行を開始します...`;
+      }
+
+      if (contextSummary) {
+        contextSummary.textContent = `ナレッジ化: ${jobData?.status ?? "queued"}`;
+      }
+
+      if (selectionSummary) {
+        selectionSummary.textContent = `選択 ${checkedRows.length} 件 / job作成済`;
+      }
+
+      fireAndForgetRunOpedataJob(jobId);
+
+      const statusData = await pollOpedataJobStatus(jobId, {
+        intervalMs: 3000,
+        maxAttempts: 120
+      });
+
+      if (detailPre) {
+        detailPre.textContent = buildStatusResultText(statusData || {});
+      }
+
+      if (contextSummary) {
+        contextSummary.textContent = `ナレッジ化: ${statusData?.status ?? "unknown"}`;
+      }
+
+      if (statusData && String(statusData.status || "").toLowerCase() === "ready") {
+        alert("ナレッジ化が完了しました");
+      } else if (statusData && String(statusData.status || "").toLowerCase() === "partial_error") {
+        alert("ナレッジ化は完了しましたが、一部エラーがあります");
+      } else if (statusData && String(statusData.status || "").toLowerCase() === "error") {
+        alert("ナレッジ化でエラーが発生しました");
+      } else {
+        alert("ナレッジ化の状態確認がタイムアウトしました");
+      }
+
+      return;
     }
 
     const data = await apiPost(endpoint, payload);
@@ -410,12 +583,15 @@ async function createKnowledgeJob() {
     if (selectionSummary) {
       selectionSummary.textContent = `選択 ${checkedRows.length} 件 / prompt ${previews.length} 件`;
     }
+
   } catch (e) {
     console.error(e);
     if (detailPre) {
       detailPre.textContent = e.message || "ナレッジ化処理でエラーが発生しました。";
     }
     alert("ナレッジ化処理でエラーが発生しました");
+  } finally {
+    setKnowledgeBusy(false);
   }
 }
 
