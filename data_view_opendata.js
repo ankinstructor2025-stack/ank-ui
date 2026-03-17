@@ -310,7 +310,9 @@ function bindParentRowEvents() {
 }
 
 function renderParentTable(rows) {
-  const filteredRows = Array.isArray(rows) ? rows : [];
+  const filteredRows = (Array.isArray(rows) ? rows : []).filter(
+    (row) => String(row?.status || "").toLowerCase() === "done"
+  );
 
   currentParentRows = filteredRows;
   currentChildRows = [];
