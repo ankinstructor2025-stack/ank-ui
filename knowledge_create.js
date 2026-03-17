@@ -4,23 +4,14 @@ const btnMenu = document.getElementById("btnMenu");
 const btnLogout = document.getElementById("btnLogout");
 
 const summaryText = document.getElementById("summaryText");
-const selectionSummary = document.getElementById("selectionSummary");
 const contextSummary = document.getElementById("contextSummary");
 
 const parentTableHead = document.getElementById("parentTableHead");
 const parentTableBody = document.getElementById("parentTableBody");
 
-const childTableHead = document.getElementById("childTableHead");
-const childTableBody = document.getElementById("childTableBody");
-
-const detailPre = document.getElementById("detailPre");
-
 const API_BASE = "https://ank-api-986862757498.asia-northeast1.run.app/v1";
 
 let parentRows = [];
-let childRows = [];
-let selectedParentJobId = "";
-let selectedChildJobItemId = "";
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -100,37 +91,11 @@ function renderParentPlaceholder(message) {
   `;
 }
 
-function renderChildPlaceholder(message) {
-  childTableHead.innerHTML = `<tr><th>message</th></tr>`;
-  childTableBody.innerHTML = `
-    <tr>
-      <td>${escapeHtml(message)}</td>
-    </tr>
-  `;
-}
-
-function clearChildAndDetailForParent() {
-  childRows = [];
-  selectedChildJobItemId = "";
-  selectionSummary.textContent = "子 0 件";
-  renderChildPlaceholder("親を選択してください。");
-  detailPre.textContent = "親一覧から1件選択してください";
-}
-
 function resetScreen() {
   renderParentPlaceholder("親一覧を読み込み中です...");
-  renderChildPlaceholder("親を選択してください。");
-
   summaryText.textContent = "0 件";
-  selectionSummary.textContent = "子 0 件";
   contextSummary.textContent = "親一覧";
-
-  detailPre.textContent = "親一覧を読み込み中です...";
-
   parentRows = [];
-  childRows = [];
-  selectedParentJobId = "";
-  selectedChildJobItemId = "";
 }
 
 function getNextAction(status) {
@@ -186,21 +151,12 @@ async function executeParentAction(jobId, actionName, buttonEl) {
 
   try {
     await apiPost(path);
-    await reloadAfterAction(jobId);
+    await loadParentRows();
   } finally {
     if (buttonEl) {
       buttonEl.disabled = false;
       buttonEl.textContent = originalText;
     }
-  }
-}
-
-async function reloadAfterAction(jobId) {
-  await loadParentRows(jobId);
-
-  if (jobId) {
-    await loadChildRows(jobId);
-    loadDetailFromParent(jobId);
   }
 }
 
@@ -234,13 +190,8 @@ function renderParentTable(rows) {
            >${escapeHtml(action.label)}</button>`
         : "-";
 
-      const rowClass =
-        row.job_id === selectedParentJobId
-          ? "clickable-row selected-row"
-          : "clickable-row";
-
       return `
-        <tr class="${rowClass}" data-job-id="${escapeHtml(row.job_id)}">
+        <tr>
           <td>${escapeHtml(row.source_type)}</td>
           <td>${escapeHtml(row.status)}</td>
           <td>${escapeHtml(row.selected_count)}</td>
@@ -251,17 +202,6 @@ function renderParentTable(rows) {
       `;
     })
     .join("");
-
-  parentTableBody.querySelectorAll("tr[data-job-id]").forEach((tr) => {
-    tr.addEventListener("click", async () => {
-      selectedParentJobId = tr.dataset.jobId || "";
-      selectedChildJobItemId = "";
-
-      renderParentTable(parentRows);
-      await loadChildRows(selectedParentJobId);
-      loadDetailFromParent(selectedParentJobId);
-    });
-  });
 
   parentTableBody.querySelectorAll(".parent-action-btn").forEach((btn) => {
     btn.addEventListener("click", async (e) => {
@@ -280,97 +220,8 @@ function renderParentTable(rows) {
   });
 }
 
-function renderChildTable(rows) {
-  childTableHead.innerHTML = `
-    <tr>
-      <th>status</th>
-      <th>title</th>
-      <th>source_item_id</th>
-    </tr>
-  `;
-
-  if (!rows.length) {
-    renderChildPlaceholder("子データがありません");
-    return;
-  }
-
-  childTableBody.innerHTML = rows
-    .map((row) => {
-      const rowClass =
-        row.job_item_id === selectedChildJobItemId
-          ? "clickable-row selected-row"
-          : "clickable-row";
-
-      return `
-        <tr class="${rowClass}" data-job-item-id="${escapeHtml(row.job_item_id)}">
-          <td>${escapeHtml(row.status)}</td>
-          <td>${escapeHtml(row.title)}</td>
-          <td>${escapeHtml(row.source_item_id)}</td>
-        </tr>
-      `;
-    })
-    .join("");
-
-  childTableBody.querySelectorAll("tr[data-job-item-id]").forEach((tr) => {
-    tr.addEventListener("click", () => {
-      selectedChildJobItemId = tr.dataset.jobItemId || "";
-      renderChildTable(childRows);
-      loadDetailFromChild(selectedChildJobItemId);
-    });
-  });
-}
-
-function buildParentDetailText(row) {
-  return `
-job_id: ${row.job_id}
-source_type: ${row.source_type}
-source_name: ${row.source_name}
-request_type: ${row.request_type}
-status: ${row.status}
-selected_count: ${row.selected_count}
-qa_count: ${row.qa_count}
-plain_count: ${row.plain_count}
-error_count: ${row.error_count}
-requested_at: ${row.requested_at}
-started_at: ${row.started_at}
-finished_at: ${row.finished_at}
-error_message: ${row.error_message}
-`.trim();
-}
-
-function buildChildDetailText(row) {
-  return `
-job_item_id: ${row.job_item_id}
-job_id: ${row.job_id}
-source_item_id: ${row.source_item_id}
-title: ${row.title}
-status: ${row.status}
-qa_count: ${row.qa_count}
-plain_count: ${row.plain_count}
-error_count: ${row.error_count}
-error_message: ${row.error_message}
-requested_at: ${row.requested_at}
-started_at: ${row.started_at}
-finished_at: ${row.finished_at}
-`.trim();
-}
-
-function loadDetailFromParent(jobId) {
-  const row = parentRows.find((x) => x.job_id === jobId);
-  if (!row) return;
-  detailPre.textContent = buildParentDetailText(row);
-}
-
-function loadDetailFromChild(jobItemId) {
-  const row = childRows.find((x) => x.job_item_id === jobItemId);
-  if (!row) return;
-  detailPre.textContent = buildChildDetailText(row);
-}
-
-async function loadParentRows(preferredJobId = "", keepScreen = false) {
-  if (!keepScreen) {
-    resetScreen();
-  }
+async function loadParentRows() {
+  resetScreen();
 
   const data = await apiGet("/knowledge/refine/jobs");
   parentRows = Array.isArray(data.jobs) ? data.jobs : [];
@@ -378,29 +229,7 @@ async function loadParentRows(preferredJobId = "", keepScreen = false) {
   summaryText.textContent = `${parentRows.length} 件`;
   contextSummary.textContent = "親一覧: knowledge_jobs";
 
-  if (preferredJobId && parentRows.some((x) => x.job_id === preferredJobId)) {
-    selectedParentJobId = preferredJobId;
-  } else if (selectedParentJobId && !parentRows.some((x) => x.job_id === selectedParentJobId)) {
-    selectedParentJobId = "";
-  }
-
   renderParentTable(parentRows);
-
-  if (selectedParentJobId) {
-    loadDetailFromParent(selectedParentJobId);
-  } else {
-    clearChildAndDetailForParent();
-  }
-}
-
-async function loadChildRows(jobId) {
-  renderChildPlaceholder("子一覧を読み込み中です...");
-
-  const data = await apiGet(`/knowledge/refine/jobs/${jobId}/items`);
-  childRows = Array.isArray(data.items) ? data.items : [];
-
-  selectionSummary.textContent = `子 ${childRows.length} 件`;
-  renderChildTable(childRows);
 }
 
 function bindEvents() {
@@ -422,7 +251,5 @@ document.addEventListener("DOMContentLoaded", async () => {
   } catch (err) {
     console.error(err);
     renderParentPlaceholder(err.message || "親一覧の読み込みに失敗しました");
-    renderChildPlaceholder("親を選択してください。");
-    detailPre.textContent = err.message || "親一覧の読み込みに失敗しました";
   }
 });
