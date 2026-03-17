@@ -71,7 +71,9 @@ console.log("data_source_opendata.js loaded");
           </div>
 
           <div class="choice-meta-line">
-            種別: ${escapeHtml(ext)} ／ 件数: ${escapeHtml(rowCount)} ／ 状態: ${escapeHtml(status)}
+            <span class="choice-meta-chip">${escapeHtml(ext)}</span>
+            <span class="choice-meta-chip">${escapeHtml(rowCount)}件</span>
+            <span class="choice-meta-chip">${escapeHtml(status)}</span>
           </div>
 
           <div class="choice-button-line">
