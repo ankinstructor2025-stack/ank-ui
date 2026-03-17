@@ -31,6 +31,24 @@ console.log("data_source_opendata.js loaded");
     }
   }
 
+  function formatExt(ext) {
+    const v = String(ext ?? "").trim();
+    return v ? v.toUpperCase() : "-";
+  }
+
+  function formatRowCount(rowCount) {
+    if (rowCount === null || rowCount === undefined || rowCount === "") {
+      return "-";
+    }
+    return String(rowCount);
+  }
+
+  function formatStatus(status) {
+    const v = String(status ?? "").trim().toLowerCase();
+    if (!v) return "new";
+    return v;
+  }
+
   function renderDatasets(items, handlers, writeLog) {
     const wrap = getDatasetListEl();
     if (!wrap) return;
@@ -41,9 +59,10 @@ console.log("data_source_opendata.js loaded");
     }
 
     wrap.innerHTML = items.map((item) => {
-      const status = item.status || "new";
+      const status = formatStatus(item.status);
       const done = status === "done";
-      const rowCount = item.row_count ?? "-";
+      const rowCount = formatRowCount(item.row_count);
+      const ext = formatExt(item.ext);
 
       return `
         <div class="choice-row">
@@ -52,7 +71,7 @@ console.log("data_source_opendata.js loaded");
           </div>
 
           <div class="choice-meta-line">
-            rows: ${escapeHtml(rowCount)}
+            種別: ${escapeHtml(ext)} ／ 件数: ${escapeHtml(rowCount)} ／ 状態: ${escapeHtml(status)}
           </div>
 
           <div class="choice-button-line">
