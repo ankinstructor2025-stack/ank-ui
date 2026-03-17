@@ -21,10 +21,20 @@ const detailPre = document.getElementById("detailPre");
 
 const API_BASE = "https://ank-api-986862757498.asia-northeast1.run.app/v1";
 
+const DEFAULT_POLLING_CONFIG = {
+  initial_interval_ms: 5000,
+  normal_interval_ms: 10000,
+  long_interval_ms: 15000,
+  long_after_count: 6,
+  very_long_after_count: 18,
+  max_attempts: 120
+};
+
 let sourceList = [];
 let sourceMap = {};
 let currentSourceKey = "";
 let knowledgeRunning = false;
+let pollingConfig = { ...DEFAULT_POLLING_CONFIG };
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -404,10 +414,18 @@ function isTerminalJobStatus(status) {
   return s === "ready" || s === "partial_error" || s === "error" || s === "preview";
 }
 
-async function pollOpedataJobStatus(jobId, options = {}) {
-  const intervalMs = options.intervalMs || 3000;
-  const maxAttempts = options.maxAttempts || 120;
+function getPollingIntervalMs(attempt) {
+  if (attempt > pollingConfig.very_long_after_count) {
+    return pollingConfig.long_interval_ms;
+  }
+  if (attempt > pollingConfig.long_after_count) {
+    return pollingConfig.normal_interval_ms;
+  }
+  return pollingConfig.initial_interval_ms;
+}
 
+async function pollOpedataJobStatus(jobId) {
+  const maxAttempts = pollingConfig.max_attempts || DEFAULT_POLLING_CONFIG.max_attempts;
   let lastData = null;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
@@ -434,7 +452,7 @@ async function pollOpedataJobStatus(jobId, options = {}) {
       return data;
     }
 
-    await sleep(intervalMs);
+    await sleep(getPollingIntervalMs(attempt));
   }
 
   return lastData;
@@ -543,10 +561,7 @@ async function createKnowledgeJob() {
 
       fireAndForgetRunOpedataJob(jobId);
 
-      const statusData = await pollOpedataJobStatus(jobId, {
-        intervalMs: 3000,
-        maxAttempts: 120
-      });
+      const statusData = await pollOpedataJobStatus(jobId);
 
       if (detailPre) {
         detailPre.textContent = buildStatusResultText(statusData || {});
@@ -659,11 +674,41 @@ async function loadSourceMaster() {
   renderSourceOptions(sourceList);
 }
 
+async function loadPollingConfig() {
+  try {
+    const res = await fetch("./polling_config.json", {
+      method: "GET",
+      cache: "no-store"
+    });
+
+    if (!res.ok) {
+      pollingConfig = { ...DEFAULT_POLLING_CONFIG };
+      return;
+    }
+
+    const data = await res.json();
+    pollingConfig = {
+      initial_interval_ms: Number(data?.initial_interval_ms) || DEFAULT_POLLING_CONFIG.initial_interval_ms,
+      normal_interval_ms: Number(data?.normal_interval_ms) || DEFAULT_POLLING_CONFIG.normal_interval_ms,
+      long_interval_ms: Number(data?.long_interval_ms) || DEFAULT_POLLING_CONFIG.long_interval_ms,
+      long_after_count: Number(data?.long_after_count) || DEFAULT_POLLING_CONFIG.long_after_count,
+      very_long_after_count: Number(data?.very_long_after_count) || DEFAULT_POLLING_CONFIG.very_long_after_count,
+      max_attempts: Number(data?.max_attempts) || DEFAULT_POLLING_CONFIG.max_attempts
+    };
+
+    console.log("polling_config loaded", pollingConfig);
+  } catch (e) {
+    console.warn("polling_config load failed", e);
+    pollingConfig = { ...DEFAULT_POLLING_CONFIG };
+  }
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
   bindEvents();
   renderInitialScreen();
 
   try {
+    await loadPollingConfig();
     await loadSourceMaster();
   } catch (e) {
     console.error(e);

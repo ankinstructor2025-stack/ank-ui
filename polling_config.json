@@ -1,0 +1,8 @@
+{
+  "initial_interval_ms": 5000,
+  "normal_interval_ms": 10000,
+  "long_interval_ms": 15000,
+  "long_after_count": 6,
+  "very_long_after_count": 18,
+  "max_attempts": 120
+}
