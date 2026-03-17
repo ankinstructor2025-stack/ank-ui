@@ -255,8 +255,7 @@ async function loadChildren(parentRow) {
     throw new Error("source_id がありません。");
   }
 
-  const data = await ctx.apiGet("/row_data/rows", {
-    source_type: "opendata",
+  const data = await ctx.apiGet("/opendata/rows", {
     file_id: sourceId
   });
 
