@@ -586,6 +586,22 @@ async function createKnowledgeJob() {
         row_count: row.row_count ?? 0
       }))
     };
+  } else if (source.sourceType === "upload") {
+    endpoint = "/knowledge/upload/job";
+    payload = {
+      source_type: "upload",
+      source_name: "ファイルアップロード",
+      request_type: "extract_knowledge",
+      preview_only: false,
+      items: checkedRows.map((row) => ({
+        source_type: "upload",
+        parent_source_id: row.file_id ?? null,
+        parent_key1: row.logical_name ?? null,
+        parent_key2: row.ext ?? null,
+        parent_label: row.logical_name || row.original_name || row.file_id || "",
+        row_count: row.row_count ?? 0
+      }))
+    };
   } else {
     alert("このデータ種別のナレッジ化は未対応です");
     return;
