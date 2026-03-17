@@ -45,12 +45,36 @@ function escapeHtml(value) {
     .replace(/'/g, "&#39;");
 }
 
-function getIdToken() {
-  return sessionStorage.getItem("idToken");
+function getFirebaseAuth() {
+  try {
+    if (window.firebase && typeof window.firebase.auth === "function") {
+      return window.firebase.auth();
+    }
+  } catch (_) {}
+  return null;
 }
 
-function requireIdToken() {
-  const idToken = getIdToken();
+async function getIdToken(forceRefresh = false) {
+  const auth = getFirebaseAuth();
+
+  if (auth && auth.currentUser) {
+    const token = await auth.currentUser.getIdToken(forceRefresh);
+    if (token) {
+      sessionStorage.setItem("idToken", token);
+      return token;
+    }
+  }
+
+  const cached = sessionStorage.getItem("idToken");
+  if (cached) {
+    return cached;
+  }
+
+  throw new Error("ログイン情報が見つかりません");
+}
+
+async function requireIdToken(forceRefresh = false) {
+  const idToken = await getIdToken(forceRefresh);
   if (!idToken) {
     throw new Error("ログイン情報が見つかりません");
   }
@@ -92,16 +116,49 @@ async function readErrorDetail(res) {
   return detail;
 }
 
-async function apiGet(path, query = {}) {
-  const idToken = requireIdToken();
+async function fetchWithAuth(path, options = {}, query = {}, retry401 = true) {
   const url = buildApiUrl(path, query);
+  const idToken = await requireIdToken(false);
+
+  const headers = {
+    ...(options.headers || {}),
+    Authorization: `Bearer ${idToken}`
+  };
 
   const res = await fetch(url, {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${idToken}`
-    }
+    ...options,
+    headers
   });
+
+  if (res.status === 401 && retry401) {
+    console.warn("401 detected. retry with refreshed token:", path);
+
+    const refreshedToken = await requireIdToken(true);
+    const retryHeaders = {
+      ...(options.headers || {}),
+      Authorization: `Bearer ${refreshedToken}`
+    };
+
+    const retryRes = await fetch(url, {
+      ...options,
+      headers: retryHeaders
+    });
+
+    return retryRes;
+  }
+
+  return res;
+}
+
+async function apiGet(path, query = {}) {
+  const res = await fetchWithAuth(
+    path,
+    {
+      method: "GET"
+    },
+    query,
+    true
+  );
 
   if (!res.ok) {
     throw new Error(await readErrorDetail(res));
@@ -111,22 +168,21 @@ async function apiGet(path, query = {}) {
 }
 
 async function apiPost(path, body = null, query = {}) {
-  const idToken = requireIdToken();
-  const url = buildApiUrl(path, query);
-
-  const headers = {
-    Authorization: `Bearer ${idToken}`
-  };
-
+  const headers = {};
   if (body !== null) {
     headers["Content-Type"] = "application/json";
   }
 
-  const res = await fetch(url, {
-    method: "POST",
-    headers,
-    body: body !== null ? JSON.stringify(body) : undefined
-  });
+  const res = await fetchWithAuth(
+    path,
+    {
+      method: "POST",
+      headers,
+      body: body !== null ? JSON.stringify(body) : undefined
+    },
+    query,
+    true
+  );
 
   if (!res.ok) {
     throw new Error(await readErrorDetail(res));
