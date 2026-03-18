@@ -480,80 +480,104 @@ function getPollingIntervalMs(attempt) {
   return pollingConfig.initial_interval_ms;
 }
 
-async function pollOpedataJobStatus(jobId) {
-  const maxAttempts = pollingConfig.max_attempts || DEFAULT_POLLING_CONFIG.max_attempts;
-  let lastData = null;
+function summarizeJobItems(items) {
+  const total = items.length;
+  const readyCount = items.filter((x) => String(x?.status || "").toLowerCase() === "ready").length;
+  const partialErrorCount = items.filter((x) => String(x?.status || "").toLowerCase() === "partial_error").length;
+  const errorCount = items.filter((x) => String(x?.status || "").toLowerCase() === "error").length;
+  const previewCount = items.filter((x) => String(x?.status || "").toLowerCase() === "preview").length;
+  const runningCount = items.filter((x) => String(x?.status || "").toLowerCase() === "running").length;
+  const queuedCount = items.filter((x) => String(x?.status || "").toLowerCase() === "queued").length;
 
-  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-    const data = await apiGet("/knowledge/opendata/status", { job_id: jobId });
-    lastData = data;
+  const doneCount = readyCount + partialErrorCount + errorCount + previewCount;
+  const remaining = Math.max(0, total - doneCount);
+  const triedCount = doneCount + runningCount;
 
-    if (detailPre) {
-      detailPre.textContent = buildStatusResultText(data);
-    }
+  return {
+    total,
+    readyCount,
+    partialErrorCount,
+    errorCount,
+    previewCount,
+    runningCount,
+    queuedCount,
+    doneCount,
+    remaining,
+    triedCount
+  };
+}
 
-    const items = Array.isArray(data?.items) ? data.items : [];
-    const total = items.length;
-    const doneCount = items.filter((x) => isTerminalJobStatus(x?.status)).length;
-    const runningCount = items.filter((x) => String(x?.status || "").toLowerCase() === "running").length;
-    const queuedCount = items.filter((x) => String(x?.status || "").toLowerCase() === "queued").length;
-    const remaining = Math.max(0, total - doneCount);
+function updatePollingSummary(data, attempt, maxAttempts) {
+  const items = Array.isArray(data?.items) ? data.items : [];
+  const summary = summarizeJobItems(items);
 
-    if (contextSummary) {
-      contextSummary.textContent = `ナレッジ化: ${data?.status ?? "unknown"}（試行 ${attempt}）`;
-    }
-
-    if (selectionSummary) {
-      selectionSummary.textContent =
-        `完了 ${doneCount} / ${total}（残り ${remaining}｜実行中 ${runningCount}｜待機 ${queuedCount}）`;
-    }
-
-    if (isTerminalJobStatus(data?.status)) {
-      return data;
-    }
-
-    await sleep(getPollingIntervalMs(attempt));
+  if (contextSummary) {
+    contextSummary.textContent =
+      `ナレッジ化: ${data?.status ?? "unknown"}（試行 ${attempt} / ${maxAttempts}）`;
   }
 
-  return lastData;
+  if (selectionSummary) {
+    selectionSummary.textContent =
+      `完了 ${summary.doneCount} / ${summary.total}` +
+      `（残り ${summary.remaining}｜実行中 ${summary.runningCount}｜待機 ${summary.queuedCount}｜エラー ${summary.errorCount}）`;
+  }
+}
+
+async function pollKnowledgeJobStatus(statusPath, jobId) {
+  const maxAttempts = pollingConfig.max_attempts || DEFAULT_POLLING_CONFIG.max_attempts;
+  let lastData = null;
+  let lastError = null;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      const data = await apiGet(statusPath, { job_id: jobId });
+      lastData = data;
+      lastError = null;
+
+      if (detailPre) {
+        detailPre.textContent = buildStatusResultText(data);
+      }
+
+      updatePollingSummary(data, attempt, maxAttempts);
+
+      if (isTerminalJobStatus(data?.status)) {
+        return data;
+      }
+    } catch (e) {
+      lastError = e;
+      console.error(`poll failed [${attempt}/${maxAttempts}]`, e);
+
+      if (detailPre) {
+        detailPre.textContent =
+          `ステータス確認で一時的にエラーが発生しました。\n` +
+          `attempt: ${attempt} / ${maxAttempts}\n` +
+          `message: ${e?.message || e}\n\n` +
+          `再試行します...`;
+      }
+
+      if (contextSummary) {
+        contextSummary.textContent = `ナレッジ化: status取得失敗（試行 ${attempt} / ${maxAttempts}）`;
+      }
+    }
+
+    if (attempt < maxAttempts) {
+      await sleep(getPollingIntervalMs(attempt));
+    }
+  }
+
+  if (lastData) {
+    return lastData;
+  }
+
+  throw lastError || new Error("ステータス確認に失敗しました");
+}
+
+async function pollOpedataJobStatus(jobId) {
+  return await pollKnowledgeJobStatus("/knowledge/opendata/status", jobId);
 }
 
 async function pollUploadJobStatus(jobId) {
-  const maxAttempts = pollingConfig.max_attempts || DEFAULT_POLLING_CONFIG.max_attempts;
-  let lastData = null;
-
-  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-    const data = await apiGet("/knowledge/upload/status", { job_id: jobId });
-    lastData = data;
-
-    if (detailPre) {
-      detailPre.textContent = buildStatusResultText(data);
-    }
-
-    const items = Array.isArray(data?.items) ? data.items : [];
-    const total = items.length;
-    const doneCount = items.filter((x) => isTerminalJobStatus(x?.status)).length;
-    const runningCount = items.filter((x) => String(x?.status || "").toLowerCase() === "running").length;
-    const queuedCount = items.filter((x) => String(x?.status || "").toLowerCase() === "queued").length;
-    const remaining = Math.max(0, total - doneCount);
-
-    if (contextSummary) {
-      contextSummary.textContent = `ナレッジ化: ${data?.status ?? "unknown"}（試行 ${attempt}）`;
-    }
-
-    if (selectionSummary) {
-      selectionSummary.textContent =
-        `完了 ${doneCount} / ${total}（残り ${remaining}｜実行中 ${runningCount}｜待機 ${queuedCount}）`;
-    }
-
-    if (isTerminalJobStatus(data?.status)) {
-      return data;
-    }
-
-    await sleep(getPollingIntervalMs(attempt));
-  }
-
-  return lastData;
+  return await pollKnowledgeJobStatus("/knowledge/upload/status", jobId);
 }
 
 function fireAndForgetRunOpedataJob(jobId) {
@@ -676,7 +700,7 @@ async function createKnowledgeJob() {
       }
 
       if (contextSummary) {
-        contextSummary.textContent = `ナレッジ化: ${jobData?.status ?? "queued"}`;
+        contextSummary.textContent = `ナレッジ化: ${jobData?.status ?? "queued"}（試行 0 / ${pollingConfig.max_attempts || DEFAULT_POLLING_CONFIG.max_attempts}）`;
       }
 
       if (selectionSummary) {
@@ -729,7 +753,6 @@ async function createKnowledgeJob() {
     if (selectionSummary) {
       selectionSummary.textContent = `選択 ${checkedRows.length} 件 / prompt ${previews.length} 件`;
     }
-
   } catch (e) {
     console.error(e);
     if (detailPre) {
