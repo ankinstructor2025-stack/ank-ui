@@ -388,12 +388,6 @@ async function refreshParentList() {
   await module.load(createViewContext());
 }
 
-async function handleSourceChange() {
-  currentSourceKey = sourceSelect?.value || "";
-  updateSourceName();
-  await refreshParentList();
-}
-
 function buildKnowledgeResultText(data) {
   const lines = [
     `job_id: ${data?.job_id ?? ""}`,
@@ -700,7 +694,8 @@ async function createKnowledgeJob() {
       }
 
       if (contextSummary) {
-        contextSummary.textContent = `ナレッジ化: ${jobData?.status ?? "queued"}（試行 0 / ${pollingConfig.max_attempts || DEFAULT_POLLING_CONFIG.max_attempts}）`;
+        contextSummary.textContent =
+          `ナレッジ化: ${jobData?.status ?? "queued"}（試行 0 / ${pollingConfig.max_attempts || DEFAULT_POLLING_CONFIG.max_attempts}）`;
       }
 
       if (selectionSummary) {
@@ -721,6 +716,8 @@ async function createKnowledgeJob() {
       if (detailPre) {
         detailPre.textContent = buildStatusResultText(statusData || {});
       }
+
+      await refreshParentList();
 
       if (contextSummary) {
         contextSummary.textContent = `ナレッジ化: ${statusData?.status ?? "unknown"}`;
@@ -746,6 +743,8 @@ async function createKnowledgeJob() {
       detailPre.textContent = buildKnowledgeResultText(data || {});
     }
 
+    await refreshParentList();
+
     if (contextSummary) {
       contextSummary.textContent = `ナレッジ化: ${data?.status ?? "unknown"}`;
     }
@@ -767,7 +766,9 @@ async function createKnowledgeJob() {
 function bindEvents() {
   sourceSelect?.addEventListener("change", async () => {
     try {
-      await handleSourceChange();
+      currentSourceKey = sourceSelect?.value || "";
+      updateSourceName();
+      await refreshParentList();
     } catch (e) {
       console.error(e);
       renderParentPlaceholder(e.message || "読込に失敗しました");
