@@ -27,7 +27,8 @@ const DEFAULT_POLLING_CONFIG = {
   long_interval_ms: 15000,
   long_after_count: 6,
   very_long_after_count: 18,
-  max_attempts: 120
+  max_attempts: 120,
+  max_error_count: 3
 };
 
 let sourceList = [];
@@ -473,17 +474,24 @@ function getPollingIntervalMs(attempt) {
 }
 
 function summarizeJobItems(items) {
-  const total = items.length;
-  const readyCount = items.filter((x) => String(x?.status || "").toLowerCase() === "ready").length;
-  const partialErrorCount = items.filter((x) => String(x?.status || "").toLowerCase() === "partial_error").length;
-  const errorCount = items.filter((x) => String(x?.status || "").toLowerCase() === "error").length;
-  const previewCount = items.filter((x) => String(x?.status || "").toLowerCase() === "preview").length;
-  const runningCount = items.filter((x) => String(x?.status || "").toLowerCase() === "running").length;
-  const queuedCount = items.filter((x) => String(x?.status || "").toLowerCase() === "queued").length;
+  const normalized = Array.isArray(items) ? items : [];
+
+  const total = normalized.length;
+  const readyCount = normalized.filter((x) => String(x?.status || "").toLowerCase() === "ready").length;
+  const partialErrorCount = normalized.filter((x) => String(x?.status || "").toLowerCase() === "partial_error").length;
+  const errorCount = normalized.filter((x) => String(x?.status || "").toLowerCase() === "error").length;
+  const previewCount = normalized.filter((x) => String(x?.status || "").toLowerCase() === "preview").length;
+  const runningCount = normalized.filter((x) => {
+    const s = String(x?.status || "").toLowerCase();
+    return s === "running" || s === "processing";
+  }).length;
+  const queuedCount = normalized.filter((x) => {
+    const s = String(x?.status || "").toLowerCase();
+    return s === "queued" || s === "pending" || s === "";
+  }).length;
 
   const doneCount = readyCount + partialErrorCount + errorCount + previewCount;
   const remaining = Math.max(0, total - doneCount);
-  const triedCount = doneCount + runningCount;
 
   return {
     total,
@@ -494,37 +502,42 @@ function summarizeJobItems(items) {
     runningCount,
     queuedCount,
     doneCount,
-    remaining,
-    triedCount
+    remaining
   };
 }
 
 function updatePollingSummary(data, attempt, maxAttempts) {
   const items = Array.isArray(data?.items) ? data.items : [];
   const summary = summarizeJobItems(items);
+  const totalForDisplay = summary.total || Number(data?.selected_count) || 0;
 
   if (contextSummary) {
     contextSummary.textContent =
-      `ナレッジ化: ${data?.status ?? "unknown"}（試行 ${attempt} / ${maxAttempts}）`;
+      `ナレッジ化: ${summary.doneCount} / ${totalForDisplay}` +
+      `（status: ${data?.status ?? "unknown"}｜確認 ${attempt} / ${maxAttempts}）`;
   }
 
   if (selectionSummary) {
     selectionSummary.textContent =
-      `完了 ${summary.doneCount} / ${summary.total}` +
-      `（残り ${summary.remaining}｜実行中 ${summary.runningCount}｜待機 ${summary.queuedCount}｜エラー ${summary.errorCount}）`;
+      `完了 ${summary.doneCount} / ${totalForDisplay}` +
+      `（ready ${summary.readyCount}｜partial ${summary.partialErrorCount}｜error ${summary.errorCount}｜実行中 ${summary.runningCount}｜待機 ${summary.queuedCount}）`;
   }
 }
 
 async function pollKnowledgeJobStatus(statusPath, jobId) {
   const maxAttempts = pollingConfig.max_attempts || DEFAULT_POLLING_CONFIG.max_attempts;
+  const maxErrorCount = pollingConfig.max_error_count || DEFAULT_POLLING_CONFIG.max_error_count;
+
   let lastData = null;
   let lastError = null;
+  let consecutiveErrorCount = 0;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     try {
       const data = await apiGet(statusPath, { job_id: jobId });
       lastData = data;
       lastError = null;
+      consecutiveErrorCount = 0;
 
       if (detailPre) {
         detailPre.textContent = buildStatusResultText(data);
@@ -537,18 +550,24 @@ async function pollKnowledgeJobStatus(statusPath, jobId) {
       }
     } catch (e) {
       lastError = e;
+      consecutiveErrorCount += 1;
       console.error(`poll failed [${attempt}/${maxAttempts}]`, e);
 
       if (detailPre) {
         detailPre.textContent =
-          `ステータス確認で一時的にエラーが発生しました。\n` +
+          `ステータス確認でエラーが発生しました。\n` +
           `attempt: ${attempt} / ${maxAttempts}\n` +
-          `message: ${e?.message || e}\n\n` +
-          `再試行します...`;
+          `error_count: ${consecutiveErrorCount} / ${maxErrorCount}\n` +
+          `message: ${e?.message || e}`;
       }
 
       if (contextSummary) {
-        contextSummary.textContent = `ナレッジ化: status取得失敗（試行 ${attempt} / ${maxAttempts}）`;
+        contextSummary.textContent =
+          `ナレッジ化: status取得失敗（確認 ${attempt} / ${maxAttempts}）`;
+      }
+
+      if (consecutiveErrorCount >= maxErrorCount) {
+        throw new Error(`ステータス確認が連続失敗しました: ${e?.message || e}`);
       }
     }
 
@@ -558,7 +577,9 @@ async function pollKnowledgeJobStatus(statusPath, jobId) {
   }
 
   if (lastData) {
-    return lastData;
+    throw new Error(
+      `ステータス確認が上限回数に達しました。last_status=${lastData?.status || "unknown"}`
+    );
   }
 
   throw lastError || new Error("ステータス確認に失敗しました");
@@ -572,24 +593,12 @@ async function pollUploadJobStatus(jobId) {
   return await pollKnowledgeJobStatus("/knowledge/upload/status", jobId);
 }
 
-function fireAndForgetRunOpedataJob(jobId) {
-  apiPost("/knowledge/opendata/run", { job_id: jobId })
-    .then((data) => {
-      console.log("run_opendata_job finished", data);
-    })
-    .catch((e) => {
-      console.error("run_opendata_job failed", e);
-    });
+async function runOpedataJob(jobId) {
+  return await apiPost("/knowledge/opendata/run", { job_id: jobId });
 }
 
-function fireAndForgetRunUploadJob(jobId) {
-  apiPost("/knowledge/upload/run", { job_id: jobId })
-    .then((data) => {
-      console.log("run_upload_job finished", data);
-    })
-    .catch((e) => {
-      console.error("run_upload_job failed", e);
-    });
+async function runUploadJob(jobId) {
+  return await apiPost("/knowledge/upload/run", { job_id: jobId });
 }
 
 async function createKnowledgeJob() {
@@ -692,18 +701,18 @@ async function createKnowledgeJob() {
       }
 
       if (contextSummary) {
-        contextSummary.textContent =
-          `ナレッジ化: ${jobData?.status ?? "queued"}（試行 0 / ${pollingConfig.max_attempts || DEFAULT_POLLING_CONFIG.max_attempts}）`;
+        contextSummary.textContent = `ナレッジ化: 0 / ${checkedRows.length}（status: ${jobData?.status ?? "queued"}）`;
       }
 
       if (selectionSummary) {
-        selectionSummary.textContent = `選択 ${checkedRows.length} 件 / job作成済`;
+        selectionSummary.textContent =
+          `完了 0 / ${checkedRows.length}（ready 0｜partial 0｜error 0｜実行中 0｜待機 ${checkedRows.length}）`;
       }
 
       if (source.sourceType === "opendata") {
-        fireAndForgetRunOpedataJob(jobId);
+        await runOpedataJob(jobId);
       } else {
-        fireAndForgetRunUploadJob(jobId);
+        await runUploadJob(jobId);
       }
 
       const statusData =
@@ -716,7 +725,11 @@ async function createKnowledgeJob() {
       }
 
       if (contextSummary) {
-        contextSummary.textContent = `ナレッジ化: ${statusData?.status ?? "unknown"}`;
+        const items = Array.isArray(statusData?.items) ? statusData.items : [];
+        const summary = summarizeJobItems(items);
+        const totalForDisplay = summary.total || Number(statusData?.selected_count) || checkedRows.length;
+        contextSummary.textContent =
+          `ナレッジ化: ${summary.doneCount} / ${totalForDisplay}（status: ${statusData?.status ?? "unknown"}）`;
       }
 
       if (statusData && String(statusData.status || "").toLowerCase() === "ready") {
@@ -726,7 +739,7 @@ async function createKnowledgeJob() {
       } else if (statusData && String(statusData.status || "").toLowerCase() === "error") {
         alert("ナレッジ化でエラーが発生しました");
       } else {
-        alert("処理は継続中の可能性があります。必要なら再読込で確認してください。");
+        alert("ナレッジ化は完了判定できませんでした。詳細を確認してください。");
       }
 
       return;
@@ -751,7 +764,10 @@ async function createKnowledgeJob() {
     if (detailPre) {
       detailPre.textContent = e.message || "ナレッジ化処理でエラーが発生しました。";
     }
-    alert("ナレッジ化処理でエラーが発生しました");
+    if (contextSummary) {
+      contextSummary.textContent = "ナレッジ化: 異常終了";
+    }
+    alert(e.message || "ナレッジ化処理でエラーが発生しました");
   } finally {
     setKnowledgeBusy(false);
   }
@@ -842,7 +858,8 @@ async function loadPollingConfig() {
       long_interval_ms: Number(data?.long_interval_ms) || DEFAULT_POLLING_CONFIG.long_interval_ms,
       long_after_count: Number(data?.long_after_count) || DEFAULT_POLLING_CONFIG.long_after_count,
       very_long_after_count: Number(data?.very_long_after_count) || DEFAULT_POLLING_CONFIG.very_long_after_count,
-      max_attempts: Number(data?.max_attempts) || DEFAULT_POLLING_CONFIG.max_attempts
+      max_attempts: Number(data?.max_attempts) || DEFAULT_POLLING_CONFIG.max_attempts,
+      max_error_count: Number(data?.max_error_count) || DEFAULT_POLLING_CONFIG.max_error_count
     };
 
     console.log("polling_config loaded", pollingConfig);
