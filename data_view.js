@@ -139,12 +139,10 @@ async function fetchWithAuth(path, options = {}, query = {}, retry401 = true) {
       Authorization: `Bearer ${refreshedToken}`
     };
 
-    const retryRes = await fetch(url, {
+    return await fetch(url, {
       ...options,
       headers: retryHeaders
     });
-
-    return retryRes;
   }
 
   return res;
@@ -717,8 +715,6 @@ async function createKnowledgeJob() {
         detailPre.textContent = buildStatusResultText(statusData || {});
       }
 
-      await refreshParentList();
-
       if (contextSummary) {
         contextSummary.textContent = `ナレッジ化: ${statusData?.status ?? "unknown"}`;
       }
@@ -730,7 +726,7 @@ async function createKnowledgeJob() {
       } else if (statusData && String(statusData.status || "").toLowerCase() === "error") {
         alert("ナレッジ化でエラーが発生しました");
       } else {
-        alert("処理は継続中の可能性があります。画面を更新して再確認してください。");
+        alert("処理は継続中の可能性があります。必要なら再読込で確認してください。");
       }
 
       return;
@@ -742,8 +738,6 @@ async function createKnowledgeJob() {
     if (detailPre) {
       detailPre.textContent = buildKnowledgeResultText(data || {});
     }
-
-    await refreshParentList();
 
     if (contextSummary) {
       contextSummary.textContent = `ナレッジ化: ${data?.status ?? "unknown"}`;
