@@ -460,7 +460,7 @@ function buildStatusResultText(data) {
 
 function isTerminalJobStatus(status) {
   const s = String(status || "").toLowerCase();
-  return s === "ready" || s === "partial_error" || s === "error" || s === "preview";
+  return s === "done" || s === "error";
 }
 
 function getPollingIntervalMs(attempt) {
@@ -477,28 +477,24 @@ function summarizeJobItems(items) {
   const normalized = Array.isArray(items) ? items : [];
 
   const total = normalized.length;
-  const readyCount = normalized.filter((x) => String(x?.status || "").toLowerCase() === "ready").length;
-  const partialErrorCount = normalized.filter((x) => String(x?.status || "").toLowerCase() === "partial_error").length;
+  const doneCountOnly = normalized.filter((x) => String(x?.status || "").toLowerCase() === "done").length;
   const errorCount = normalized.filter((x) => String(x?.status || "").toLowerCase() === "error").length;
-  const previewCount = normalized.filter((x) => String(x?.status || "").toLowerCase() === "preview").length;
   const runningCount = normalized.filter((x) => {
     const s = String(x?.status || "").toLowerCase();
     return s === "running" || s === "processing";
   }).length;
   const queuedCount = normalized.filter((x) => {
     const s = String(x?.status || "").toLowerCase();
-    return s === "queued" || s === "pending" || s === "";
+    return s === "new" || s === "pending" || s === "";
   }).length;
 
-  const doneCount = readyCount + partialErrorCount + errorCount + previewCount;
+  const doneCount = doneCountOnly + errorCount;
   const remaining = Math.max(0, total - doneCount);
 
   return {
     total,
-    readyCount,
-    partialErrorCount,
+    doneCountOnly,
     errorCount,
-    previewCount,
     runningCount,
     queuedCount,
     doneCount,
@@ -520,7 +516,7 @@ function updatePollingSummary(data, attempt, maxAttempts) {
   if (selectionSummary) {
     selectionSummary.textContent =
       `完了 ${summary.doneCount} / ${totalForDisplay}` +
-      `（ready ${summary.readyCount}｜partial ${summary.partialErrorCount}｜error ${summary.errorCount}｜実行中 ${summary.runningCount}｜待機 ${summary.queuedCount}）`;
+      `（done ${summary.doneCountOnly}｜error ${summary.errorCount}｜実行中 ${summary.runningCount}｜待機 ${summary.queuedCount}）`;
   }
 }
 
@@ -701,12 +697,12 @@ async function createKnowledgeJob() {
       }
 
       if (contextSummary) {
-        contextSummary.textContent = `ナレッジ化: 0 / ${checkedRows.length}（status: ${jobData?.status ?? "queued"}）`;
+        contextSummary.textContent = `ナレッジ化: 0 / ${checkedRows.length}（status: ${jobData?.status ?? "new"}）`;
       }
 
       if (selectionSummary) {
         selectionSummary.textContent =
-          `完了 0 / ${checkedRows.length}（ready 0｜partial 0｜error 0｜実行中 0｜待機 ${checkedRows.length}）`;
+          `完了 0 / ${checkedRows.length}（done 0｜error 0｜実行中 0｜待機 ${checkedRows.length}）`;
       }
 
       if (source.sourceType === "opendata") {
@@ -732,10 +728,8 @@ async function createKnowledgeJob() {
           `ナレッジ化: ${summary.doneCount} / ${totalForDisplay}（status: ${statusData?.status ?? "unknown"}）`;
       }
 
-      if (statusData && String(statusData.status || "").toLowerCase() === "ready") {
+      if (statusData && String(statusData.status || "").toLowerCase() === "done") {
         alert("ナレッジ化が完了しました");
-      } else if (statusData && String(statusData.status || "").toLowerCase() === "partial_error") {
-        alert("ナレッジ化は完了しましたが、一部エラーがあります");
       } else if (statusData && String(statusData.status || "").toLowerCase() === "error") {
         alert("ナレッジ化でエラーが発生しました");
       } else {
