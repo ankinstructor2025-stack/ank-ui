@@ -518,6 +518,44 @@ async function pollOpedataJobStatus(jobId) {
   return lastData;
 }
 
+async function pollUploadJobStatus(jobId) {
+  const maxAttempts = pollingConfig.max_attempts || DEFAULT_POLLING_CONFIG.max_attempts;
+  let lastData = null;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    const data = await apiGet("/knowledge/upload/status", { job_id: jobId });
+    lastData = data;
+
+    if (detailPre) {
+      detailPre.textContent = buildStatusResultText(data);
+    }
+
+    const items = Array.isArray(data?.items) ? data.items : [];
+    const total = items.length;
+    const doneCount = items.filter((x) => isTerminalJobStatus(x?.status)).length;
+    const runningCount = items.filter((x) => String(x?.status || "").toLowerCase() === "running").length;
+    const queuedCount = items.filter((x) => String(x?.status || "").toLowerCase() === "queued").length;
+    const remaining = Math.max(0, total - doneCount);
+
+    if (contextSummary) {
+      contextSummary.textContent = `ナレッジ化: ${data?.status ?? "unknown"}（試行 ${attempt}）`;
+    }
+
+    if (selectionSummary) {
+      selectionSummary.textContent =
+        `完了 ${doneCount} / ${total}（残り ${remaining}｜実行中 ${runningCount}｜待機 ${queuedCount}）`;
+    }
+
+    if (isTerminalJobStatus(data?.status)) {
+      return data;
+    }
+
+    await sleep(getPollingIntervalMs(attempt));
+  }
+
+  return lastData;
+}
+
 function fireAndForgetRunOpedataJob(jobId) {
   apiPost("/knowledge/opendata/run", { job_id: jobId })
     .then((data) => {
@@ -525,6 +563,16 @@ function fireAndForgetRunOpedataJob(jobId) {
     })
     .catch((e) => {
       console.error("run_opendata_job failed", e);
+    });
+}
+
+function fireAndForgetRunUploadJob(jobId) {
+  apiPost("/knowledge/upload/run", { job_id: jobId })
+    .then((data) => {
+      console.log("run_upload_job finished", data);
+    })
+    .catch((e) => {
+      console.error("run_upload_job failed", e);
     });
 }
 
@@ -614,7 +662,7 @@ async function createKnowledgeJob() {
       detailPre.textContent = "ナレッジ化ジョブを作成中です...";
     }
 
-    if (source.sourceType === "opendata") {
+    if (source.sourceType === "opendata" || source.sourceType === "upload") {
       const jobData = await apiPost(endpoint, payload);
       const jobId = jobData?.job_id;
 
@@ -635,9 +683,16 @@ async function createKnowledgeJob() {
         selectionSummary.textContent = `選択 ${checkedRows.length} 件 / job作成済`;
       }
 
-      fireAndForgetRunOpedataJob(jobId);
+      if (source.sourceType === "opendata") {
+        fireAndForgetRunOpedataJob(jobId);
+      } else {
+        fireAndForgetRunUploadJob(jobId);
+      }
 
-      const statusData = await pollOpedataJobStatus(jobId);
+      const statusData =
+        source.sourceType === "opendata"
+          ? await pollOpedataJobStatus(jobId)
+          : await pollUploadJobStatus(jobId);
 
       if (detailPre) {
         detailPre.textContent = buildStatusResultText(statusData || {});
