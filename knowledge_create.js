@@ -102,10 +102,10 @@ function getNextAction(status) {
   const s = String(status ?? "").toLowerCase();
 
   if (s === "new" || s === "ready") {
-    return { label: "正規化", action: "normalize" };
+    return { label: "クレンジング", action: "cleanse" };
   }
 
-  if (s === "normalized" || s === "normalize_done") {
+  if (s === "cleansed" || s === "cleanse_done") {
     return { label: "ベクトル化", action: "vectorize" };
   }
 
@@ -121,8 +121,8 @@ function getNextAction(status) {
 }
 
 function getActionPath(jobId, actionName) {
-  if (actionName === "normalize") {
-    return `/knowledge/refine/jobs/${jobId}/normalize`;
+  if (actionName === "cleanse") {
+    return `/knowledge/refine/jobs/${jobId}/cleanse`;
   }
 
   if (actionName === "vectorize") {
