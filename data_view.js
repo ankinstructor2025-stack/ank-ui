@@ -31,6 +31,8 @@ const DEFAULT_POLLING_CONFIG = {
   max_error_count: 3
 };
 
+const ACTIVE_JOB_STORAGE_KEY = "ank_active_knowledge_job";
+
 let sourceList = [];
 let sourceMap = {};
 let currentSourceKey = "";
@@ -55,23 +57,60 @@ function getFirebaseAuth() {
   return null;
 }
 
+function waitForAuthUser(timeoutMs = 5000) {
+  return new Promise((resolve, reject) => {
+    const auth = getFirebaseAuth();
+    if (!auth) {
+      reject(new Error("Firebase Auth が初期化されていません"));
+      return;
+    }
+
+    if (auth.currentUser) {
+      resolve(auth.currentUser);
+      return;
+    }
+
+    let finished = false;
+    let timer = null;
+    let unsubscribe = null;
+
+    timer = setTimeout(() => {
+      if (finished) return;
+      finished = true;
+      if (typeof unsubscribe === "function") unsubscribe();
+      reject(new Error("ログイン情報の復元がタイムアウトしました"));
+    }, timeoutMs);
+
+    unsubscribe = auth.onAuthStateChanged((user) => {
+      if (finished) return;
+      if (!user) return;
+
+      finished = true;
+      clearTimeout(timer);
+      if (typeof unsubscribe === "function") unsubscribe();
+      resolve(user);
+    });
+  });
+}
+
 async function getIdToken(forceRefresh = false) {
   const auth = getFirebaseAuth();
-
-  if (auth && auth.currentUser) {
-    const token = await auth.currentUser.getIdToken(forceRefresh);
-    if (token) {
-      sessionStorage.setItem("idToken", token);
-      return token;
-    }
+  if (!auth) {
+    throw new Error("Firebase Auth が利用できません");
   }
 
-  const cached = sessionStorage.getItem("idToken");
-  if (cached) {
-    return cached;
+  const user = auth.currentUser || await waitForAuthUser(5000);
+  if (!user) {
+    throw new Error("ログイン情報が見つかりません");
   }
 
-  throw new Error("ログイン情報が見つかりません");
+  const token = await user.getIdToken(forceRefresh);
+  if (!token) {
+    throw new Error("idToken の取得に失敗しました");
+  }
+
+  sessionStorage.setItem("idToken", token);
+  return token;
 }
 
 async function requireIdToken(forceRefresh = false) {
@@ -119,7 +158,10 @@ async function readErrorDetail(res) {
 
 async function fetchWithAuth(path, options = {}, query = {}, retry401 = true) {
   const url = buildApiUrl(path, query);
-  const idToken = await requireIdToken(false);
+  const method = String(options.method || "GET").toUpperCase();
+  const shouldForceRefresh = method !== "GET";
+
+  const idToken = await requireIdToken(shouldForceRefresh);
 
   const headers = {
     ...(options.headers || {}),
@@ -216,6 +258,50 @@ function getStatusClass(status) {
   if (s === "done") return "status-pill status-done";
   if (s === "error") return "status-pill status-error";
   return "status-pill status-new";
+}
+
+function getStatusStoragePathBySourceType(sourceType) {
+  if (sourceType === "opendata") return "/knowledge/opendata/status";
+  if (sourceType === "upload") return "/knowledge/upload/status";
+  return "";
+}
+
+function getRunPathBySourceType(sourceType) {
+  if (sourceType === "opendata") return "/knowledge/opendata/run";
+  if (sourceType === "upload") return "/knowledge/upload/run";
+  return "";
+}
+
+function saveActiveKnowledgeJob(job) {
+  try {
+    sessionStorage.setItem(ACTIVE_JOB_STORAGE_KEY, JSON.stringify({
+      job_id: job?.job_id || "",
+      source_type: job?.source_type || "",
+      source_key: job?.source_key || "",
+      selected_count: Number(job?.selected_count) || 0,
+      saved_at: new Date().toISOString()
+    }));
+  } catch (e) {
+    console.warn("failed to save active job", e);
+  }
+}
+
+function loadActiveKnowledgeJob() {
+  try {
+    const raw = sessionStorage.getItem(ACTIVE_JOB_STORAGE_KEY);
+    if (!raw) return null;
+
+    const data = JSON.parse(raw);
+    if (!data || !data.job_id || !data.source_type) return null;
+    return data;
+  } catch (e) {
+    console.warn("failed to load active job", e);
+    return null;
+  }
+}
+
+function clearActiveKnowledgeJob() {
+  sessionStorage.removeItem(ACTIVE_JOB_STORAGE_KEY);
 }
 
 function renderSourceOptions(list) {
@@ -581,20 +667,88 @@ async function pollKnowledgeJobStatus(statusPath, jobId) {
   throw lastError || new Error("ステータス確認に失敗しました");
 }
 
-async function pollOpedataJobStatus(jobId) {
-  return await pollKnowledgeJobStatus("/knowledge/opendata/status", jobId);
+async function runKnowledgeJobAndPoll(sourceType, jobId) {
+  const runPath = getRunPathBySourceType(sourceType);
+  const statusPath = getStatusStoragePathBySourceType(sourceType);
+
+  if (!runPath || !statusPath) {
+    throw new Error(`未対応の sourceType です: ${sourceType}`);
+  }
+
+  await apiPost(runPath, { job_id: jobId });
+  const statusData = await pollKnowledgeJobStatus(statusPath, jobId);
+  return statusData;
 }
 
-async function pollUploadJobStatus(jobId) {
-  return await pollKnowledgeJobStatus("/knowledge/upload/status", jobId);
+async function finalizeKnowledgePolling(sourceType, jobId, statusData, checkedRowsLength = 0) {
+  if (detailPre) {
+    detailPre.textContent = buildStatusResultText(statusData || {});
+  }
+
+  if (contextSummary) {
+    const items = Array.isArray(statusData?.items) ? statusData.items : [];
+    const summary = summarizeJobItems(items);
+    const totalForDisplay = summary.total || Number(statusData?.selected_count) || checkedRowsLength;
+    contextSummary.textContent =
+      `ナレッジ化: ${summary.doneCount} / ${totalForDisplay}（status: ${statusData?.status ?? "unknown"}）`;
+  }
+
+  if (statusData && String(statusData.status || "").toLowerCase() === "done") {
+    alert("ナレッジ化が完了しました");
+  } else if (statusData && String(statusData.status || "").toLowerCase() === "error") {
+    alert("ナレッジ化でエラーが発生しました");
+  } else {
+    alert("ナレッジ化は完了判定できませんでした。詳細を確認してください。");
+  }
+
+  clearActiveKnowledgeJob();
+  await refreshParentList();
 }
 
-async function runOpedataJob(jobId) {
-  return await apiPost("/knowledge/opendata/run", { job_id: jobId });
-}
+async function resumeActiveKnowledgeJobIfNeeded() {
+  const activeJob = loadActiveKnowledgeJob();
+  if (!activeJob || !activeJob.job_id || !activeJob.source_type) {
+    return;
+  }
 
-async function runUploadJob(jobId) {
-  return await apiPost("/knowledge/upload/run", { job_id: jobId });
+  const sourceType = activeJob.source_type;
+  const statusPath = getStatusStoragePathBySourceType(sourceType);
+
+  if (!statusPath) {
+    clearActiveKnowledgeJob();
+    return;
+  }
+
+  try {
+    setKnowledgeBusy(true);
+
+    if (detailPre) {
+      detailPre.textContent =
+        `前回のナレッジ化ジョブを確認しています...\njob_id: ${activeJob.job_id}`;
+    }
+
+    if (activeJob.source_key && sourceMap[activeJob.source_key] && sourceSelect) {
+      currentSourceKey = activeJob.source_key;
+      sourceSelect.value = activeJob.source_key;
+      updateSourceName();
+      await refreshParentList();
+    }
+
+    const statusData = await pollKnowledgeJobStatus(statusPath, activeJob.job_id);
+    await finalizeKnowledgePolling(
+      sourceType,
+      activeJob.job_id,
+      statusData,
+      Number(activeJob.selected_count) || 0
+    );
+  } catch (e) {
+    console.error("resumeActiveKnowledgeJobIfNeeded failed", e);
+    if (detailPre) {
+      detailPre.textContent = e.message || "ジョブ再開確認に失敗しました。";
+    }
+  } finally {
+    setKnowledgeBusy(false);
+  }
 }
 
 async function createKnowledgeJob() {
@@ -691,13 +845,21 @@ async function createKnowledgeJob() {
         throw new Error("job_id が取得できませんでした");
       }
 
+      saveActiveKnowledgeJob({
+        job_id: jobId,
+        source_type: source.sourceType,
+        source_key: currentSourceKey,
+        selected_count: checkedRows.length
+      });
+
       if (detailPre) {
         detailPre.textContent =
           `ジョブを作成しました。\n\n${buildKnowledgeResultText(jobData || {})}\n\nバックグラウンド実行を開始します...`;
       }
 
       if (contextSummary) {
-        contextSummary.textContent = `ナレッジ化: 0 / ${checkedRows.length}（status: ${jobData?.status ?? "new"}）`;
+        contextSummary.textContent =
+          `ナレッジ化: 0 / ${checkedRows.length}（status: ${jobData?.status ?? "new"}）`;
       }
 
       if (selectionSummary) {
@@ -705,37 +867,8 @@ async function createKnowledgeJob() {
           `完了 0 / ${checkedRows.length}（done 0｜error 0｜実行中 0｜待機 ${checkedRows.length}）`;
       }
 
-      if (source.sourceType === "opendata") {
-        await runOpedataJob(jobId);
-      } else {
-        await runUploadJob(jobId);
-      }
-
-      const statusData =
-        source.sourceType === "opendata"
-          ? await pollOpedataJobStatus(jobId)
-          : await pollUploadJobStatus(jobId);
-
-      if (detailPre) {
-        detailPre.textContent = buildStatusResultText(statusData || {});
-      }
-
-      if (contextSummary) {
-        const items = Array.isArray(statusData?.items) ? statusData.items : [];
-        const summary = summarizeJobItems(items);
-        const totalForDisplay = summary.total || Number(statusData?.selected_count) || checkedRows.length;
-        contextSummary.textContent =
-          `ナレッジ化: ${summary.doneCount} / ${totalForDisplay}（status: ${statusData?.status ?? "unknown"}）`;
-      }
-
-      if (statusData && String(statusData.status || "").toLowerCase() === "done") {
-        alert("ナレッジ化が完了しました");
-      } else if (statusData && String(statusData.status || "").toLowerCase() === "error") {
-        alert("ナレッジ化でエラーが発生しました");
-      } else {
-        alert("ナレッジ化は完了判定できませんでした。詳細を確認してください。");
-      }
-
+      const statusData = await runKnowledgeJobAndPoll(source.sourceType, jobId);
+      await finalizeKnowledgePolling(source.sourceType, jobId, statusData, checkedRows.length);
       return;
     }
 
@@ -870,6 +1003,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   try {
     await loadPollingConfig();
     await loadSourceMaster();
+    await resumeActiveKnowledgeJobIfNeeded();
   } catch (e) {
     console.error(e);
     renderParentPlaceholder(e.message || "source master の取得に失敗しました");
