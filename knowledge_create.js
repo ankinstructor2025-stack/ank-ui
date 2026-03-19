@@ -127,7 +127,7 @@ function getNextAction(phase, status) {
 
 function getActionPath(jobId, actionName) {
   if (actionName === "cleanse") {
-    return `/knowledge/refine/jobs/${jobId}/cleanse`;
+    return `/knowledge/refine/jobs/${jobId}/cleanse_TEST`;
   }
 
   if (actionName === "vectorize") {
