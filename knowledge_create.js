@@ -98,23 +98,27 @@ function resetScreen() {
   parentRows = [];
 }
 
-function getNextAction(status) {
+function getNextAction(phase, status) {
+  const p = String(phase ?? "").toLowerCase();
   const s = String(status ?? "").toLowerCase();
 
-  // ナレッジ生成完了後は refine の入口
-  if (s === "done") {
+  if (s === "running" || s === "error") {
+    return null;
+  }
+
+  if (!p || p === "created") {
     return { label: "クレンジング", action: "cleanse" };
   }
 
-  if (s === "cleansed" || s === "cleanse_done") {
+  if (p === "cleansed") {
     return { label: "ベクトル化", action: "vectorize" };
   }
 
-  if (s === "vectorized" || s === "vectorize_done") {
+  if (p === "vectorized") {
     return { label: "重複削除", action: "deduplicate" };
   }
 
-  if (s === "deduplicated" || s === "deduplicate_done") {
+  if (p === "deduplicated") {
     return { label: "ナレッジDB作成", action: "buildKnowledgeDb" };
   }
 
@@ -165,7 +169,7 @@ function renderActionCell(row) {
   const s = String(row.status ?? "").toLowerCase();
 
   if (s === "running") {
-    return `<span class="job-state-text state-running">ナレッジ生成中</span>`;
+    return `<span class="job-state-text state-running">処理中</span>`;
   }
 
   if (s === "new") {
@@ -176,7 +180,7 @@ function renderActionCell(row) {
     return `<span class="job-state-text state-error">エラー</span>`;
   }
 
-  const action = getNextAction(row.status);
+  const action = getNextAction(row.phase, row.status);
   if (!action) {
     return "-";
   }
@@ -221,6 +225,7 @@ function renderParentTable(rows) {
     <tr>
       <th class="col-source-type">source_type</th>
       <th class="col-status">status</th>
+      <th class="col-status">phase</th>
       <th class="col-count">selected</th>
       <th class="col-count">qa</th>
       <th class="col-count">plain</th>
@@ -234,6 +239,7 @@ function renderParentTable(rows) {
         <tr>
           <td>${escapeHtml(row.source_type)}</td>
           <td>${renderStatusCell(row.status)}</td>
+          <td>${escapeHtml(row.phase ?? "created")}</td>
           <td>${escapeHtml(row.selected_count)}</td>
           <td>${escapeHtml(row.qa_count)}</td>
           <td>${escapeHtml(row.plain_count)}</td>
