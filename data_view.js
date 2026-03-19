@@ -95,22 +95,21 @@ function waitForAuthUser(timeoutMs = 5000) {
 
 async function getIdToken(forceRefresh = false) {
   const auth = getFirebaseAuth();
-  if (!auth) {
-    throw new Error("Firebase Auth が利用できません");
+
+  if (auth && auth.currentUser) {
+    const token = await auth.currentUser.getIdToken(forceRefresh);
+    if (token) {
+      sessionStorage.setItem("idToken", token);
+      return token;
+    }
   }
 
-  const user = auth.currentUser || await waitForAuthUser(5000);
-  if (!user) {
-    throw new Error("ログイン情報が見つかりません");
+  const cached = sessionStorage.getItem("idToken");
+  if (cached) {
+    return cached;
   }
 
-  const token = await user.getIdToken(forceRefresh);
-  if (!token) {
-    throw new Error("idToken の取得に失敗しました");
-  }
-
-  sessionStorage.setItem("idToken", token);
-  return token;
+  throw new Error("ログイン情報が見つかりません");
 }
 
 async function requireIdToken(forceRefresh = false) {
@@ -158,10 +157,7 @@ async function readErrorDetail(res) {
 
 async function fetchWithAuth(path, options = {}, query = {}, retry401 = true) {
   const url = buildApiUrl(path, query);
-  const method = String(options.method || "GET").toUpperCase();
-  const shouldForceRefresh = method !== "GET";
-
-  const idToken = await requireIdToken(shouldForceRefresh);
+  const idToken = await requireIdToken(false);
 
   const headers = {
     ...(options.headers || {}),
