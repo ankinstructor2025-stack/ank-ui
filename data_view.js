@@ -267,6 +267,54 @@ function clearActiveKnowledgeJob() {
   sessionStorage.removeItem(ACTIVE_JOB_STORAGE_KEY);
 }
 
+/**
+ * sessionStorage に残っている job が本当に生きているか確認する
+ * - done / error / not found / DBなし → 破棄して null
+ * - running / new → 生きているジョブとして返す
+ */
+async function validateStoredActiveJob(previousActiveJob) {
+  if (!previousActiveJob || !previousActiveJob.job_id || !previousActiveJob.source_type) {
+    return null;
+  }
+
+  const statusPath = getStatusPathBySourceType(previousActiveJob.source_type);
+  if (!statusPath) {
+    clearActiveKnowledgeJob();
+    return null;
+  }
+
+  try {
+    const statusData = await apiGet(statusPath, { job_id: previousActiveJob.job_id });
+    const status = String(statusData?.status || "").toLowerCase();
+
+    if (status === "done" || status === "error") {
+      clearActiveKnowledgeJob();
+      return null;
+    }
+
+    return {
+      job_id: previousActiveJob.job_id,
+      status
+    };
+  } catch (e) {
+    const message = String(e?.message || "").toLowerCase();
+
+    // レコードなし / DBなし / 404系は残骸とみなしてクリア
+    if (
+      message.includes("not found") ||
+      message.includes("knowledge_jobs not found") ||
+      message.includes("ank.db not found") ||
+      message.includes("http 404")
+    ) {
+      clearActiveKnowledgeJob();
+      return null;
+    }
+
+    // それ以外は通信異常の可能性があるので呼び出し元で扱う
+    throw e;
+  }
+}
+
 function renderSourceOptions(list) {
   const groups = {};
 
@@ -755,10 +803,13 @@ async function createKnowledgeJob() {
 
     if (source.sourceType === "opendata" || source.sourceType === "upload") {
       const previousActiveJob = loadActiveKnowledgeJob();
-      if (previousActiveJob && previousActiveJob.job_id) {
+      const liveActiveJob = await validateStoredActiveJob(previousActiveJob);
+
+      if (liveActiveJob && liveActiveJob.job_id) {
         alert(
-          `別のジョブ情報が残っています。完了確認またはログアウト後に再実行してください。\n` +
-          `job_id=${previousActiveJob.job_id}`
+          `別のジョブが実行中です。完了後に再実行してください。\n` +
+          `job_id=${liveActiveJob.job_id}\n` +
+          `status=${liveActiveJob.status}`
         );
         return;
       }
