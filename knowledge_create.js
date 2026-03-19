@@ -101,7 +101,8 @@ function resetScreen() {
 function getNextAction(status) {
   const s = String(status ?? "").toLowerCase();
 
-  if (s === "new" || s === "ready") {
+  // ナレッジ生成完了後は refine の入口
+  if (s === "done") {
     return { label: "クレンジング", action: "cleanse" };
   }
 
@@ -160,44 +161,83 @@ async function executeParentAction(jobId, actionName, buttonEl) {
   }
 }
 
-function renderParentTable(rows) {
-  parentTableHead.innerHTML = `
-    <tr>
-      <th>source_type</th>
-      <th>status</th>
-      <th>selected</th>
-      <th>qa</th>
-      <th>plain</th>
-      <th>処理</th>
-    </tr>
-  `;
+function renderActionCell(row) {
+  const s = String(row.status ?? "").toLowerCase();
 
+  if (s === "running") {
+    return `<span class="job-state-text state-running">ナレッジ生成中</span>`;
+  }
+
+  if (s === "new") {
+    return `<span class="job-state-text state-waiting">未実行</span>`;
+  }
+
+  if (s === "error") {
+    return `<span class="job-state-text state-error">エラー</span>`;
+  }
+
+  const action = getNextAction(row.status);
+  if (!action) {
+    return "-";
+  }
+
+  return `<button
+    type="button"
+    class="btn btn-primary parent-action-btn"
+    data-job-id="${escapeHtml(row.job_id)}"
+    data-action="${escapeHtml(action.action)}"
+  >${escapeHtml(action.label)}</button>`;
+}
+
+function renderStatusCell(status) {
+  const s = String(status ?? "").toLowerCase();
+
+  if (s === "done") {
+    return `<span class="job-status-chip status-done">done</span>`;
+  }
+
+  if (s === "running") {
+    return `<span class="job-status-chip status-running">running</span>`;
+  }
+
+  if (s === "error") {
+    return `<span class="job-status-chip status-error">error</span>`;
+  }
+
+  if (s === "new") {
+    return `<span class="job-status-chip status-new">new</span>`;
+  }
+
+  return `<span class="job-status-chip status-other">${escapeHtml(status)}</span>`;
+}
+
+function renderParentTable(rows) {
   if (!rows.length) {
     renderParentPlaceholder("job がありません");
     return;
   }
 
+  parentTableHead.innerHTML = `
+    <tr>
+      <th class="col-source-type">source_type</th>
+      <th class="col-status">status</th>
+      <th class="col-count">selected</th>
+      <th class="col-count">qa</th>
+      <th class="col-count">plain</th>
+      <th class="col-action">処理</th>
+    </tr>
+  `;
+
   parentTableBody.innerHTML = rows
     .map((row) => {
-      const action = getNextAction(row.status);
-
-      const actionButton = action
-        ? `<button
-             type="button"
-             class="btn btn-primary parent-action-btn"
-             data-job-id="${escapeHtml(row.job_id)}"
-             data-action="${escapeHtml(action.action)}"
-           >${escapeHtml(action.label)}</button>`
-        : "-";
-
       return `
         <tr>
           <td>${escapeHtml(row.source_type)}</td>
-          <td>${escapeHtml(row.status)}</td>
+          <td>${renderStatusCell(row.status)}</td>
           <td>${escapeHtml(row.selected_count)}</td>
           <td>${escapeHtml(row.qa_count)}</td>
           <td>${escapeHtml(row.plain_count)}</td>
-          <td>${actionButton}</td>
+          <td>${renderActionCell(row)}</td>
         </tr>
       `;
     })

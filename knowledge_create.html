@@ -41,7 +41,7 @@
     }
 
     .kc-sub {
-      color: var(--muted);
+      color: rgba(255, 255, 255, 0.72);
       font-size: 12px;
       margin-top: 6px;
     }
@@ -52,7 +52,7 @@
       justify-content: space-between;
       gap: 12px;
       margin-bottom: 8px;
-      color: var(--muted);
+      color: rgba(255, 255, 255, 0.72);
       font-size: 12px;
     }
 
@@ -107,7 +107,8 @@
       text-align: left;
       font-size: 14px;
       color: #1f2937;
-      vertical-align: top;
+      vertical-align: middle;
+      word-break: break-word;
     }
 
     .kc-table th {
@@ -122,6 +123,22 @@
 
     .kc-table tr:last-child td {
       border-bottom: none;
+    }
+
+    .col-source-type {
+      width: 160px;
+    }
+
+    .col-status {
+      width: 140px;
+    }
+
+    .col-count {
+      width: 120px;
+    }
+
+    .col-action {
+      width: 180px;
     }
 
     @media (max-width: 980px) {
@@ -139,6 +156,13 @@
 
       .kc-panel {
         min-height: 260px;
+      }
+
+      .col-source-type,
+      .col-status,
+      .col-count,
+      .col-action {
+        width: auto;
       }
     }
   </style>

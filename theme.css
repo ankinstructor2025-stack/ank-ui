@@ -327,3 +327,86 @@ textarea{
   }
 
 }
+
+/* =========================================
+   knowledge_create
+========================================= */
+
+.parent-action-btn {
+  width: 140px;
+  min-width: 140px;
+  height: 36px;
+  padding: 0 12px;
+  text-align: center;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.job-status-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 84px;
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.job-status-chip.status-new {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.job-status-chip.status-running {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.job-status-chip.status-done {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.job-status-chip.status-error {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.job-status-chip.status-other {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+.job-state-text {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 140px;
+  min-width: 140px;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.job-state-text.state-waiting {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.job-state-text.state-running {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.job-state-text.state-error {
+  background: #fee2e2;
+  color: #b91c1c;
+}
