@@ -269,11 +269,6 @@ function clearActiveKnowledgeJob() {
   sessionStorage.removeItem(ACTIVE_JOB_STORAGE_KEY);
 }
 
-/**
- * sessionStorage に残っている job が本当に生きているか確認する
- * - done / error / not found / DBなし → 破棄して null
- * - running / new / queued → 生きているジョブとして返す
- */
 async function validateStoredActiveJob(previousActiveJob) {
   if (!previousActiveJob || !previousActiveJob.job_id || !previousActiveJob.source_type) {
     return null;
@@ -446,8 +441,11 @@ function createViewContext() {
     sourceSelect,
     sourceName,
     btnKnowledge,
+    btnReload,
     summaryText,
+    parentCountEl: summaryText,
     selectionSummary,
+    selectedCountEl: selectionSummary,
     contextSummary,
     parentTableHead,
     parentTableBody,
@@ -459,8 +457,39 @@ function createViewContext() {
     escapeHtml,
     getStatusClass,
     renderParentPlaceholder,
-    renderChildPlaceholder
+    renderChildPlaceholder,
+    btnCheckAll: document.getElementById("btnCheckAll"),
+    btnClearChecks: document.getElementById("btnClearChecks")
   };
+}
+
+function initModuleIfNeeded(module, ctx) {
+  if (!module || typeof module.init !== "function") return;
+  try {
+    module.init(ctx);
+  } catch (e) {
+    console.warn("module.init failed", e);
+  }
+}
+
+async function loadModuleData(module, ctx) {
+  if (!module) {
+    throw new Error("照会モジュールが見つかりません");
+  }
+
+  if (typeof module.load === "function") {
+    await module.load(ctx);
+    return;
+  }
+
+  initModuleIfNeeded(module, ctx);
+
+  if (typeof module.loadParents === "function") {
+    await module.loadParents();
+    return;
+  }
+
+  throw new Error("このデータ種別の照会処理は未実装です。");
 }
 
 async function refreshParentList() {
@@ -471,8 +500,9 @@ async function refreshParentList() {
 
   const module = getCurrentModule();
   const source = sourceMap[currentSourceKey];
+  const ctx = createViewContext();
 
-  if (!module || typeof module.load !== "function") {
+  if (!module) {
     renderParentPlaceholder("このデータ種別の照会処理は未実装です。");
     renderChildPlaceholder("親一覧から1件選択してください。");
     if (detailPre) detailPre.textContent = `選択中: ${source?.label || ""}`;
@@ -481,7 +511,7 @@ async function refreshParentList() {
   }
 
   resetViewForSource();
-  await module.load(createViewContext());
+  await loadModuleData(module, ctx);
 }
 
 function buildKnowledgeResultText(data) {
@@ -818,18 +848,32 @@ function buildKnowledgeEndpointAndPayload(source, checkedRows) {
   throw new Error("このデータ種別のナレッジ化は未対応です");
 }
 
+async function resolveCheckedRows(module) {
+  if (!module) {
+    return [];
+  }
+
+  if (typeof module.getCheckedRows === "function") {
+    const rows = module.getCheckedRows();
+    return Array.isArray(rows) ? rows : [];
+  }
+
+  if (typeof module.buildKnowledgeTargets === "function") {
+    const rows = await module.buildKnowledgeTargets();
+    return Array.isArray(rows) ? rows : [];
+  }
+
+  return [];
+}
+
 async function createKnowledgeJob() {
   if (knowledgeRunning) {
     return;
   }
 
   const module = getCurrentModule();
-  if (!module || typeof module.getCheckedRows !== "function") {
-    alert("対象取得に失敗しました");
-    return;
-  }
+  const checkedRows = await resolveCheckedRows(module);
 
-  const checkedRows = module.getCheckedRows();
   if (!checkedRows || checkedRows.length === 0) {
     alert("対象を選択してください");
     return;
