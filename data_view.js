@@ -192,6 +192,24 @@ async function apiPost(path, body = null, query = {}) {
   return await res.json();
 }
 
+async function apiGetForCurrentView(path, query = {}) {
+  const data = await apiGet(path, query);
+
+  if (currentSourceKey === "api_datago" && path === "/opendata/documents") {
+    const allRows = Array.isArray(data?.datasets) ? data.datasets : [];
+    const doneRows = allRows.filter((row) => String(row?.status || "").toLowerCase() === "done");
+
+    return {
+      ...data,
+      datasets: doneRows,
+      all_count: allRows.length,
+      done_count: doneRows.length
+    };
+  }
+
+  return data;
+}
+
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -414,21 +432,10 @@ function getCurrentModule() {
   const source = sourceMap[currentSourceKey];
   if (!source) return null;
 
-  if (source.key === "api_kokkai") {
-    return window.DataViewKokkai || null;
-  }
-
-  if (source.key === "api_datago") {
-    return window.DataViewOpenData || null;
-  }
-
-  if (source.sourceType === "public_url") {
-    return window.DataViewPublicUrl || null;
-  }
-
-  if (source.key === "file_upload") {
-    return window.DataViewUpload || null;
-  }
+  if (source.key === "api_kokkai") return window.DataViewKokkai || null;
+  if (source.key === "api_datago") return window.DataViewOpenData || null;
+  if (source.sourceType === "public_url") return window.DataViewPublicUrl || null;
+  if (source.key === "file_upload") return window.DataViewUpload || null;
 
   return null;
 }
@@ -452,7 +459,7 @@ function createViewContext() {
     childTableHead,
     childTableBody,
     detailPre,
-    apiGet,
+    apiGet: apiGetForCurrentView,
     apiPost,
     escapeHtml,
     getStatusClass,
@@ -465,6 +472,7 @@ function createViewContext() {
 
 function initModuleIfNeeded(module, ctx) {
   if (!module || typeof module.init !== "function") return;
+
   try {
     module.init(ctx);
   } catch (e) {
@@ -492,6 +500,27 @@ async function loadModuleData(module, ctx) {
   throw new Error("このデータ種別の照会処理は未実装です。");
 }
 
+function decorateOpenDataButtons() {
+  if (currentSourceKey !== "api_datago" || !parentTableBody) {
+    return;
+  }
+
+  const buttons = parentTableBody.querySelectorAll(".btn-download");
+  buttons.forEach((btn) => {
+    btn.classList.add("btn", "btn-primary");
+  });
+}
+
+function updateOpenDataSummary() {
+  if (currentSourceKey !== "api_datago") {
+    return;
+  }
+
+  if (contextSummary) {
+    contextSummary.textContent = "親一覧: 取得済ファイルのみ表示";
+  }
+}
+
 async function refreshParentList() {
   if (!currentSourceKey) {
     renderInitialScreen();
@@ -512,6 +541,15 @@ async function refreshParentList() {
 
   resetViewForSource();
   await loadModuleData(module, ctx);
+
+  if (currentSourceKey === "api_datago") {
+    decorateOpenDataButtons();
+    updateOpenDataSummary();
+  }
+
+  if (btnKnowledge) {
+    btnKnowledge.disabled = false;
+  }
 }
 
 function buildKnowledgeResultText(data) {
@@ -642,7 +680,7 @@ function summarizeJobItems(items) {
   };
 }
 
-function updatePollingSummary(data, attempt, maxAttempts) {
+function updatePollingSummary(data) {
   const items = Array.isArray(data?.items) ? data.items : [];
   const summary = summarizeJobItems(items);
   const totalForDisplay = summary.total || Number(data?.selected_count) || 0;
@@ -686,7 +724,7 @@ async function pollKnowledgeJobStatus(statusPath, jobId) {
         detailPre.textContent = buildStatusResultText(data);
       }
 
-      updatePollingSummary(data, attempt, maxAttempts);
+      updatePollingSummary(data);
 
       if (isTerminalJobStatus(data?.status)) {
         return data;
@@ -705,8 +743,7 @@ async function pollKnowledgeJobStatus(statusPath, jobId) {
       }
 
       if (contextSummary) {
-        contextSummary.textContent =
-          `ナレッジ化: status取得失敗（確認 ${attempt} / ${maxAttempts}）`;
+        contextSummary.textContent = `ナレッジ化: status取得失敗（確認 ${attempt} / ${maxAttempts}）`;
       }
 
       if (consecutiveErrorCount >= maxErrorCount) {
