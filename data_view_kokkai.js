@@ -28,15 +28,42 @@ function formatChildTitle(row) {
   );
 }
 
+// ★ opendataと同じ
+function parseRowContent(row) {
+  const raw = row?.content || row?.text || row?.body || row?.detail || "";
+
+  if (row?.data && typeof row.data === "object") {
+    return row.data;
+  }
+
+  if (typeof raw === "object" && raw !== null) {
+    return raw;
+  }
+
+  if (typeof raw === "string" && raw.trim()) {
+    try {
+      return JSON.parse(raw);
+    } catch (_) {
+      return raw;
+    }
+  }
+
+  return raw;
+}
+
+// ★ opendataと同じ
 function formatChildContent(row) {
-  return (
-    row?.content ||
-    row?.answer ||
-    row?.text ||
-    row?.body ||
-    row?.detail ||
-    ""
-  );
+  const parsed = parseRowContent(row);
+
+  if (parsed && typeof parsed === "object") {
+    try {
+      return JSON.stringify(parsed, null, 2);
+    } catch (_) {
+      return String(parsed);
+    }
+  }
+
+  return String(parsed || "");
 }
 
 function extractRowsFromResponse(data) {
@@ -72,9 +99,7 @@ function clearChildArea(message = "親一覧から1件選択してください�
   currentChildRows = [];
   selectedChildIndex = -1;
 
-  if (ctx.childTableHead) {
-    ctx.childTableHead.innerHTML = "";
-  }
+  if (ctx.childTableHead) ctx.childTableHead.innerHTML = "";
 
   if (ctx.childTableBody) {
     ctx.childTableBody.innerHTML = `
@@ -85,15 +110,27 @@ function clearChildArea(message = "親一覧から1件選択してください�
   }
 }
 
+// ★ opendata統一版
 function renderDetailFromChild(row, parentRow) {
+  const parsed = parseRowContent(row);
+
   const lines = [
     `院: ${parentRow?.name_of_house ?? ""}`,
     `会議名: ${parentRow?.name_of_meeting ?? ""}`,
-    `行番号: ${row?.row_index ?? ""}`,
+    `row_index: ${row?.row_index ?? ""}`,
     `source_item_id: ${row?.source_item_id ?? ""}`,
-    "",
-    formatChildContent(row) || formatChildTitle(row) || "詳細データがありません。"
+    ""
   ];
+
+  if (parsed && typeof parsed === "object") {
+    try {
+      lines.push(JSON.stringify(parsed, null, 2));
+    } catch (_) {
+      lines.push(String(parsed));
+    }
+  } else {
+    lines.push(formatChildContent(row));
+  }
 
   ctx.detailPre.textContent = lines.join("\n");
 }
@@ -159,11 +196,6 @@ function renderChildTable(rows, parentRow) {
 
   if (!Array.isArray(rows) || rows.length === 0) {
     clearChildArea("子データがありません。");
-
-    if (ctx.contextSummary) {
-      ctx.contextSummary.textContent = `子一覧: ${formatParentLabel(parentRow)}`;
-    }
-
     return;
   }
 
@@ -176,9 +208,8 @@ function renderChildTable(rows, parentRow) {
 
   ctx.childTableBody.innerHTML = rows.map((row, index) => {
     const rowNo = row.row_index ?? index + 1;
-    const title = formatChildTitle(row);
     const content = formatChildContent(row);
-    const preview = content ? String(content).slice(0, 80) : title;
+    const preview = content.replace(/\s+/g, " ").slice(0, 80);
 
     return `
       <tr class="clickable-row child-row" data-index="${index}">
@@ -189,29 +220,15 @@ function renderChildTable(rows, parentRow) {
   }).join("");
 
   bindChildRowEvents();
-
-  if (ctx.contextSummary) {
-    ctx.contextSummary.textContent = `子一覧: ${formatParentLabel(parentRow)}`;
-  }
 }
 
 async function loadChildren(parentRow) {
-  if (!parentRow?.name_of_house || !parentRow?.name_of_meeting) {
-    throw new Error("親データに院名または会議名がありません。");
-  }
-
   const data = await ctx.apiGet("/kokkai/rows", {
     name_of_house: parentRow.name_of_house,
     name_of_meeting: parentRow.name_of_meeting
   });
 
-  const rows = extractRowsFromResponse(data);
-
-  if (!Array.isArray(rows)) {
-    throw new Error("子一覧データの形式が不正です。");
-  }
-
-  return rows;
+  return extractRowsFromResponse(data);
 }
 
 function bindParentRowEvents() {
@@ -219,34 +236,20 @@ function bindParentRowEvents() {
 
   rows.forEach((tr) => {
     tr.addEventListener("click", async (event) => {
-      if (event.target.closest(".parent-check")) {
-        return;
-      }
+      if (event.target.closest(".parent-check")) return;
 
       const index = Number(tr.dataset.index || "-1");
       const row = currentParentRows[index];
-
       if (!row) return;
 
       setSelectedParentRow(index);
-      clearChildArea("子一覧を読み込み中です...");
-
-      if (ctx.contextSummary) {
-        ctx.contextSummary.textContent = `子一覧: ${formatParentLabel(row)}`;
-      }
-
-      ctx.detailPre.textContent =
-        `選択中: ${formatParentLabel(row)}\n子一覧を読み込み中です...`;
+      clearChildArea("子一覧を読み込み中...");
 
       try {
         const children = await loadChildren(row);
         renderChildTable(children, row);
-        ctx.detailPre.textContent =
-          `選択中: ${formatParentLabel(row)}\n子一覧を表示しました。`;
       } catch (e) {
-        console.error(e);
         clearChildArea(e.message);
-        ctx.detailPre.textContent = e.message;
       }
     });
   });
@@ -254,105 +257,55 @@ function bindParentRowEvents() {
 
 function renderParentTable(rows) {
   currentParentRows = Array.isArray(rows) ? rows : [];
-  currentChildRows = [];
-  selectedParentIndex = -1;
-  selectedChildIndex = -1;
   checkedParentIndexes = new Set();
 
-  if (!Array.isArray(rows) || rows.length === 0) {
+  if (rows.length === 0) {
     ctx.renderParentPlaceholder("データがありません。");
-    clearChildArea("親一覧から1件選択してください。");
-
-    if (ctx.summaryText) ctx.summaryText.textContent = "0 件";
-    if (ctx.contextSummary) ctx.contextSummary.textContent = "親一覧: 国会議事録";
-    if (ctx.detailPre) ctx.detailPre.textContent = "データがありません。";
-
-    updateCheckedSummary();
     return;
   }
 
   ctx.parentTableHead.innerHTML = `
     <tr>
-      <th class="checkbox-cell"></th>
-      <th class="medium-cell">院</th>
+      <th></th>
+      <th>院</th>
       <th>会議名</th>
-      <th class="narrow-cell">件数</th>
+      <th>件数</th>
     </tr>
   `;
 
-  ctx.parentTableBody.innerHTML = rows.map((row, index) => {
-    return `
-      <tr class="clickable-row parent-row" data-index="${index}">
-        <td class="checkbox-cell">
-          <input
-            type="checkbox"
-            class="parent-check"
-            data-index="${index}"
-          >
-        </td>
-        <td>${ctx.escapeHtml(row.name_of_house ?? "")}</td>
-        <td>${ctx.escapeHtml(row.name_of_meeting ?? "")}</td>
-        <td>${ctx.escapeHtml(row.row_count ?? "")}</td>
-      </tr>
-    `;
-  }).join("");
+  ctx.parentTableBody.innerHTML = rows.map((row, index) => `
+    <tr class="clickable-row parent-row" data-index="${index}">
+      <td><input type="checkbox" class="parent-check" data-index="${index}"></td>
+      <td>${ctx.escapeHtml(row.name_of_house)}</td>
+      <td>${ctx.escapeHtml(row.name_of_meeting)}</td>
+      <td>${ctx.escapeHtml(row.row_count ?? "")}</td>
+    </tr>
+  `).join("");
 
   bindParentCheckboxEvents();
   bindParentRowEvents();
-
-  clearChildArea("親一覧から1件選択してください。");
-
-  if (ctx.summaryText) ctx.summaryText.textContent = `${rows.length} 件`;
-  if (ctx.contextSummary) ctx.contextSummary.textContent = "親一覧: 国会議事録";
-  if (ctx.detailPre) ctx.detailPre.textContent = "親一覧を表示しました。";
-
-  updateCheckedSummary();
 }
 
 async function load(viewContext) {
   ctx = viewContext;
 
-  currentParentRows = [];
-  currentChildRows = [];
-  selectedParentIndex = -1;
-  selectedChildIndex = -1;
-  checkedParentIndexes = new Set();
-
-  clearChildArea("親一覧から1件選択してください。");
-
   try {
-    ctx.renderParentPlaceholder("親一覧を読み込み中です...");
-
-    if (ctx.detailPre) {
-      ctx.detailPre.textContent = "国会議事録の親一覧を読み込み中です...";
-    }
-
+    ctx.renderParentPlaceholder("読み込み中...");
     const data = await ctx.apiGet("/kokkai/documents");
-    const rows = Array.isArray(data.rows) ? data.rows : [];
-
-    renderParentTable(rows);
+    renderParentTable(data.rows || []);
   } catch (e) {
-    console.error(e);
     ctx.renderParentPlaceholder(e.message);
-    clearChildArea("親一覧から1件選択してください。");
-
-    if (ctx.detailPre) {
-      ctx.detailPre.textContent = e.message;
-    }
   }
 }
 
 function getCheckedRows() {
   return Array.from(checkedParentIndexes)
-    .sort((a, b) => a - b)
-    .map((index) => currentParentRows[index])
+    .map(i => currentParentRows[i])
     .filter(Boolean);
 }
 
 function checkAll() {
-  checkedParentIndexes = new Set(
-    currentParentRows.map((_, index) => index)
-  );
+  checkedParentIndexes = new Set(currentParentRows.map((_, i) => i));
   syncParentCheckboxUi();
   updateCheckedSummary();
 }

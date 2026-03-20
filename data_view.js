@@ -221,12 +221,14 @@ function getStatusClass(status) {
 }
 
 function getStatusPathBySourceType(sourceType) {
+  if (sourceType === "kokkai") return "/knowledge/kokkai/status";
   if (sourceType === "opendata") return "/knowledge/opendata/status";
   if (sourceType === "upload") return "/knowledge/upload/status";
   return "";
 }
 
 function getRunPathBySourceType(sourceType) {
+  if (sourceType === "kokkai") return "/knowledge/kokkai/run";
   if (sourceType === "opendata") return "/knowledge/opendata/run";
   if (sourceType === "upload") return "/knowledge/upload/run";
   return "";
@@ -270,7 +272,7 @@ function clearActiveKnowledgeJob() {
 /**
  * sessionStorage に残っている job が本当に生きているか確認する
  * - done / error / not found / DBなし → 破棄して null
- * - running / new → 生きているジョブとして返す
+ * - running / new / queued → 生きているジョブとして返す
  */
 async function validateStoredActiveJob(previousActiveJob) {
   if (!previousActiveJob || !previousActiveJob.job_id || !previousActiveJob.source_type) {
@@ -299,7 +301,6 @@ async function validateStoredActiveJob(previousActiveJob) {
   } catch (e) {
     const message = String(e?.message || "").toLowerCase();
 
-    // レコードなし / DBなし / 404系は残骸とみなしてクリア
     if (
       message.includes("not found") ||
       message.includes("knowledge_jobs not found") ||
@@ -310,7 +311,6 @@ async function validateStoredActiveJob(previousActiveJob) {
       return null;
     }
 
-    // それ以外は通信異常の可能性があるので呼び出し元で扱う
     throw e;
   }
 }
@@ -582,7 +582,7 @@ function summarizeJobItems(items) {
   }).length;
   const queuedCount = normalized.filter((x) => {
     const s = String(x?.status || "").toLowerCase();
-    return s === "new" || s === "pending" || s === "";
+    return s === "new" || s === "queued" || s === "pending" || s === "";
   }).length;
 
   const doneCount = doneCountOnly + errorCount;
@@ -715,6 +715,74 @@ async function finalizeKnowledgePolling(statusData, checkedRowsLength = 0) {
   await refreshParentList();
 }
 
+function buildKnowledgeEndpointAndPayload(source, checkedRows) {
+  if (!source || !source.sourceType) {
+    throw new Error("sourceType が判定できません");
+  }
+
+  if (source.sourceType === "kokkai") {
+    return {
+      endpoint: "/knowledge/kokkai/job",
+      payload: {
+        source_type: "kokkai",
+        source_name: "国会議事録",
+        request_type: "extract_knowledge",
+        preview_only: false,
+        items: checkedRows.map((row) => ({
+          source_type: "kokkai",
+          parent_source_id: row.source_id ?? null,
+          parent_key1: row.name_of_house ?? null,
+          parent_key2: row.name_of_meeting ?? null,
+          parent_label: `${row.name_of_house ?? ""} / ${row.name_of_meeting ?? ""}`,
+          row_count: row.row_count ?? 0
+        }))
+      }
+    };
+  }
+
+  if (source.sourceType === "opendata") {
+    return {
+      endpoint: "/knowledge/opendata/job",
+      payload: {
+        source_type: "opendata",
+        source_name: "オープンデータ",
+        request_type: "extract_knowledge",
+        preview_only: false,
+        items: checkedRows.map((row) => ({
+          source_type: "opendata",
+          parent_source_id: row.source_id ?? null,
+          parent_key1: row.dataset_id ?? null,
+          parent_key2: row.ext ?? null,
+          parent_label: row.title || row.dataset_id || row.source_id || "",
+          row_count: row.row_count ?? 0
+        }))
+      }
+    };
+  }
+
+  if (source.sourceType === "upload") {
+    return {
+      endpoint: "/knowledge/upload/job",
+      payload: {
+        source_type: "upload",
+        source_name: "ファイルアップロード",
+        request_type: "extract_knowledge",
+        preview_only: false,
+        items: checkedRows.map((row) => ({
+          source_type: "upload",
+          parent_source_id: row.file_id ?? null,
+          parent_key1: row.logical_name ?? null,
+          parent_key2: row.ext ?? null,
+          parent_label: row.logical_name || row.original_name || row.file_id || "",
+          row_count: row.row_count ?? 0
+        }))
+      }
+    };
+  }
+
+  throw new Error("このデータ種別のナレッジ化は未対応です");
+}
+
 async function createKnowledgeJob() {
   if (knowledgeRunning) {
     return;
@@ -733,64 +801,15 @@ async function createKnowledgeJob() {
   }
 
   const source = sourceMap[currentSourceKey];
-  if (!source || !source.sourceType) {
-    alert("sourceType が判定できません");
-    return;
-  }
-
   let endpoint = "";
   let payload = null;
 
-  if (source.sourceType === "kokkai") {
-    endpoint = "/knowledge/kokkai/job";
-    payload = {
-      source_type: "kokkai",
-      source_name: "国会議事録",
-      request_type: "extract_knowledge",
-      preview_only: false,
-      items: checkedRows.map((row) => ({
-        source_type: "kokkai",
-        parent_source_id: row.source_id ?? null,
-        parent_key1: row.name_of_house ?? null,
-        parent_key2: row.name_of_meeting ?? null,
-        parent_label: `${row.name_of_house ?? ""} / ${row.name_of_meeting ?? ""}`,
-        row_count: row.row_count ?? 0
-      }))
-    };
-  } else if (source.sourceType === "opendata") {
-    endpoint = "/knowledge/opendata/job";
-    payload = {
-      source_type: "opendata",
-      source_name: "オープンデータ",
-      request_type: "extract_knowledge",
-      preview_only: false,
-      items: checkedRows.map((row) => ({
-        source_type: "opendata",
-        parent_source_id: row.source_id ?? null,
-        parent_key1: row.dataset_id ?? null,
-        parent_key2: row.ext ?? null,
-        parent_label: row.title || row.dataset_id || row.source_id || "",
-        row_count: row.row_count ?? 0
-      }))
-    };
-  } else if (source.sourceType === "upload") {
-    endpoint = "/knowledge/upload/job";
-    payload = {
-      source_type: "upload",
-      source_name: "ファイルアップロード",
-      request_type: "extract_knowledge",
-      preview_only: false,
-      items: checkedRows.map((row) => ({
-        source_type: "upload",
-        parent_source_id: row.file_id ?? null,
-        parent_key1: row.logical_name ?? null,
-        parent_key2: row.ext ?? null,
-        parent_label: row.logical_name || row.original_name || row.file_id || "",
-        row_count: row.row_count ?? 0
-      }))
-    };
-  } else {
-    alert("このデータ種別のナレッジ化は未対応です");
+  try {
+    const built = buildKnowledgeEndpointAndPayload(source, checkedRows);
+    endpoint = built.endpoint;
+    payload = built.payload;
+  } catch (e) {
+    alert(e.message || "ナレッジ化の設定に失敗しました");
     return;
   }
 
@@ -801,75 +820,60 @@ async function createKnowledgeJob() {
       detailPre.textContent = "ナレッジ化ジョブを作成中です...";
     }
 
-    if (source.sourceType === "opendata" || source.sourceType === "upload") {
-      const previousActiveJob = loadActiveKnowledgeJob();
-      const liveActiveJob = await validateStoredActiveJob(previousActiveJob);
+    const previousActiveJob = loadActiveKnowledgeJob();
+    const liveActiveJob = await validateStoredActiveJob(previousActiveJob);
 
-      if (liveActiveJob && liveActiveJob.job_id) {
-        alert(
-          `別のジョブが実行中です。完了後に再実行してください。\n` +
-          `job_id=${liveActiveJob.job_id}\n` +
-          `status=${liveActiveJob.status}`
-        );
-        return;
-      }
-
-      const jobData = await apiPost(endpoint, payload);
-      const jobId = jobData?.job_id;
-
-      if (!jobId) {
-        throw new Error("job_id が取得できませんでした");
-      }
-
-      saveActiveKnowledgeJob({
-        job_id: jobId,
-        source_type: source.sourceType,
-        source_key: currentSourceKey,
-        selected_count: checkedRows.length
-      });
-
-      if (detailPre) {
-        detailPre.textContent =
-          `ジョブを作成しました。\n\n${buildKnowledgeResultText(jobData || {})}\n\nバックグラウンド実行を開始します...`;
-      }
-
-      if (contextSummary) {
-        contextSummary.textContent =
-          `ナレッジ化: 0 / ${checkedRows.length}（status: ${jobData?.status ?? "new"}）`;
-      }
-
-      if (selectionSummary) {
-        selectionSummary.textContent =
-          `完了 0 / ${checkedRows.length}（done 0｜error 0｜実行中 0｜待機 ${checkedRows.length}）`;
-      }
-
-      const statusData = await runKnowledgeJobAndPoll(source.sourceType, jobId);
-      await finalizeKnowledgePolling(statusData, checkedRows.length);
+    if (liveActiveJob && liveActiveJob.job_id) {
+      alert(
+        `別のジョブが実行中です。完了後に再実行してください。\n` +
+        `job_id=${liveActiveJob.job_id}\n` +
+        `status=${liveActiveJob.status}`
+      );
       return;
     }
 
-    const data = await apiPost(endpoint, payload);
-    const previews = Array.isArray(data?.prompt_previews) ? data.prompt_previews : [];
+    const jobData = await apiPost(endpoint, payload);
+    const jobId = jobData?.job_id;
+
+    if (!jobId) {
+      throw new Error("job_id が取得できませんでした");
+    }
+
+    saveActiveKnowledgeJob({
+      job_id: jobId,
+      source_type: source.sourceType,
+      source_key: currentSourceKey,
+      selected_count: checkedRows.length
+    });
 
     if (detailPre) {
-      detailPre.textContent = buildKnowledgeResultText(data || {});
+      detailPre.textContent =
+        `ジョブを作成しました。\n\n${buildKnowledgeResultText(jobData || {})}\n\nバックグラウンド実行を開始します...`;
     }
 
     if (contextSummary) {
-      contextSummary.textContent = `ナレッジ化: ${data?.status ?? "unknown"}`;
+      contextSummary.textContent =
+        `ナレッジ化: 0 / ${checkedRows.length}（status: ${jobData?.status ?? "new"}）`;
     }
 
     if (selectionSummary) {
-      selectionSummary.textContent = `選択 ${checkedRows.length} 件 / prompt ${previews.length} 件`;
+      selectionSummary.textContent =
+        `完了 0 / ${checkedRows.length}（done 0｜error 0｜実行中 0｜待機 ${checkedRows.length}）`;
     }
+
+    const statusData = await runKnowledgeJobAndPoll(source.sourceType, jobId);
+    await finalizeKnowledgePolling(statusData, checkedRows.length);
   } catch (e) {
     console.error(e);
+
     if (detailPre) {
       detailPre.textContent = e.message || "ナレッジ化処理でエラーが発生しました。";
     }
+
     if (contextSummary) {
       contextSummary.textContent = "ナレッジ化: 異常終了";
     }
+
     alert(e.message || "ナレッジ化処理でエラーが発生しました");
   } finally {
     setKnowledgeBusy(false);
