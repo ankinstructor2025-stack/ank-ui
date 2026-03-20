@@ -1,7 +1,6 @@
 console.log("data_source_opendata.js loaded");
 
 (function () {
-
   function getDatasetListEl() {
     return document.getElementById("openDataDatasetList");
   }
@@ -11,7 +10,7 @@ console.log("data_source_opendata.js loaded");
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
+      .replace(/\"/g, "&quot;")
       .replace(/'/g, "&#39;");
   }
 
@@ -36,13 +35,6 @@ console.log("data_source_opendata.js loaded");
     return v ? v.toUpperCase() : "-";
   }
 
-  function formatRowCount(rowCount) {
-    if (rowCount === null || rowCount === undefined || rowCount === "") {
-      return "-";
-    }
-    return String(rowCount);
-  }
-
   function formatStatus(status) {
     const v = String(status ?? "").trim().toLowerCase();
     if (!v) return "new";
@@ -61,8 +53,8 @@ console.log("data_source_opendata.js loaded");
     wrap.innerHTML = items.map((item) => {
       const status = formatStatus(item.status);
       const done = status === "done";
-      const rowCount = formatRowCount(item.row_count);
       const ext = formatExt(item.ext);
+      const originalName = String(item.original_name ?? "").trim();
 
       return `
         <div class="choice-row">
@@ -72,14 +64,14 @@ console.log("data_source_opendata.js loaded");
 
           <div class="choice-meta-line">
             <span class="choice-meta-chip">${escapeHtml(ext)}</span>
-            <span class="choice-meta-chip">${escapeHtml(rowCount)}件</span>
             <span class="choice-meta-chip">${escapeHtml(status)}</span>
+            ${originalName ? `<span class="choice-meta-chip">${escapeHtml(originalName)}</span>` : ""}
           </div>
 
           <div class="choice-button-line">
             ${
               done
-                ? `<span class="choice-done-text">完了</span>`
+                ? `<span class="choice-done-text">取得済</span>`
                 : `
                   <button
                     type="button"
@@ -87,7 +79,7 @@ console.log("data_source_opendata.js loaded");
                     data-dataset-id="${escapeHtml(item.dataset_id)}"
                     data-dataset-title="${escapeHtml(item.title)}"
                   >
-                    分解
+                    取得
                   </button>
                 `
             }
@@ -106,7 +98,7 @@ console.log("data_source_opendata.js loaded");
           await handlers.onExpandDataset(datasetId, datasetTitle);
         } catch (e) {
           console.error(e);
-          writeLog(`dataset 分解失敗: ${e.message}`);
+          writeLog(`dataset 取得失敗: ${e.message}`);
         }
       });
     });
@@ -152,16 +144,16 @@ console.log("data_source_opendata.js loaded");
 
     if (!res.ok) {
       const text = await readErrorText(res);
-      throw new Error(`dataset 分解失敗: ${text}`);
+      throw new Error(`dataset 取得失敗: ${text}`);
     }
 
     const data = await res.json();
 
-    writeLog("dataset 分解完了");
+    writeLog("dataset 取得完了");
     if (data.source_id) writeLog(`source_id=${data.source_id}`);
     if (data.ext) writeLog(`ext=${data.ext}`);
-    if (typeof data.row_inserted === "number") writeLog(`row_inserted=${data.row_inserted}`);
-    if (typeof data.row_skipped === "number") writeLog(`row_skipped=${data.row_skipped}`);
+    if (data.original_name) writeLog(`original_name=${data.original_name}`);
+    if (data.gcs_path) writeLog(`gcs_path=${data.gcs_path}`);
 
     return data;
   }
