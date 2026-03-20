@@ -53,17 +53,38 @@ window.DataViewOpenData = (function () {
       throw new Error("source_id がありません。");
     }
 
-    const data = await ctx.apiGet("/opendata/download_url", {
-      source_id: sourceId
-    });
-
-    const url = data?.download_url;
-    if (!url) {
-      throw new Error("download_url が取得できませんでした。");
+    const token = sessionStorage.getItem("idToken");
+    if (!token) {
+      throw new Error("ログイン情報が見つかりません。");
     }
 
-    window.open(url, "_blank");
+    const url = `${ctx.apiBase}/opendata/download_url?source_id=${encodeURIComponent(sourceId)}`;
+
+    const res = await fetch(url, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(text || "ダウンロードに失敗しました。");
+    }
+
+    const blob = await res.blob();
+    const blobUrl = window.URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = blobUrl;
+    link.download = parentRow?.original_name || `${sourceId}.${parentRow?.ext || "dat"}`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    window.URL.revokeObjectURL(blobUrl);
   }
+
 
   function bindParentCheckboxEvents() {
     const checks = ctx.parentTableBody?.querySelectorAll(".parent-check") || [];
