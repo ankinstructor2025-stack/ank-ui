@@ -523,6 +523,13 @@ function buildKnowledgeResultText(data) {
 }
 
 function buildStatusResultText(data) {
+  const totalChunks = Number(data?.total_chunks || 0);
+  const processedChunks = Number(data?.processed_chunks || 0);
+  const totalQaChunks = Number(data?.total_qa_chunks || 0);
+  const processedQaChunks = Number(data?.processed_qa_chunks || 0);
+  const totalPlainChunks = Number(data?.total_plain_chunks || 0);
+  const processedPlainChunks = Number(data?.processed_plain_chunks || 0);
+
   const lines = [
     `job_id: ${data?.job_id ?? ""}`,
     `status: ${data?.status ?? ""}`,
@@ -530,6 +537,9 @@ function buildStatusResultText(data) {
     `qa_count: ${data?.qa_count ?? 0}`,
     `plain_count: ${data?.plain_count ?? 0}`,
     `error_count: ${data?.error_count ?? 0}`,
+    `chunks: ${processedChunks} / ${totalChunks}`,
+    `qa_chunks: ${processedQaChunks} / ${totalQaChunks}`,
+    `plain_chunks: ${processedPlainChunks} / ${totalPlainChunks}`,
     `requested_at: ${data?.requested_at ?? ""}`,
     `started_at: ${data?.started_at ?? ""}`,
     `finished_at: ${data?.finished_at ?? ""}`,
@@ -546,6 +556,9 @@ function buildStatusResultText(data) {
       lines.push(`  status: ${item?.status || ""}`);
       lines.push(`  knowledge_count: ${item?.knowledge_count || 0}`);
       lines.push(`  row_count: ${item?.row_count || 0}`);
+      lines.push(`  chunk: ${item?.chunk_done || 0} / ${item?.chunk_total || 0}`);
+      lines.push(`  qa_chunk: ${item?.qa_chunk_done || 0} / ${item?.qa_chunk_total || 0}`);
+      lines.push(`  plain_chunk: ${item?.plain_chunk_done || 0} / ${item?.plain_chunk_total || 0}`);
       lines.push(`  started_at: ${item?.started_at || ""}`);
       lines.push(`  finished_at: ${item?.finished_at || ""}`);
       lines.push(`  error_message: ${item?.error_message || ""}`);
@@ -604,15 +617,22 @@ function updatePollingSummary(data, attempt, maxAttempts) {
   const summary = summarizeJobItems(items);
   const totalForDisplay = summary.total || Number(data?.selected_count) || 0;
 
+  const totalChunks = Number(data?.total_chunks || 0);
+  const processedChunks = Number(data?.processed_chunks || 0);
+  const totalQaChunks = Number(data?.total_qa_chunks || 0);
+  const processedQaChunks = Number(data?.processed_qa_chunks || 0);
+  const totalPlainChunks = Number(data?.total_plain_chunks || 0);
+  const processedPlainChunks = Number(data?.processed_plain_chunks || 0);
+
   if (contextSummary) {
     contextSummary.textContent =
-      `ナレッジ化: ${summary.doneCount} / ${totalForDisplay}` +
-      `（status: ${data?.status ?? "unknown"}｜確認 ${attempt} / ${maxAttempts}）`;
+      `ナレッジ化: CHUNK ${processedChunks} / ${totalChunks}` +
+      `（QA ${processedQaChunks} / ${totalQaChunks}｜PLAIN ${processedPlainChunks} / ${totalPlainChunks}｜status: ${data?.status ?? "unknown"}）`;
   }
 
   if (selectionSummary) {
     selectionSummary.textContent =
-      `完了 ${summary.doneCount} / ${totalForDisplay}` +
+      `親 ${summary.doneCount} / ${totalForDisplay}` +
       `（done ${summary.doneCountOnly}｜error ${summary.errorCount}｜実行中 ${summary.runningCount}｜待機 ${summary.queuedCount}）`;
   }
 }
@@ -696,11 +716,26 @@ async function finalizeKnowledgePolling(statusData, checkedRowsLength = 0) {
   }
 
   if (contextSummary) {
+    const totalChunks = Number(statusData?.total_chunks || 0);
+    const processedChunks = Number(statusData?.processed_chunks || 0);
+    const totalQaChunks = Number(statusData?.total_qa_chunks || 0);
+    const processedQaChunks = Number(statusData?.processed_qa_chunks || 0);
+    const totalPlainChunks = Number(statusData?.total_plain_chunks || 0);
+    const processedPlainChunks = Number(statusData?.processed_plain_chunks || 0);
+
+    contextSummary.textContent =
+      `ナレッジ化: CHUNK ${processedChunks} / ${totalChunks}` +
+      `（QA ${processedQaChunks} / ${totalQaChunks}｜PLAIN ${processedPlainChunks} / ${totalPlainChunks}｜status: ${statusData?.status ?? "unknown"}）`;
+  }
+
+  if (selectionSummary) {
     const items = Array.isArray(statusData?.items) ? statusData.items : [];
     const summary = summarizeJobItems(items);
     const totalForDisplay = summary.total || Number(statusData?.selected_count) || checkedRowsLength;
-    contextSummary.textContent =
-      `ナレッジ化: ${summary.doneCount} / ${totalForDisplay}（status: ${statusData?.status ?? "unknown"}）`;
+
+    selectionSummary.textContent =
+      `親 ${summary.doneCount} / ${totalForDisplay}` +
+      `（done ${summary.doneCountOnly}｜error ${summary.errorCount}｜実行中 ${summary.runningCount}｜待機 ${summary.queuedCount}）`;
   }
 
   if (statusData && String(statusData.status || "").toLowerCase() === "done") {
@@ -853,12 +888,12 @@ async function createKnowledgeJob() {
 
     if (contextSummary) {
       contextSummary.textContent =
-        `ナレッジ化: 0 / ${checkedRows.length}（status: ${jobData?.status ?? "new"}）`;
+        `ナレッジ化: CHUNK 0 / 0（QA 0 / 0｜PLAIN 0 / 0｜status: ${jobData?.status ?? "new"}）`;
     }
 
     if (selectionSummary) {
       selectionSummary.textContent =
-        `完了 0 / ${checkedRows.length}（done 0｜error 0｜実行中 0｜待機 ${checkedRows.length}）`;
+        `親 0 / ${checkedRows.length}（done 0｜error 0｜実行中 0｜待機 ${checkedRows.length}）`;
     }
 
     const statusData = await runKnowledgeJobAndPoll(source.sourceType, jobId);
