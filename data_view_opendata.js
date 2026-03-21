@@ -278,7 +278,7 @@ window.DataViewOpenData = (function () {
           <td>
             <button
               type="button"
-              class="btn btn-secondary btn-download-child"
+              class="btn btn-primary btn-download-child"
               data-index="${index}"
             >
               DL
