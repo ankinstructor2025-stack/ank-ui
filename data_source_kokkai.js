@@ -19,10 +19,6 @@ console.log("data_source_kokkai.js loaded");
   }
 
   async function run({ apiBase, sourceKey, idToken, writeLog }) {
-    if (!sourceKey) {
-      throw new Error("sourceKey が指定されていません");
-    }
-
     writeLog?.("国会議事録取得開始");
 
     const requestUrl = buildRequestUrl(apiBase, "/kokkai/fetch_and_register");
@@ -37,10 +33,7 @@ console.log("data_source_kokkai.js loaded");
 
     const res = await fetch(requestUrl, {
       method: "POST",
-      headers,
-      body: JSON.stringify({
-        source_key: sourceKey
-      })
+      headers
     });
 
     if (res.status === 409) {
@@ -49,17 +42,22 @@ console.log("data_source_kokkai.js loaded");
     }
 
     if (!res.ok) {
-      throw new Error(`APIエラー (HTTP ${res.status})`);
+      let detail = `APIエラー (HTTP ${res.status})`;
+      try {
+        const data = await res.json();
+        if (data?.detail) detail = data.detail;
+      } catch (_) {}
+      throw new Error(detail);
     }
 
     const data = await res.json();
 
     writeLog?.("登録完了");
-
-    if (data.fetched != null) writeLog?.(`fetched=${data.fetched}`);
-    if (data.inserted != null) writeLog?.(`inserted=${data.inserted}`);
-    if (data.skipped != null) writeLog?.(`skipped=${data.skipped}`);
-    if (data.file_id) writeLog?.(`file_id=${data.file_id}`);
+    if (data.requested_url) writeLog?.(`requested_url=${data.requested_url}`);
+    if (data.meeting_count != null) writeLog?.(`meeting_count=${data.meeting_count}`);
+    if (data.document_count != null) writeLog?.(`document_count=${data.document_count}`);
+    if (data.row_inserted != null) writeLog?.(`row_inserted=${data.row_inserted}`);
+    if (data.row_skipped != null) writeLog?.(`row_skipped=${data.row_skipped}`);
   }
 
   window.DataSourceKokkai = {

@@ -15,57 +15,6 @@ function formatParentLabel(row) {
   return [house, meeting].filter(Boolean).join(" / ");
 }
 
-function formatChildTitle(row) {
-  return (
-    row?.title ||
-    row?.question ||
-    row?.headline ||
-    row?.speaker ||
-    row?.name ||
-    row?.row_index ||
-    row?.source_item_id ||
-    "(名称なし)"
-  );
-}
-
-// ★ opendataと同じ
-function parseRowContent(row) {
-  const raw = row?.content || row?.text || row?.body || row?.detail || "";
-
-  if (row?.data && typeof row.data === "object") {
-    return row.data;
-  }
-
-  if (typeof raw === "object" && raw !== null) {
-    return raw;
-  }
-
-  if (typeof raw === "string" && raw.trim()) {
-    try {
-      return JSON.parse(raw);
-    } catch (_) {
-      return raw;
-    }
-  }
-
-  return raw;
-}
-
-// ★ opendataと同じ
-function formatChildContent(row) {
-  const parsed = parseRowContent(row);
-
-  if (parsed && typeof parsed === "object") {
-    try {
-      return JSON.stringify(parsed, null, 2);
-    } catch (_) {
-      return String(parsed);
-    }
-  }
-
-  return String(parsed || "");
-}
-
 function extractRowsFromResponse(data) {
   if (Array.isArray(data)) return data;
   if (Array.isArray(data.rows)) return data.rows;
@@ -110,27 +59,17 @@ function clearChildArea(message = "親一覧から1件選択してください�
   }
 }
 
-// ★ opendata統一版
 function renderDetailFromChild(row, parentRow) {
-  const parsed = parseRowContent(row);
-
   const lines = [
+    `issue_id: ${parentRow?.issue_id ?? row?.issue_id ?? ""}`,
     `院: ${parentRow?.name_of_house ?? ""}`,
     `会議名: ${parentRow?.name_of_meeting ?? ""}`,
-    `row_index: ${row?.row_index ?? ""}`,
-    `source_item_id: ${row?.source_item_id ?? ""}`,
-    ""
+    `speech_id: ${row?.speech_id ?? ""}`,
+    `status: ${row?.status ?? ""}`,
+    `speaker: ${row?.speaker ?? ""}`,
+    "",
+    row?.speech ?? ""
   ];
-
-  if (parsed && typeof parsed === "object") {
-    try {
-      lines.push(JSON.stringify(parsed, null, 2));
-    } catch (_) {
-      lines.push(String(parsed));
-    }
-  } else {
-    lines.push(formatChildContent(row));
-  }
 
   ctx.detailPre.textContent = lines.join("\n");
 }
@@ -199,33 +138,41 @@ function renderChildTable(rows, parentRow) {
     return;
   }
 
+  if (ctx.contextSummary) {
+    ctx.contextSummary.textContent = `子一覧: ${formatParentLabel(parentRow)} / ${rows.length} 件`;
+  }
+
   ctx.childTableHead.innerHTML = `
     <tr>
-      <th class="narrow-cell">行</th>
+      <th>発言ID</th>
+      <th>発言者</th>
       <th>内容</th>
     </tr>
   `;
 
   ctx.childTableBody.innerHTML = rows.map((row, index) => {
-    const rowNo = row.row_index ?? index + 1;
-    const content = formatChildContent(row);
-    const preview = content.replace(/\s+/g, " ").slice(0, 80);
+    const preview = String(row?.speech || "").replace(/\s+/g, " ").slice(0, 100);
 
     return `
       <tr class="clickable-row child-row" data-index="${index}">
-        <td>${ctx.escapeHtml(rowNo)}</td>
+        <td>${ctx.escapeHtml(row?.speech_id ?? "")}</td>
+        <td>${ctx.escapeHtml(row?.speaker ?? "")}</td>
         <td>${ctx.escapeHtml(preview)}</td>
       </tr>
     `;
   }).join("");
 
   bindChildRowEvents();
+
+  if (rows.length > 0) {
+    setSelectedChildRow(0);
+    renderDetailFromChild(rows[0], parentRow);
+  }
 }
 
 async function loadChildren(parentRow) {
   const data = await ctx.apiGet("/kokkai/rows", {
-    name_of_house: parentRow.name_of_house,
-    name_of_meeting: parentRow.name_of_meeting
+    issue_id: parentRow.issue_id
   });
 
   return extractRowsFromResponse(data);
@@ -249,7 +196,7 @@ function bindParentRowEvents() {
         const children = await loadChildren(row);
         renderChildTable(children, row);
       } catch (e) {
-        clearChildArea(e.message);
+        clearChildArea(e.message || "子一覧の取得に失敗しました");
       }
     });
   });
@@ -258,10 +205,20 @@ function bindParentRowEvents() {
 function renderParentTable(rows) {
   currentParentRows = Array.isArray(rows) ? rows : [];
   checkedParentIndexes = new Set();
+  selectedParentIndex = -1;
 
   if (rows.length === 0) {
     ctx.renderParentPlaceholder("データがありません。");
+    updateCheckedSummary();
     return;
+  }
+
+  if (ctx.summaryText) {
+    ctx.summaryText.textContent = `${rows.length} 件`;
+  }
+
+  if (ctx.contextSummary) {
+    ctx.contextSummary.textContent = "親一覧";
   }
 
   ctx.parentTableHead.innerHTML = `
@@ -270,20 +227,24 @@ function renderParentTable(rows) {
       <th>院</th>
       <th>会議名</th>
       <th>件数</th>
+      <th>issue_id</th>
     </tr>
   `;
 
   ctx.parentTableBody.innerHTML = rows.map((row, index) => `
     <tr class="clickable-row parent-row" data-index="${index}">
       <td><input type="checkbox" class="parent-check" data-index="${index}"></td>
-      <td>${ctx.escapeHtml(row.name_of_house)}</td>
-      <td>${ctx.escapeHtml(row.name_of_meeting)}</td>
+      <td>${ctx.escapeHtml(row.name_of_house ?? "")}</td>
+      <td>${ctx.escapeHtml(row.name_of_meeting ?? "")}</td>
       <td>${ctx.escapeHtml(row.row_count ?? "")}</td>
+      <td>${ctx.escapeHtml(row.issue_id ?? "")}</td>
     </tr>
   `).join("");
 
   bindParentCheckboxEvents();
   bindParentRowEvents();
+  updateCheckedSummary();
+  clearChildArea("親一覧から1件選択してください。");
 }
 
 async function load(viewContext) {
@@ -294,7 +255,7 @@ async function load(viewContext) {
     const data = await ctx.apiGet("/kokkai/documents");
     renderParentTable(data.rows || []);
   } catch (e) {
-    ctx.renderParentPlaceholder(e.message);
+    ctx.renderParentPlaceholder(e.message || "親一覧の取得に失敗しました");
   }
 }
 

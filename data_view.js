@@ -832,7 +832,7 @@ function buildKnowledgeEndpointAndPayload(source, checkedRows) {
         preview_only: false,
         items: checkedRows.map((row) => ({
           source_type: "kokkai",
-          parent_source_id: row.source_id ?? null,
+          parent_source_id: row.issue_id ?? null,
           parent_key1: row.name_of_house ?? null,
           parent_key2: row.name_of_meeting ?? null,
           parent_label: `${row.name_of_house ?? ""} / ${row.name_of_meeting ?? ""}`,
