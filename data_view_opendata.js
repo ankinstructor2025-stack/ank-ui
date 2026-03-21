@@ -3,6 +3,7 @@ console.log("data_view_opendata.js loaded");
 window.DataViewOpenData = (function () {
   let ctx = null;
   let currentParentRows = [];
+  let currentChildRows = [];
   let selectedParentIndex = -1;
 
   function init(context) {
@@ -22,10 +23,15 @@ window.DataViewOpenData = (function () {
     return row?.title || row?.logical_name || row?.original_name || row?.source_id || "(名称なし)";
   }
 
-  function clearChildArea(message = "") {
-    if (ctx?.childTableHead) ctx.childTableHead.innerHTML = "";
-    if (ctx?.childTableBody) ctx.childTableBody.innerHTML = "";
-    if (ctx?.detailPre) ctx.detailPre.textContent = message || "";
+  function formatDateTime(value) {
+    if (!value) return "";
+    try {
+      const d = new Date(value);
+      if (Number.isNaN(d.getTime())) return String(value);
+      return d.toLocaleString("ja-JP");
+    } catch (_) {
+      return String(value);
+    }
   }
 
   function updateSelectedCount() {
@@ -43,14 +49,14 @@ window.DataViewOpenData = (function () {
     const rows = ctx.parentTableBody?.querySelectorAll(".parent-row") || [];
     rows.forEach((rowEl) => {
       const rowIndex = Number(rowEl.dataset.index || "-1");
-      rowEl.classList.toggle("selected", rowIndex === selectedParentIndex);
+      rowEl.classList.toggle("selected-row", rowIndex === selectedParentIndex);
     });
   }
 
-  async function downloadSourceFile(parentRow) {
-    const sourceId = parentRow?.source_id;
-    if (!sourceId) {
-      throw new Error("source_id がありません。");
+  async function downloadFileByFileId(fileRow) {
+    const fileId = fileRow?.file_id;
+    if (!fileId) {
+      throw new Error("file_id がありません。");
     }
 
     const token = sessionStorage.getItem("idToken");
@@ -58,7 +64,7 @@ window.DataViewOpenData = (function () {
       throw new Error("ログイン情報が見つかりません。");
     }
 
-    const url = `${ctx.apiBase}/opendata/download_url?source_id=${encodeURIComponent(sourceId)}`;
+    const url = `${ctx.apiBase}/opendata/download_url?file_id=${encodeURIComponent(fileId)}`;
 
     const res = await fetch(url, {
       method: "GET",
@@ -77,7 +83,7 @@ window.DataViewOpenData = (function () {
 
     const link = document.createElement("a");
     link.href = blobUrl;
-    link.download = parentRow?.original_name || `${sourceId}.${parentRow?.ext || "dat"}`;
+    link.download = fileRow?.original_name || `${fileId}.${fileRow?.ext || "dat"}`;
     document.body.appendChild(link);
     link.click();
     link.remove();
@@ -85,6 +91,23 @@ window.DataViewOpenData = (function () {
     window.URL.revokeObjectURL(blobUrl);
   }
 
+  function clearChildArea(message = "") {
+    currentChildRows = [];
+
+    if (ctx?.childTableHead) ctx.childTableHead.innerHTML = "";
+    if (ctx?.childTableBody) {
+      if (message) {
+        ctx.childTableBody.innerHTML = `
+          <tr class="placeholder-row">
+            <td colspan="5">${escapeHtml(message)}</td>
+          </tr>
+        `;
+      } else {
+        ctx.childTableBody.innerHTML = "";
+      }
+    }
+    if (ctx?.detailPre) ctx.detailPre.textContent = message || "";
+  }
 
   function bindParentCheckboxEvents() {
     const checks = ctx.parentTableBody?.querySelectorAll(".parent-check") || [];
@@ -115,26 +138,26 @@ window.DataViewOpenData = (function () {
     }
   }
 
-  function bindDownloadEvents() {
-    if (!ctx?.parentTableBody) return;
+  function bindChildDownloadEvents() {
+    if (!ctx?.childTableBody) return;
 
-    const buttons = ctx.parentTableBody.querySelectorAll(".btn-download");
+    const buttons = ctx.childTableBody.querySelectorAll(".btn-download-child");
     buttons.forEach((btn) => {
       btn.addEventListener("click", async (event) => {
         event.stopPropagation();
 
         const index = Number(btn.dataset.index || "-1");
-        const row = currentParentRows[index];
+        const row = currentChildRows[index];
         if (!row) return;
 
         try {
-          await downloadSourceFile(row);
+          await downloadFileByFileId(row);
         } catch (e) {
           console.error(e);
           if (ctx.detailPre) {
-            ctx.detailPre.textContent = e.message || "ダウンロードURLの取得に失敗しました。";
+            ctx.detailPre.textContent = e.message || "ダウンロードに失敗しました。";
           }
-          alert(e.message || "ダウンロードURLの取得に失敗しました");
+          alert(e.message || "ダウンロードに失敗しました");
         }
       });
     });
@@ -146,28 +169,17 @@ window.DataViewOpenData = (function () {
     rows.forEach((tr) => {
       tr.addEventListener("click", async (event) => {
         if (event.target.closest(".parent-check")) return;
-        if (event.target.closest(".btn-download")) return;
 
         const index = Number(tr.dataset.index || "-1");
         const row = currentParentRows[index];
         if (!row) return;
 
-        setSelectedParentRow(index);
-        clearChildArea("このデータはファイル保存方式です。ダウンロードボタンを使ってください。");
-
-        if (ctx.contextSummary) {
-          ctx.contextSummary.textContent = `親一覧: ${formatParentLabel(row)}`;
-        }
-
-        if (ctx.detailPre) {
-          ctx.detailPre.textContent =
-            `source_id: ${row.source_id ?? ""}\n` +
-            `dataset_id: ${row.dataset_id ?? ""}\n` +
-            `title: ${row.title ?? ""}\n` +
-            `ext: ${row.ext ?? ""}\n` +
-            `status: ${row.status ?? ""}\n` +
-            `source_url: ${row.source_url ?? ""}\n` +
-            `original_name: ${row.original_name ?? ""}`;
+        try {
+          setSelectedParentRow(index);
+          await loadChildren(row);
+        } catch (e) {
+          console.error(e);
+          clearChildArea(e.message || "子一覧の取得に失敗しました。");
         }
       });
     });
@@ -183,8 +195,8 @@ window.DataViewOpenData = (function () {
       <tr>
         <th class="checkbox-cell"></th>
         <th>データセット</th>
-        <th class="narrow-cell">ext</th>
-        <th class="narrow-cell">ダウンロード</th>
+        <th class="narrow-cell">状態</th>
+        <th class="narrow-cell">子件数</th>
       </tr>
     `;
 
@@ -200,6 +212,9 @@ window.DataViewOpenData = (function () {
     }
 
     ctx.parentTableBody.innerHTML = currentParentRows.map((row, index) => {
+      const status = String(row.status || "");
+      const childCount = Number(row.child_count || 0);
+
       return `
         <tr class="clickable-row parent-row" data-index="${index}">
           <td class="checkbox-cell">
@@ -209,31 +224,100 @@ window.DataViewOpenData = (function () {
               data-index="${index}"
             >
           </td>
-          <td>${escapeHtml(formatParentLabel(row))}</td>
-          <td>${escapeHtml(row.ext ?? "")}</td>
-          <td>
-            ${
-              String(row.status || "").toLowerCase() === "done"
-                ? `
-                  <button
-                    type="button"
-                    class="btn btn-secondary btn-download"
-                    data-index="${index}"
-                  >
-                    DL
-                  </button>
-                `
-                : `<span class="muted">-</span>`
-            }
+          <td title="${escapeHtml(formatParentLabel(row))}">
+            ${escapeHtml(formatParentLabel(row))}
           </td>
+          <td>
+            <span class="${escapeHtml(ctx.getStatusClass(status))}">
+              ${escapeHtml(status || "new")}
+            </span>
+          </td>
+          <td>${childCount}</td>
         </tr>
       `;
     }).join("");
 
     bindParentCheckboxEvents();
     bindParentRowEvents();
-    bindDownloadEvents();
     syncParentCheckboxUi();
+  }
+
+  function renderChildTable(parentRow, files) {
+    currentChildRows = Array.isArray(files) ? files : [];
+
+    if (!ctx?.childTableHead || !ctx?.childTableBody) return;
+
+    ctx.childTableHead.innerHTML = `
+      <tr>
+        <th>ファイル名</th>
+        <th class="narrow-cell">ext</th>
+        <th class="medium-cell">サイズ</th>
+        <th class="medium-cell">作成日時</th>
+        <th class="narrow-cell">DL</th>
+      </tr>
+    `;
+
+    if (currentChildRows.length === 0) {
+      ctx.childTableBody.innerHTML = `
+        <tr class="placeholder-row">
+          <td colspan="5">子ファイルがありません</td>
+        </tr>
+      `;
+      return;
+    }
+
+    ctx.childTableBody.innerHTML = currentChildRows.map((row, index) => {
+      return `
+        <tr class="clickable-row child-row" data-index="${index}">
+          <td title="${escapeHtml(row.original_name || "")}">
+            ${escapeHtml(row.original_name || "")}
+          </td>
+          <td>${escapeHtml(row.ext || "")}</td>
+          <td>${escapeHtml(Number(row.file_size || 0).toLocaleString())}</td>
+          <td>${escapeHtml(formatDateTime(row.created_at))}</td>
+          <td>
+            <button
+              type="button"
+              class="btn btn-secondary btn-download-child"
+              data-index="${index}"
+            >
+              DL
+            </button>
+          </td>
+        </tr>
+      `;
+    }).join("");
+
+    bindChildDownloadEvents();
+
+    if (ctx.contextSummary) {
+      ctx.contextSummary.textContent = `親一覧: ${formatParentLabel(parentRow)} / 子 ${currentChildRows.length} 件`;
+    }
+
+    if (ctx.detailPre) {
+      ctx.detailPre.textContent =
+        `source_id: ${parentRow.source_id ?? ""}\n` +
+        `dataset_id: ${parentRow.dataset_id ?? ""}\n` +
+        `title: ${parentRow.title ?? ""}\n` +
+        `status: ${parentRow.status ?? ""}\n` +
+        `child_count: ${parentRow.child_count ?? 0}\n` +
+        `source_url: ${parentRow.source_url ?? ""}`;
+    }
+  }
+
+  async function loadChildren(parentRow) {
+    if (!parentRow?.source_id) {
+      throw new Error("source_id がありません。");
+    }
+
+    clearChildArea("子一覧を読み込み中です...");
+
+    const data = await ctx.apiGet("/opendata/document_files", {
+      source_id: parentRow.source_id
+    });
+
+    const files = Array.isArray(data?.files) ? data.files : [];
+    renderChildTable(parentRow, files);
   }
 
   async function loadParents() {
@@ -265,7 +349,7 @@ window.DataViewOpenData = (function () {
       source_id: row.source_id,
       source_type: "opendata",
       title: row.title,
-      ext: row.ext
+      child_count: row.child_count
     }));
   }
 

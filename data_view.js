@@ -465,8 +465,8 @@ function createViewContext() {
     getStatusClass,
     renderParentPlaceholder,
     renderChildPlaceholder,
-    btnCheckAll: document.getElementById("btnCheckAll"),
-    btnClearChecks: document.getElementById("btnClearChecks")
+    btnCheckAll: document.getElementById("btnParentCheckAll"),
+    btnClearChecks: document.getElementById("btnParentClearAll")
   };
 }
 
