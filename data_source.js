@@ -145,13 +145,20 @@ async function loadPublicUrlConfig(forceReload = false) {
     return publicUrlConfigCache;
   }
 
-  const res = await fetch("./public_url.json", {
+  const idToken = requireIdToken();
+  if (!idToken) {
+    throw new Error("idToken がありません");
+  }
+
+  const res = await fetch(`${API_BASE}/public-url/sources`, {
     method: "GET",
-    cache: "no-store"
+    headers: {
+      Authorization: `Bearer ${idToken}`
+    }
   });
 
   if (!res.ok) {
-    throw new Error("public_url.json の取得に失敗しました");
+    throw new Error(`公開URL設定の取得に失敗しました (HTTP ${res.status})`);
   }
 
   const config = await res.json();
@@ -205,7 +212,7 @@ async function applySelection(key) {
         if (publicUrlTarget) {
           publicUrlTarget.value = "定義未登録";
         }
-        writeLog(`public_url.json に source_key=${key} がありません`);
+        writeLog(`公開URL設定に source_key=${key} がありません`);
       } else {
         const label = source.label ?? "";
         const url = source.url ?? "";
@@ -217,9 +224,9 @@ async function applySelection(key) {
     } catch (e) {
       console.error(e);
       if (publicUrlTarget) {
-        publicUrlTarget.value = "public_url.json 読込失敗";
+        publicUrlTarget.value = "取得設定 読込失敗";
       }
-      writeLog(`public_url.json 読込失敗: ${e.message}`);
+      writeLog(`公開URL設定読込失敗: ${e.message}`);
     }
   } else {
     if (publicUrlTarget) {
