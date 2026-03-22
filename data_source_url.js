@@ -42,7 +42,7 @@ console.log("data_source_url.js loaded");
   }
 
   function toUsableLabel(isUsable) {
-    return Number(isUsable) === 1 ? "○" : "×";
+    return Number(isUsable) === 1 ? "採用" : "対象外";
   }
 
   function normalizeStatus(rawStatus) {
@@ -64,7 +64,7 @@ console.log("data_source_url.js loaded");
       case "fetch_error":
         return "取得失敗";
       default:
-        return "new";
+        return "未分解";
     }
   }
 
@@ -87,15 +87,6 @@ console.log("data_source_url.js loaded");
     return String(value)
       .replace("T", " ")
       .replace("+00:00", "");
-  }
-
-  function buildMetaCell(label, value) {
-    return `
-      <span style="display:inline-block; margin-right:14px; white-space:nowrap;">
-        <span style="color:#666;">${escapeHtml(label)}:</span>
-        <span>${escapeHtml(value)}</span>
-      </span>
-    `;
   }
 
   async function decomposePage({ apiBase, idToken, pageUrl }) {
@@ -167,9 +158,16 @@ console.log("data_source_url.js loaded");
       const displayStatus = toStatusLabel(rawStatus);
       const createdAt = formatCreatedAt(p.created_at ?? "").split(" ")[0];
 
+      const statusClass =
+        rawStatus === "done"
+          ? "status-done"
+          : rawStatus === "fetch_error"
+            ? "status-error"
+            : "status-new";
+
       const actionHtml =
         rawStatus === "done"
-          ? `<span style="color:#666;">分解済</span>`
+          ? `<span class="url-chip status-done">分解済</span>`
           : canDecompose(p)
             ? `
               <button
@@ -179,45 +177,39 @@ console.log("data_source_url.js loaded");
                 分解
               </button>
             `
-            : `<span style="color:#666;">対象外</span>`;
+            : `<span class="url-chip">対象外</span>`;
 
       return `
-        <tr>
-          <td style="padding:8px 6px; border-bottom:1px solid #eee;">
-            <div style="font-size:14px; line-height:1.6; word-break:break-all;">
-              <b>No:</b> ${i + 1}
-              &nbsp;&nbsp;
-              <b>階層:</b> ${escapeHtml(depth)}
-              &nbsp;&nbsp;
-              <b>URL:</b>
+        <div class="url-page-card">
+          <div class="url-page-head">
+            <div class="url-page-title">
+              ${i + 1}. 
               <a href="${escapeHtml(urlRaw)}" target="_blank" rel="noopener noreferrer">
                 ${escapeHtml(urlRaw)}
               </a>
             </div>
+          </div>
 
-            <div style="margin-top:6px; font-size:13px; line-height:1.6;">
-              ${buildMetaCell("種別", pageType)}
-              ${buildMetaCell("評価点", score)}
-              ${buildMetaCell("採用", usable)}
-              ${buildMetaCell("状態", displayStatus)}
-              ${buildMetaCell("作成日", createdAt)}
+          <div class="url-page-meta">
+            <span class="url-chip">階層 ${escapeHtml(depth)}</span>
+            <span class="url-chip">${escapeHtml(pageType)}</span>
+            <span class="url-chip">評価 ${escapeHtml(score)}</span>
+            <span class="url-chip">${escapeHtml(usable)}</span>
+            <span class="url-chip ${statusClass}">${escapeHtml(displayStatus)}</span>
+            <span class="url-chip">${escapeHtml(createdAt)}</span>
+          </div>
 
-              <span style="display:inline-block; margin-left:14px; white-space:nowrap;">
-                <span style="color:#666;">操作:</span>
-                ${actionHtml}
-              </span>
-            </div>
-          </td>
-        </tr>
+          <div class="url-page-actions">
+            ${actionHtml}
+          </div>
+        </div>
       `;
     }).join("");
 
     targetEl.innerHTML = `
-      <table class="simple-table">
-        <tbody>
-          ${rows}
-        </tbody>
-      </table>
+      <div class="url-page-list">
+        ${rows}
+      </div>
     `;
 
     targetEl.querySelectorAll(".btn-decompose").forEach((btn) => {
@@ -261,7 +253,6 @@ console.log("data_source_url.js loaded");
             idToken,
             writeLog
           });
-
         } catch (e) {
           console.error(e);
           writeLog?.(`分解失敗: ${pageUrl} / ${e.message}`);

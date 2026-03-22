@@ -142,6 +142,8 @@ function renderSourceOptions(list) {
 function resetPublicUrlArea() {
   if (publicUrlTarget) {
     publicUrlTarget.value = "";
+    publicUrlTarget.readOnly = false;
+    publicUrlTarget.classList.remove("public-url-readonly");
   }
 
   if (window.DataSourceUrl && typeof window.DataSourceUrl.resetPages === "function") {
@@ -165,11 +167,15 @@ function applySelection(key) {
 
   if (p.type === "public_url") {
     if (publicUrlTarget) {
-      publicUrlTarget.value = "JSON定義を使用";
+      publicUrlTarget.value = "public_url.json の定義を使用";
+      publicUrlTarget.readOnly = true;
+      publicUrlTarget.classList.add("public-url-readonly");
     }
   } else {
     if (publicUrlTarget) {
       publicUrlTarget.value = "";
+      publicUrlTarget.readOnly = false;
+      publicUrlTarget.classList.remove("public-url-readonly");
     }
   }
 

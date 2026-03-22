@@ -451,3 +451,56 @@ textarea{
 .child-row td:last-child .btn{
   margin:0 auto;
 }
+
+/* ===== public_url 見た目改善（追加のみ）===== */
+
+.public-url-readonly{
+  background:#f8fbff !important;
+  color:#0f172a !important;
+  border:1px solid #c7d2e3 !important;
+  font-weight:700;
+}
+
+/* 子URLカード表示 */
+
+.url-page-list{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+.url-page-card{
+  border:1px solid #d8e1ec;
+  border-radius:12px;
+  background:#ffffff;
+  padding:12px 14px;
+}
+
+.url-page-title{
+  font-size:14px;
+  font-weight:700;
+  color:#0f172a;
+  word-break:break-all;
+}
+
+.url-page-meta{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin-top:6px;
+}
+
+.url-chip{
+  padding:2px 8px;
+  border-radius:999px;
+  background:#eef2f7;
+  font-size:12px;
+}
+
+.url-chip.status-done{
+  background:#dcfce7;
+}
+
+.url-chip.status-error{
+  background:#fee2e2;
+}
