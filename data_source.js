@@ -218,7 +218,7 @@ async function applySelection(key) {
         const url = source.url ?? "";
 
         if (publicUrlTarget) {
-          publicUrlTarget.value = label && url ? `${label} (${url})` : (label || url || "");
+          publicUrlTarget.value = label && url ? `${label}\n${url}` : (label || url || "");
         }
       }
     } catch (e) {
