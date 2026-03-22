@@ -5,106 +5,81 @@
 <title>機能メニュー</title>
 
 <link rel="stylesheet" href="theme.css">
-<link rel="stylesheet" href="menu.css">
 
 </head>
 
 <body>
 
 <div class="center-wrap">
-<div class="card menu-card">
+  <div class="card menu-card">
+    <div class="menu-shell">
 
-<div class="menu-shell">
+      <div class="menu-header">
+        <div class="menu-title">
+          <h2>機能メニュー</h2>
+          <div class="subtitle">使用する機能を選択してください</div>
+        </div>
 
-<div class="menu-header">
+        <button class="btn logout-btn" id="btn-logout" type="button">
+          ログアウト
+        </button>
+      </div>
 
-<div class="menu-title">
-<h2>機能メニュー</h2>
-<div class="subtitle">使用する機能を選択してください</div>
-</div>
+      <div class="menu-list">
 
-<button class="btn logout-btn" id="btn-logout" type="button">
-ログアウト
-</button>
+        <div class="menu-row">
+          <button class="btn btn-primary menu-btn" id="btn-import" type="button">
+            データ取込
+          </button>
+          <div class="menu-text">
+            公開API、公開URL、アップロードファイルからデータを取り込みます。
+            取り込んだデータはナレッジ作成や検索処理の元データとして利用します。
+          </div>
+        </div>
 
-</div>
+        <div class="menu-row">
+          <button class="btn btn-primary menu-btn" id="btn-view" type="button">
+            データ照会
+          </button>
+          <div class="menu-text">
+            取り込み済みデータを一覧で確認します。
+            登録状況や件数、内容を確認するための画面です。
+          </div>
+        </div>
 
+        <div class="menu-row">
+          <button class="btn btn-primary menu-btn" id="btn-knowledge-create" type="button">
+            ナレッジ作成
+          </button>
+          <div class="menu-text">
+            取り込んだデータをもとに、QAや説明文などのナレッジを作成します。
+            ナレッジ生成処理を開始する画面です。
+          </div>
+        </div>
 
-<div class="menu-list">
+        <div class="menu-row">
+          <button class="btn btn-primary menu-btn" id="btn-knowledge-view" type="button">
+            ナレッジ照会
+          </button>
+          <div class="menu-text">
+            作成済みナレッジを一覧で確認します。
+            内容確認や状態確認を行うための画面です。
+          </div>
+        </div>
 
-<div class="menu-row">
+        <div class="menu-row">
+          <button class="btn btn-primary menu-btn" id="btn-search" type="button">
+            ナレッジ検索
+          </button>
+          <div class="menu-text">
+            作成したナレッジを検索し、必要な情報を確認します。
+            検索結果や回答候補の確認に利用します。
+          </div>
+        </div>
 
-<button class="btn btn-primary menu-btn" id="btn-import" type="button">
-データ取込
-</button>
-
-<div class="menu-text">
-公開API、公開URL、アップロードファイルからデータを取り込みます。
-取り込んだデータはナレッジ作成や検索処理の元データとして利用します。
-</div>
-
-</div>
-
-
-<div class="menu-row">
-
-<button class="btn btn-primary menu-btn" id="btn-view" type="button">
-データ照会
-</button>
-
-<div class="menu-text">
-取り込み済みデータを一覧で確認します。
-登録状況や件数、内容を確認するための画面です。
-</div>
-
-</div>
-
-
-<div class="menu-row">
-
-<button class="btn btn-primary menu-btn" id="btn-knowledge-create" type="button">
-ナレッジ作成
-</button>
-
-<div class="menu-text">
-取り込んだデータをもとに、QAや説明文などのナレッジを作成します。
-ナレッジ生成処理を開始する画面です。
-</div>
-
-</div>
-
-
-<div class="menu-row">
-
-<button class="btn btn-primary menu-btn" id="btn-knowledge-view" type="button">
-ナレッジ照会
-</button>
-
-<div class="menu-text">
-作成済みナレッジを一覧で確認します。
-内容確認や状態確認を行うための画面です。
-</div>
-
-</div>
-
-
-<div class="menu-row">
-
-<button class="btn btn-primary menu-btn" id="btn-search" type="button">
-ナレッジ検索
-</button>
-
-<div class="menu-text">
-作成したナレッジを検索し、必要な情報を確認します。
-検索結果や回答候補の確認に利用します。
-</div>
-
-</div>
-
-
-</div>
-</div>
-</div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script src="menu.js"></script>
