@@ -504,3 +504,19 @@ textarea{
 .url-chip.status-error{
   background:#fee2e2;
 }
+
+#publicUrlTarget.public-url-readonly{
+  width: 100%;
+  min-height: 72px;
+  padding: 10px 12px;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.55;
+  color: #0f172a !important;
+  background: #f8fbff !important;
+  border: 1px solid #c7d2e3 !important;
+  border-radius: 10px;
+  resize: none;
+  overflow: hidden;
+  white-space: pre-wrap;
+}

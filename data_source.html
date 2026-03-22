@@ -55,6 +55,21 @@
       flex:1;
       min-height:0;
     }
+
+    #panelUrl .section-block{
+      gap:8px;
+    }
+
+    #panelUrl .compact-actions{
+      margin-top:2px;
+    }
+
+    #publicUrlTarget{
+      width:100%;
+      min-height:72px;
+      resize:none;
+      overflow:hidden;
+    }
   </style>
 </head>
 <body>
@@ -144,7 +159,7 @@
             <div class="section-block" style="flex:0 0 auto;">
               <div>
                 <label for="publicUrlTarget">取得元URL</label>
-                <input id="publicUrlTarget" readonly>
+                <textarea id="publicUrlTarget" rows="2" readonly></textarea>
               </div>
 
               <div class="compact-actions">
