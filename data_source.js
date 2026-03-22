@@ -29,6 +29,7 @@ const API_BASE = "https://ank-api-986862757498.asia-northeast1.run.app/v1";
 
 let sourceList = [];
 let sourceMap = {};
+let publicUrlConfigCache = null;
 
 function hideAllPanels() {
   if (panelEmpty) panelEmpty.classList.add("hidden");
@@ -139,6 +140,30 @@ function renderSourceOptions(list) {
   }
 }
 
+async function loadPublicUrlConfig(forceReload = false) {
+  if (!forceReload && publicUrlConfigCache) {
+    return publicUrlConfigCache;
+  }
+
+  const res = await fetch("./public_url.json", {
+    method: "GET",
+    cache: "no-store"
+  });
+
+  if (!res.ok) {
+    throw new Error("public_url.json の取得に失敗しました");
+  }
+
+  const config = await res.json();
+  publicUrlConfigCache = config;
+  return config;
+}
+
+function findPublicUrlSource(config, sourceKey) {
+  if (!config || !Array.isArray(config.sources)) return null;
+  return config.sources.find((item) => item.source_key === sourceKey) || null;
+}
+
 function resetPublicUrlArea() {
   if (publicUrlTarget) {
     publicUrlTarget.value = "";
@@ -151,7 +176,7 @@ function resetPublicUrlArea() {
   }
 }
 
-function applySelection(key) {
+async function applySelection(key) {
   const p = sourceMap[key];
 
   if (!p) {
@@ -167,9 +192,34 @@ function applySelection(key) {
 
   if (p.type === "public_url") {
     if (publicUrlTarget) {
-      publicUrlTarget.value = "public_url.json の定義を使用";
+      publicUrlTarget.value = "";
       publicUrlTarget.readOnly = true;
       publicUrlTarget.classList.add("public-url-readonly");
+    }
+
+    try {
+      const config = await loadPublicUrlConfig();
+      const source = findPublicUrlSource(config, key);
+
+      if (!source) {
+        if (publicUrlTarget) {
+          publicUrlTarget.value = "定義未登録";
+        }
+        writeLog(`public_url.json に source_key=${key} がありません`);
+      } else {
+        const label = source.label ?? "";
+        const url = source.url ?? "";
+
+        if (publicUrlTarget) {
+          publicUrlTarget.value = label && url ? `${label} (${url})` : (label || url || "");
+        }
+      }
+    } catch (e) {
+      console.error(e);
+      if (publicUrlTarget) {
+        publicUrlTarget.value = "public_url.json 読込失敗";
+      }
+      writeLog(`public_url.json 読込失敗: ${e.message}`);
     }
   } else {
     if (publicUrlTarget) {
@@ -233,9 +283,9 @@ if (btnClearLog) {
 }
 
 if (sourceSelect) {
-  sourceSelect.addEventListener("change", () => {
+  sourceSelect.addEventListener("change", async () => {
     clearLog();
-    applySelection(sourceSelect.value);
+    await applySelection(sourceSelect.value);
   });
 }
 
