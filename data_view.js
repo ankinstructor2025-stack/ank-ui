@@ -238,6 +238,45 @@ function getStatusClass(status) {
   return "status-pill status-new";
 }
 
+function getProgressValues(data) {
+  const qaCurrent =
+    Number(data?.qa_current ?? data?.processed_qa_chunks ?? 0);
+  const qaTotal =
+    Number(data?.qa_total ?? data?.total_qa_chunks ?? 0);
+
+  const plainCurrent =
+    Number(data?.plain_current ?? data?.processed_plain_chunks ?? 0);
+  const plainTotal =
+    Number(data?.plain_total ?? data?.total_plain_chunks ?? 0);
+
+  const chunkCurrent =
+    Number(data?.chunk_current ?? data?.processed_chunks ?? (qaCurrent + plainCurrent));
+  const chunkTotal =
+    Number(data?.chunk_total ?? data?.total_chunks ?? (qaTotal + plainTotal));
+
+  return {
+    qaCurrent,
+    qaTotal,
+    plainCurrent,
+    plainTotal,
+    chunkCurrent,
+    chunkTotal
+  };
+}
+
+function applyModuleKnowledgeStatus(data) {
+  const module = getCurrentModule();
+  if (!module || typeof module.applyKnowledgeStatus !== "function") {
+    return;
+  }
+
+  try {
+    module.applyKnowledgeStatus(data);
+  } catch (e) {
+    console.warn("applyKnowledgeStatus failed", e);
+  }
+}
+
 function getStatusPathBySourceType(sourceType) {
   if (sourceType === "kokkai") return "/knowledge/kokkai/status";
   if (sourceType === "opendata") return "/knowledge/opendata/status";
@@ -591,26 +630,27 @@ function buildKnowledgeResultText(data) {
 }
 
 function buildStatusResultText(data) {
-  const totalChunks = Number(data?.total_chunks || 0);
-  const processedChunks = Number(data?.processed_chunks || 0);
-  const totalQaChunks = Number(data?.total_qa_chunks || 0);
-  const processedQaChunks = Number(data?.processed_qa_chunks || 0);
-  const totalPlainChunks = Number(data?.total_plain_chunks || 0);
-  const processedPlainChunks = Number(data?.processed_plain_chunks || 0);
+  const p = getProgressValues(data);
 
   const lines = [
     `job_id: ${data?.job_id ?? ""}`,
     `status: ${data?.status ?? ""}`,
+    `phase: ${data?.phase ?? ""}`,
+    `message: ${data?.message ?? ""}`,
     `selected_count: ${data?.selected_count ?? 0}`,
-    `qa_count: ${data?.qa_count ?? 0}`,
+    `qa_count: ${data?.qa_count ?? data?.knowledge_count ?? 0}`,
     `plain_count: ${data?.plain_count ?? 0}`,
     `error_count: ${data?.error_count ?? 0}`,
-    `chunks: ${processedChunks} / ${totalChunks}`,
-    `qa_chunks: ${processedQaChunks} / ${totalQaChunks}`,
-    `plain_chunks: ${processedPlainChunks} / ${totalPlainChunks}`,
+    `chunk: ${p.chunkCurrent} / ${p.chunkTotal}`,
+    `qa_chunk: ${p.qaCurrent} / ${p.qaTotal}`,
+    `plain_chunk: ${p.plainCurrent} / ${p.plainTotal}`,
     `requested_at: ${data?.requested_at ?? ""}`,
     `started_at: ${data?.started_at ?? ""}`,
     `finished_at: ${data?.finished_at ?? ""}`,
+    `dataset_id: ${data?.dataset_id ?? ""}`,
+    `dataset_name: ${data?.dataset_name ?? ""}`,
+    `row_count: ${data?.row_count ?? 0}`,
+    `knowledge_count: ${data?.knowledge_count ?? 0}`,
     `error_message: ${data?.error_message ?? ""}`,
     ""
   ];
@@ -684,18 +724,12 @@ function updatePollingSummary(data) {
   const items = Array.isArray(data?.items) ? data.items : [];
   const summary = summarizeJobItems(items);
   const totalForDisplay = summary.total || Number(data?.selected_count) || 0;
-
-  const totalChunks = Number(data?.total_chunks || 0);
-  const processedChunks = Number(data?.processed_chunks || 0);
-  const totalQaChunks = Number(data?.total_qa_chunks || 0);
-  const processedQaChunks = Number(data?.processed_qa_chunks || 0);
-  const totalPlainChunks = Number(data?.total_plain_chunks || 0);
-  const processedPlainChunks = Number(data?.processed_plain_chunks || 0);
+  const p = getProgressValues(data);
 
   if (contextSummary) {
     contextSummary.textContent =
-      `ナレッジ化: CHUNK ${processedChunks} / ${totalChunks}` +
-      `（QA ${processedQaChunks} / ${totalQaChunks}｜PLAIN ${processedPlainChunks} / ${totalPlainChunks}｜status: ${data?.status ?? "unknown"}）`;
+      `ナレッジ化: CHUNK ${p.chunkCurrent} / ${p.chunkTotal}` +
+      `（QA ${p.qaCurrent} / ${p.qaTotal}｜PLAIN ${p.plainCurrent} / ${p.plainTotal}｜status: ${data?.status ?? "unknown"}）`;
   }
 
   if (selectionSummary) {
@@ -725,6 +759,7 @@ async function pollKnowledgeJobStatus(statusPath, jobId) {
       }
 
       updatePollingSummary(data);
+      applyModuleKnowledgeStatus(data);
 
       if (isTerminalJobStatus(data?.status)) {
         return data;
@@ -734,12 +769,13 @@ async function pollKnowledgeJobStatus(statusPath, jobId) {
       consecutiveErrorCount += 1;
       console.error(`poll failed [${attempt}/${maxAttempts}]`, e);
 
-      if (detailPre) {
-        detailPre.textContent =
-          `ステータス確認でエラーが発生しました。\n` +
-          `attempt: ${attempt} / ${maxAttempts}\n` +
-          `error_count: ${consecutiveErrorCount} / ${maxErrorCount}\n` +
-          `message: ${e?.message || e}`;
+      if (detailPre && lastData) {
+        detailPre.textContent = buildStatusResultText(lastData);
+      }
+
+      if (lastData) {
+        updatePollingSummary(lastData);
+        applyModuleKnowledgeStatus(lastData);
       }
 
       if (contextSummary) {
@@ -778,21 +814,18 @@ async function runKnowledgeJobAndPoll(sourceType, jobId) {
 }
 
 async function finalizeKnowledgePolling(statusData, checkedRowsLength = 0) {
+  const p = getProgressValues(statusData || {});
+
   if (detailPre) {
     detailPre.textContent = buildStatusResultText(statusData || {});
   }
 
-  if (contextSummary) {
-    const totalChunks = Number(statusData?.total_chunks || 0);
-    const processedChunks = Number(statusData?.processed_chunks || 0);
-    const totalQaChunks = Number(statusData?.total_qa_chunks || 0);
-    const processedQaChunks = Number(statusData?.processed_qa_chunks || 0);
-    const totalPlainChunks = Number(statusData?.total_plain_chunks || 0);
-    const processedPlainChunks = Number(statusData?.processed_plain_chunks || 0);
+  applyModuleKnowledgeStatus(statusData || {});
 
+  if (contextSummary) {
     contextSummary.textContent =
-      `ナレッジ化: CHUNK ${processedChunks} / ${totalChunks}` +
-      `（QA ${processedQaChunks} / ${totalQaChunks}｜PLAIN ${processedPlainChunks} / ${totalPlainChunks}｜status: ${statusData?.status ?? "unknown"}）`;
+      `ナレッジ化: CHUNK ${p.chunkCurrent} / ${p.chunkTotal}` +
+      `（QA ${p.qaCurrent} / ${p.qaTotal}｜PLAIN ${p.plainCurrent} / ${p.plainTotal}｜status: ${statusData?.status ?? "unknown"}）`;
   }
 
   if (selectionSummary) {

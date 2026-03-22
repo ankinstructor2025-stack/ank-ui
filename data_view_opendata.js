@@ -336,6 +336,59 @@ window.DataViewOpenData = (function () {
     renderParentTable(rows);
   }
 
+  function applyKnowledgeStatus(statusData) {
+    if (!Array.isArray(currentParentRows) || currentParentRows.length === 0) {
+      return;
+    }
+
+    const jobStatus = String(statusData?.status || "").toLowerCase();
+    if (!jobStatus) {
+      return;
+    }
+
+    const checkedIndexes = Array.from(
+      ctx.parentTableBody?.querySelectorAll(".parent-check:checked") || []
+    ).map((el) => Number(el.dataset.index || "-1"));
+
+    checkedIndexes.forEach((idx) => {
+      if (currentParentRows[idx]) {
+        currentParentRows[idx].status = jobStatus;
+      }
+    });
+
+    if (selectedParentIndex >= 0 && currentParentRows[selectedParentIndex] && ctx?.detailPre) {
+      const row = currentParentRows[selectedParentIndex];
+
+      ctx.detailPre.textContent =
+        `source_id: ${row.source_id ?? ""}\n` +
+        `dataset_id: ${row.dataset_id ?? ""}\n` +
+        `title: ${row.title ?? ""}\n` +
+        `status: ${jobStatus}\n` +
+        `child_count: ${row.child_count ?? 0}\n` +
+        `source_url: ${row.source_url ?? ""}\n` +
+        `phase: ${statusData?.phase ?? ""}\n` +
+        `message: ${statusData?.message ?? ""}\n` +
+        `chunk: ${statusData?.chunk_current ?? 0} / ${statusData?.chunk_total ?? 0}\n` +
+        `qa_chunk: ${statusData?.qa_current ?? 0} / ${statusData?.qa_total ?? 0}\n` +
+        `plain_chunk: ${statusData?.plain_current ?? 0} / ${statusData?.plain_total ?? 0}`;
+    }
+
+    renderParentTable(currentParentRows);
+
+    if (selectedParentIndex >= 0) {
+      setSelectedParentRow(selectedParentIndex);
+    }
+
+    checkedIndexes.forEach((idx) => {
+      const check = ctx.parentTableBody?.querySelector(`.parent-check[data-index="${idx}"]`);
+      if (check) {
+        check.checked = true;
+      }
+    });
+
+    syncParentCheckboxUi();
+  }
+
   async function buildKnowledgeTargets() {
     const checks = Array.from(ctx.parentTableBody?.querySelectorAll(".parent-check:checked") || []);
     const selected = checks
@@ -356,6 +409,7 @@ window.DataViewOpenData = (function () {
   return {
     init,
     loadParents,
-    buildKnowledgeTargets
+    buildKnowledgeTargets,
+    applyKnowledgeStatus
   };
 })();
