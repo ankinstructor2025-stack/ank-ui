@@ -133,7 +133,7 @@ console.log("data_source_url.js loaded");
       const actionHtml =
         rawStatus === "done"
           ? `<span class="url-chip status-done">分解済</span>`
-          : canDecompose(p)
+          : canDecompose(page)
             ? `
               <button
                 type="button"
@@ -145,10 +145,10 @@ console.log("data_source_url.js loaded");
             : `<span class="url-chip">対象外</span>`;
 
       return `
-        <div class="url-page-card">
+        <div class="url-page-card" data-page-url="${escapeHtml(urlRaw)}">
           <div class="url-page-head">
             <div class="url-page-title">
-              ${i + 1}. 
+              ${index}. 
               <a href="${escapeHtml(urlRaw)}" target="_blank" rel="noopener noreferrer">
                 ${escapeHtml(urlRaw)}
               </a>
@@ -162,9 +162,6 @@ console.log("data_source_url.js loaded");
             <span class="url-chip">${escapeHtml(usable)}</span>
             <span class="url-chip ${statusClass}">${escapeHtml(displayStatus)}</span>
             <span class="url-chip">${escapeHtml(createdAt)}</span>
-          </div>
-
-          <div class="url-page-actions">
             ${actionHtml}
           </div>
         </div>

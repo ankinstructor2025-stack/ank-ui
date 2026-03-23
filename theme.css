@@ -506,13 +506,6 @@ textarea{
   white-space:nowrap;
 }
 
-.url-page-actions{
-  display:flex;
-  align-items:center;
-  gap:8px;
-  min-height:32px;
-}
-
 .url-chip{
   display:inline-flex;
   align-items:center;
@@ -542,13 +535,14 @@ textarea{
   color:#475569;
 }
 
-.url-page-actions .btn{
+.url-page-meta .btn{
   display:inline-flex;
   align-items:center;
   justify-content:center;
-  height:32px;
-  padding:0 12px;
+  height:22px;
+  padding:0 10px;
   line-height:1;
+  flex:0 0 auto;
 }
 
 #publicUrlTarget.public-url-readonly{
