@@ -1,18 +1,12 @@
 console.log("data_source_url.js loaded");
 
 (function () {
+
   function buildRequestUrl(apiBase, path) {
-    if (!path) {
-      throw new Error("path が指定されていません");
-    }
+    if (!path) throw new Error("path が指定されていません");
 
-    if (/^https?:\/\//i.test(path)) {
-      return path;
-    }
-
-    if (path.startsWith("/")) {
-      return `${apiBase}${path}`;
-    }
+    if (/^https?:\/\//i.test(path)) return path;
+    if (path.startsWith("/")) return `${apiBase}${path}`;
 
     return `${apiBase}/${path}`;
   }
@@ -26,32 +20,24 @@ console.log("data_source_url.js loaded");
       .replace(/'/g, "&#39;");
   }
 
-  function toPageTypeLabel(pageType) {
-    switch (pageType) {
-      case "faq":
-        return "QA";
-      case "guide":
-        return "説明";
-      case "notice":
-        return "お知らせ";
-      case "list":
-        return "一覧";
-      default:
-        return "不明";
-    }
-  }
-
   function toUsableLabel(isUsable) {
     return Number(isUsable) === 1 ? "採用" : "対象外";
   }
 
+  function toDecisionLabel(decision) {
+    switch (decision) {
+      case "pass": return "採用";
+      case "review": return "確認";
+      case "reject": return "除外";
+      default: return "不明";
+    }
+  }
+
   function normalizeStatus(rawStatus) {
     const status = String(rawStatus ?? "").trim();
-
     if (!status) return "new";
     if (status === "done") return "done";
     if (status === "fetch_error") return "fetch_error";
-
     return status;
   }
 
@@ -59,20 +45,15 @@ console.log("data_source_url.js loaded");
     const status = normalizeStatus(rawStatus);
 
     switch (status) {
-      case "done":
-        return "分解済";
-      case "fetch_error":
-        return "取得失敗";
-      default:
-        return "未分解";
+      case "done": return "分解済";
+      case "fetch_error": return "取得失敗";
+      default: return "未分解";
     }
   }
 
   function canDecompose(page) {
     if (!page) return false;
     if (Number(page.is_usable) !== 1) return false;
-    if (page.page_type === "list") return false;
-    if (page.page_type === "notice") return false;
 
     const status = normalizeStatus(page.status);
     if (status === "fetch_error") return false;
@@ -83,29 +64,19 @@ console.log("data_source_url.js loaded");
 
   function formatCreatedAt(value) {
     if (!value) return "";
-
-    return String(value)
-      .replace("T", " ")
-      .replace("+00:00", "");
+    return String(value).replace("T", " ").replace("+00:00", "");
   }
 
   async function decomposePage({ apiBase, idToken, pageUrl }) {
     const requestUrl = buildRequestUrl(apiBase, "/public-url/decompose");
 
-    const headers = {
-      "Content-Type": "application/json"
-    };
-
-    if (idToken) {
-      headers.Authorization = `Bearer ${idToken}`;
-    }
+    const headers = { "Content-Type": "application/json" };
+    if (idToken) headers.Authorization = `Bearer ${idToken}`;
 
     const res = await fetch(requestUrl, {
       method: "POST",
       headers,
-      body: JSON.stringify({
-        page_url: pageUrl
-      })
+      body: JSON.stringify({ page_url: pageUrl })
     });
 
     if (!res.ok) {
@@ -123,10 +94,7 @@ console.log("data_source_url.js loaded");
   function updatePageStatusLocally(pages, pageUrl, nextStatus) {
     return clonePages(pages).map((p) => {
       if ((p.page_url ?? "") === pageUrl) {
-        return {
-          ...p,
-          status: nextStatus
-        };
+        return { ...p, status: nextStatus };
       }
       return { ...p };
     });
@@ -135,11 +103,7 @@ console.log("data_source_url.js loaded");
   function renderPages(pages, targetEl, options = {}) {
     if (!targetEl) return;
 
-    const {
-      apiBase,
-      idToken,
-      writeLog
-    } = options;
+    const { apiBase, idToken, writeLog } = options;
 
     const currentPages = clonePages(pages);
 
@@ -151,9 +115,9 @@ console.log("data_source_url.js loaded");
     const rows = currentPages.map((p, i) => {
       const urlRaw = p.page_url ?? "";
       const depth = p.depth ?? "";
-      const pageType = toPageTypeLabel(p.page_type);
       const score = p.score ?? 0;
       const usable = toUsableLabel(p.is_usable);
+      const decision = toDecisionLabel(p.decision);
       const rawStatus = normalizeStatus(p.status);
       const displayStatus = toStatusLabel(rawStatus);
       const createdAt = formatCreatedAt(p.created_at ?? "").split(" ")[0];
@@ -184,7 +148,7 @@ console.log("data_source_url.js loaded");
           <div class="url-page-head">
             <div class="url-page-title">
               ${i + 1}. 
-              <a href="${escapeHtml(urlRaw)}" target="_blank" rel="noopener noreferrer">
+              <a href="${escapeHtml(urlRaw)}" target="_blank">
                 ${escapeHtml(urlRaw)}
               </a>
             </div>
@@ -192,8 +156,8 @@ console.log("data_source_url.js loaded");
 
           <div class="url-page-meta">
             <span class="url-chip">階層 ${escapeHtml(depth)}</span>
-            <span class="url-chip">${escapeHtml(pageType)}</span>
             <span class="url-chip">評価 ${escapeHtml(score)}</span>
+            <span class="url-chip">${escapeHtml(decision)}</span>
             <span class="url-chip">${escapeHtml(usable)}</span>
             <span class="url-chip ${statusClass}">${escapeHtml(displayStatus)}</span>
             <span class="url-chip">${escapeHtml(createdAt)}</span>
@@ -206,11 +170,7 @@ console.log("data_source_url.js loaded");
       `;
     }).join("");
 
-    targetEl.innerHTML = `
-      <div class="url-page-list">
-        ${rows}
-      </div>
-    `;
+    targetEl.innerHTML = `<div class="url-page-list">${rows}</div>`;
 
     targetEl.querySelectorAll(".btn-decompose").forEach((btn) => {
       btn.addEventListener("click", async () => {
@@ -218,7 +178,6 @@ console.log("data_source_url.js loaded");
         if (!pageUrl) return;
 
         const originalText = btn.textContent;
-
         btn.disabled = true;
         btn.textContent = "分解中";
 
@@ -233,17 +192,8 @@ console.log("data_source_url.js loaded");
 
           writeLog?.(`分解完了: ${pageUrl}`);
 
-          if (data.row_count != null) writeLog?.(`row_count=${data.row_count}`);
-          if (data.qa_count != null) writeLog?.(`qa_count=${data.qa_count}`);
-          if (data.text_count != null) writeLog?.(`text_count=${data.text_count}`);
-
-          if (Array.isArray(data.pages)) {
-            renderPages(data.pages, targetEl, {
-              apiBase,
-              idToken,
-              writeLog
-            });
-            return;
+          if (data.content_length != null) {
+            writeLog?.(`content_length=${data.content_length}`);
           }
 
           const updatedPages = updatePageStatusLocally(currentPages, pageUrl, "done");
@@ -253,6 +203,7 @@ console.log("data_source_url.js loaded");
             idToken,
             writeLog
           });
+
         } catch (e) {
           console.error(e);
           writeLog?.(`分解失敗: ${pageUrl} / ${e.message}`);
@@ -276,28 +227,19 @@ console.log("data_source_url.js loaded");
     writeLog,
     pagesContainer
   }) {
-    if (!sourceKey) {
-      throw new Error("sourceKey が指定されていません");
-    }
+    if (!sourceKey) throw new Error("sourceKey が指定されていません");
 
     writeLog?.("公開URL取得開始");
 
     const requestUrl = buildRequestUrl(apiBase, "/public-url/register");
 
-    const headers = {
-      "Content-Type": "application/json"
-    };
-
-    if (idToken) {
-      headers.Authorization = `Bearer ${idToken}`;
-    }
+    const headers = { "Content-Type": "application/json" };
+    if (idToken) headers.Authorization = `Bearer ${idToken}`;
 
     const res = await fetch(requestUrl, {
       method: "POST",
       headers,
-      body: JSON.stringify({
-        source_key: sourceKey
-      })
+      body: JSON.stringify({ source_key: sourceKey })
     });
 
     if (!res.ok) {
@@ -308,17 +250,7 @@ console.log("data_source_url.js loaded");
 
     writeLog?.("公開URL取得完了");
 
-    if (data.page_count != null) {
-      writeLog?.(`page_count=${data.page_count}`);
-    }
-
-    if (data.row_inserted != null) {
-      writeLog?.(`row_inserted=${data.row_inserted}`);
-    }
-
-    if (data.row_skipped != null) {
-      writeLog?.(`row_skipped=${data.row_skipped}`);
-    }
+    if (data.page_count != null) writeLog?.(`page_count=${data.page_count}`);
 
     if (Array.isArray(data.pages)) {
       renderPages(data.pages, pagesContainer, {
@@ -338,4 +270,5 @@ console.log("data_source_url.js loaded");
     renderPages,
     resetPages
   };
+
 })();
