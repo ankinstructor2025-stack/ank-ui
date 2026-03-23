@@ -106,7 +106,8 @@ console.log("data_source_url.js loaded");
     if (!targetEl) return;
 
     const { apiBase, idToken, writeLog } = options;
-    const currentPages = clonePages(pages);
+    const currentPages = clonePages(pages)
+      .sort((a, b) => (b.score || 0) - (a.score || 0));
 
     if (!Array.isArray(currentPages) || currentPages.length === 0) {
       targetEl.innerHTML = `<div class="placeholder">子URLはありません</div>`;
