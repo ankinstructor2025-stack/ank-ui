@@ -133,7 +133,7 @@ console.log("data_source_url.js loaded");
       const actionHtml =
         rawStatus === "done"
           ? `<span class="url-chip status-done">分解済</span>`
-          : canDecompose(page)
+          : canDecompose(p)
             ? `
               <button
                 type="button"
@@ -148,7 +148,7 @@ console.log("data_source_url.js loaded");
         <div class="url-page-card" data-page-url="${escapeHtml(urlRaw)}">
           <div class="url-page-head">
             <div class="url-page-title">
-              ${index}. 
+              ${i+1}. 
               <a href="${escapeHtml(urlRaw)}" target="_blank" rel="noopener noreferrer">
                 ${escapeHtml(urlRaw)}
               </a>
