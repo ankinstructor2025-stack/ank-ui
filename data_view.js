@@ -235,6 +235,7 @@ function getStatusClass(status) {
   const s = String(status || "").toLowerCase();
   if (s === "done") return "status-pill status-done";
   if (s === "error") return "status-pill status-error";
+  if (s === "running") return "status-pill status-new";
   return "status-pill status-new";
 }
 
@@ -280,6 +281,7 @@ function applyModuleKnowledgeStatus(data) {
 function getStatusPathBySourceType(sourceType) {
   if (sourceType === "kokkai") return "/knowledge/kokkai/status";
   if (sourceType === "opendata") return "/knowledge/opendata/status";
+  if (sourceType === "public_url") return "/knowledge/url/status";
   if (sourceType === "upload") return "/knowledge/upload/status";
   return "";
 }
@@ -287,6 +289,7 @@ function getStatusPathBySourceType(sourceType) {
 function getRunPathBySourceType(sourceType) {
   if (sourceType === "kokkai") return "/knowledge/kokkai/run";
   if (sourceType === "opendata") return "/knowledge/opendata/run";
+  if (sourceType === "public_url") return "/knowledge/url/run";
   if (sourceType === "upload") return "/knowledge/upload/run";
   return "";
 }
@@ -890,6 +893,27 @@ function buildKnowledgeEndpointAndPayload(source, checkedRows) {
           parent_key2: row.ext ?? null,
           parent_label: row.title || row.dataset_id || row.source_id || "",
           row_count: row.row_count ?? 0
+        }))
+      }
+    };
+  }
+
+  if (source.sourceType === "public_url") {
+    return {
+      endpoint: "/knowledge/url/jobs",
+      payload: {
+        source_type: "public_url",
+        source_name: "公開URL",
+        request_type: "extract_knowledge",
+        preview_only: false,
+        items: checkedRows.map((row) => ({
+          source_type: "public_url",
+          root_id: row.root_id ?? null,
+          parent_source_id: row.root_id ?? null,
+          parent_key1: row.source_key || row.source_type || source.key || null,
+          parent_key2: row.root_url ?? null,
+          parent_label: row.title || row.root_url || row.root_id || "",
+          row_count: row.child_count ?? row.page_count ?? 0
         }))
       }
     };
