@@ -53,7 +53,9 @@ console.log("data_source_url.js loaded");
 
   function canDecompose(page) {
     if (!page) return false;
-    if (Number(page.is_usable) !== 1) return false;
+
+    const decision = String(page.decision ?? "").trim();
+    if (decision !== "pass") return false;
 
     const status = normalizeStatus(page.status);
     if (status === "fetch_error") return false;
@@ -104,7 +106,6 @@ console.log("data_source_url.js loaded");
     if (!targetEl) return;
 
     const { apiBase, idToken, writeLog } = options;
-
     const currentPages = clonePages(pages);
 
     if (!Array.isArray(currentPages) || currentPages.length === 0) {
@@ -148,7 +149,7 @@ console.log("data_source_url.js loaded");
           <div class="url-page-head">
             <div class="url-page-title">
               ${i + 1}. 
-              <a href="${escapeHtml(urlRaw)}" target="_blank">
+              <a href="${escapeHtml(urlRaw)}" target="_blank" rel="noopener noreferrer">
                 ${escapeHtml(urlRaw)}
               </a>
             </div>
