@@ -34,8 +34,16 @@ window.DataViewPublicUrl = (function () {
     return row?.title || row?.root_url || row?.root_id || "(名称なし)";
   }
 
+  function normalizeStatus(value) {
+    return String(value || "").trim().toLowerCase();
+  }
+
+  function normalizeDecision(value) {
+    return String(value || "").trim().toLowerCase();
+  }
+
   function formatDecisionLabel(value) {
-    const s = String(value || "").trim().toLowerCase();
+    const s = normalizeDecision(value);
     if (s === "pass") return "採用";
     if (s === "reject") return "除外";
     return value || "";
@@ -43,6 +51,42 @@ window.DataViewPublicUrl = (function () {
 
   function formatUsableLabel(value) {
     return Number(value) === 1 ? "採用" : "対象外";
+  }
+
+  function renderDecisionChip(value) {
+    const s = normalizeDecision(value);
+    const label = formatDecisionLabel(value);
+
+    if (s === "pass") {
+      return `<span class="url-chip pass">採用</span>`;
+    }
+    if (s === "reject") {
+      return `<span class="url-chip reject">除外</span>`;
+    }
+    return `<span class="url-chip">${escapeHtml(label || "")}</span>`;
+  }
+
+  function renderUsableChip(value) {
+    if (Number(value) === 1) {
+      return `<span class="url-chip usable">採用</span>`;
+    }
+    return `<span class="url-chip unusable">対象外</span>`;
+  }
+
+  function renderStatusChip(value) {
+    const s = normalizeStatus(value);
+    const label = s || "new";
+
+    if (s === "done") {
+      return `<span class="job-status-chip status-done">done</span>`;
+    }
+    if (s === "running") {
+      return `<span class="job-status-chip status-running">running</span>`;
+    }
+    if (s === "error" || s === "fetch_error") {
+      return `<span class="job-status-chip status-error">${escapeHtml(label)}</span>`;
+    }
+    return `<span class="job-status-chip status-new">${escapeHtml(label)}</span>`;
   }
 
   function updateSelectedCount() {
@@ -80,6 +124,12 @@ window.DataViewPublicUrl = (function () {
       }
     }
     if (ctx?.detailPre) ctx.detailPre.textContent = message || "";
+  }
+
+  function getCheckedParentIndexes() {
+    return Array.from(
+      ctx.parentTableBody?.querySelectorAll(".parent-check:checked") || []
+    ).map((el) => Number(el.dataset.index || "-1"));
   }
 
   function bindParentCheckboxEvents() {
@@ -126,7 +176,7 @@ window.DataViewPublicUrl = (function () {
     if (!row) return false;
     if (Number(row.is_usable) !== 1) return false;
 
-    const status = String(row.status || "").toLowerCase();
+    const status = normalizeStatus(row.status);
     if (status === "done") return false;
     if (status === "fetch_error") return false;
 
@@ -147,7 +197,7 @@ window.DataViewPublicUrl = (function () {
 
         const originalText = btn.textContent;
         btn.disabled = true;
-        btn.textContent = "分解中...";
+        btn.textContent = "分解中";
 
         try {
           const result = await decomposePage(row);
@@ -225,7 +275,6 @@ window.DataViewPublicUrl = (function () {
     }
 
     ctx.parentTableBody.innerHTML = currentParentRows.map((row, index) => {
-      const status = String(row.status || "");
       const childCount = Number(row.child_count || row.page_count || 0);
 
       return `
@@ -240,11 +289,7 @@ window.DataViewPublicUrl = (function () {
           <td title="${escapeHtml(formatParentLabel(row))}">
             ${escapeHtml(formatParentLabel(row))}
           </td>
-          <td>
-            <span class="${escapeHtml(ctx.getStatusClass(status))}">
-              ${escapeHtml(status || "new")}
-            </span>
-          </td>
+          <td>${renderStatusChip(row.status)}</td>
           <td>${childCount}</td>
         </tr>
       `;
@@ -262,13 +307,13 @@ window.DataViewPublicUrl = (function () {
 
     ctx.childTableHead.innerHTML = `
       <tr>
+        <th>depth</th>
+        <th>判定</th>
+        <th>採用</th>
+        <th>状態</th>
+        <th>作成日時</th>
         <th>URL</th>
-        <th class="narrow-cell">depth</th>
-        <th class="narrow-cell">判定</th>
-        <th class="narrow-cell">採用</th>
-        <th class="narrow-cell">状態</th>
-        <th class="medium-cell">作成日時</th>
-        <th class="narrow-cell">分解</th>
+        <th>操作</th>
       </tr>
     `;
 
@@ -283,7 +328,6 @@ window.DataViewPublicUrl = (function () {
 
     ctx.childTableBody.innerHTML = currentChildRows.map((row, index) => {
       const pageUrl = row.page_url || "";
-      const status = String(row.status || "");
       const actionHtml = canDecompose(row)
         ? `
           <button
@@ -294,24 +338,20 @@ window.DataViewPublicUrl = (function () {
             分解
           </button>
         `
-        : `<span class="status-pill status-new">${escapeHtml(status || "対象外")}</span>`;
+        : `<span class="job-state-text state-waiting">分解済</span>`;
 
       return `
         <tr class="clickable-row child-row" data-index="${index}">
+          <td>${escapeHtml(row.depth ?? "")}</td>
+          <td>${renderDecisionChip(row.decision || "")}</td>
+          <td>${renderUsableChip(row.is_usable)}</td>
+          <td>${renderStatusChip(row.status)}</td>
+          <td>${escapeHtml(formatDateTime(row.created_at || row.fetched_at))}</td>
           <td title="${escapeHtml(pageUrl)}">
             <a href="${escapeHtml(pageUrl)}" target="_blank" rel="noopener noreferrer">
               ${escapeHtml(pageUrl)}
             </a>
           </td>
-          <td>${escapeHtml(row.depth ?? "")}</td>
-          <td>${escapeHtml(formatDecisionLabel(row.decision || ""))}</td>
-          <td>${escapeHtml(formatUsableLabel(row.is_usable))}</td>
-          <td>
-            <span class="${escapeHtml(ctx.getStatusClass(status))}">
-              ${escapeHtml(status || "new")}
-            </span>
-          </td>
-          <td>${escapeHtml(formatDateTime(row.created_at || row.fetched_at))}</td>
           <td>${actionHtml}</td>
         </tr>
       `;
@@ -345,7 +385,12 @@ window.DataViewPublicUrl = (function () {
       root_id: parentRow.root_id
     });
 
-    const rows = Array.isArray(data?.rows) ? data.rows : Array.isArray(data?.pages) ? data.pages : [];
+    const rows = Array.isArray(data?.rows)
+      ? data.rows
+      : Array.isArray(data?.pages)
+        ? data.pages
+        : [];
+
     renderChildTable(parentRow, rows);
   }
 
@@ -359,7 +404,11 @@ window.DataViewPublicUrl = (function () {
       source_key: ctx.currentSourceKey
     });
 
-    const rows = Array.isArray(data?.rows) ? data.rows : Array.isArray(data?.roots) ? data.roots : [];
+    const rows = Array.isArray(data?.rows)
+      ? data.rows
+      : Array.isArray(data?.roots)
+        ? data.roots
+        : [];
 
     if (ctx?.parentCountEl) {
       ctx.parentCountEl.textContent = `${rows.length} 件`;
@@ -373,14 +422,12 @@ window.DataViewPublicUrl = (function () {
       return;
     }
 
-    const jobStatus = String(statusData?.status || "").toLowerCase();
+    const jobStatus = normalizeStatus(statusData?.status);
     if (!jobStatus) {
       return;
     }
 
-    const checkedIndexes = Array.from(
-      ctx.parentTableBody?.querySelectorAll(".parent-check:checked") || []
-    ).map((el) => Number(el.dataset.index || "-1"));
+    const checkedIndexes = getCheckedParentIndexes();
 
     checkedIndexes.forEach((idx) => {
       if (currentParentRows[idx]) {
@@ -432,7 +479,7 @@ window.DataViewPublicUrl = (function () {
     return selected.map((row) => ({
       root_id: row.root_id,
       source_type: "public_url",
-      source_key: row.source_type || ctx.currentSourceKey,
+      source_key: row.source_key || row.source_type || ctx.currentSourceKey,
       title: row.title || row.root_url,
       child_count: row.child_count || row.page_count || 0
     }));
