@@ -2,8 +2,8 @@
   { "key": "api_kokkai",   "label": "国会議事録",     "group": "公開API", "type": "public_api" },
   { "key": "api_datago",   "label": "オープンデータ", "group": "公開API", "type": "public_api" },
 
-  { "key": "url_egov",     "label": "e-Gov FAQ",      "group": "公開URL", "type": "public_url" },
-  { "key": "url_caa",      "label": "消費者庁 FAQ",   "group": "公開URL", "type": "public_url" },
+  { "key": "url01",     "label": "日本年金機構（シーン別Q&A）",      "group": "公開URL", "type": "public_url" },
+  { "key": "url02",      "label": "厚生労働省（よくある御質問）",   "group": "公開URL", "type": "public_url" },
 
   { "key": "file_upload",  "label": "ファイルアップロード", "group": "その他", "type": "upload" }
 ]
