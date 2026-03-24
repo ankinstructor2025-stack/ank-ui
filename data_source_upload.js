@@ -22,7 +22,7 @@ console.log("data_source_upload.js loaded");
     const formData = new FormData();
     formData.append("file", file);
 
-    const res = await fetch(`${apiBase}/upload_and_register`, {
+    const res = await fetch(`${apiBase}/upload/upload_and_register`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${idToken}`
