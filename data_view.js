@@ -7,6 +7,8 @@ const btnReload = document.getElementById("btnReload");
 const btnKnowledge = document.getElementById("btnKnowledge");
 const btnMenu = document.getElementById("btnMenu");
 const btnLogout = document.getElementById("btnLogout");
+const btnParentCheckAll = document.getElementById("btnParentCheckAll");
+const btnParentClearAll = document.getElementById("btnParentClearAll");
 
 const summaryText = document.getElementById("summaryText");
 const selectionSummary = document.getElementById("selectionSummary");
@@ -507,8 +509,8 @@ function createViewContext() {
     getStatusClass,
     renderParentPlaceholder,
     renderChildPlaceholder,
-    btnCheckAll: document.getElementById("btnParentCheckAll"),
-    btnClearChecks: document.getElementById("btnParentClearAll")
+    btnCheckAll: btnParentCheckAll,
+    btnClearChecks: btnParentClearAll
   };
 }
 
@@ -1084,6 +1086,30 @@ function bindEvents() {
     } catch (e) {
       console.error(e);
       alert(e.message || "ナレッジ化に失敗しました");
+    }
+  });
+
+  btnParentCheckAll?.addEventListener("click", async () => {
+    try {
+      const module = getCurrentModule();
+      if (module && typeof module.checkAll === "function") {
+        module.checkAll();
+      }
+    } catch (e) {
+      console.error(e);
+      alert(e.message || "全チェックに失敗しました");
+    }
+  });
+
+  btnParentClearAll?.addEventListener("click", async () => {
+    try {
+      const module = getCurrentModule();
+      if (module && typeof module.clearAllChecks === "function") {
+        module.clearAllChecks();
+      }
+    } catch (e) {
+      console.error(e);
+      alert(e.message || "全解除に失敗しました");
     }
   });
 
