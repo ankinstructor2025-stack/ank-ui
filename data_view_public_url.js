@@ -38,41 +38,6 @@ window.DataViewPublicUrl = (function () {
     return String(value || "").trim().toLowerCase();
   }
 
-  function normalizeDecision(value) {
-    return String(value || "").trim().toLowerCase();
-  }
-
-  function formatDecisionLabel(value) {
-    const s = normalizeDecision(value);
-    if (s === "pass") return "採用";
-    if (s === "reject") return "除外";
-    return value || "";
-  }
-
-  function formatUsableLabel(value) {
-    return Number(value) === 1 ? "採用" : "対象外";
-  }
-
-  function renderDecisionChip(value) {
-    const s = normalizeDecision(value);
-    const label = formatDecisionLabel(value);
-
-    if (s === "pass") {
-      return `<span class="url-chip pass">採用</span>`;
-    }
-    if (s === "reject") {
-      return `<span class="url-chip reject">除外</span>`;
-    }
-    return `<span class="url-chip">${escapeHtml(label || "")}</span>`;
-  }
-
-  function renderUsableChip(value) {
-    if (Number(value) === 1) {
-      return `<span class="url-chip usable">採用</span>`;
-    }
-    return `<span class="url-chip unusable">対象外</span>`;
-  }
-
   function renderStatusChip(value) {
     const s = normalizeStatus(value);
     const label = s || "new";
@@ -116,7 +81,7 @@ window.DataViewPublicUrl = (function () {
       if (message) {
         ctx.childTableBody.innerHTML = `
           <tr class="placeholder-row">
-            <td colspan="7">${escapeHtml(message)}</td>
+            <td colspan="4">${escapeHtml(message)}</td>
           </tr>
         `;
       } else {
@@ -159,71 +124,6 @@ window.DataViewPublicUrl = (function () {
         syncParentCheckboxUi();
       };
     }
-  }
-
-  async function decomposePage(pageRow) {
-    const pageUrl = pageRow?.page_url;
-    if (!pageUrl) {
-      throw new Error("page_url がありません。");
-    }
-
-    return await ctx.apiPost("/public-url/decompose", {
-      page_url: pageUrl
-    });
-  }
-
-  function canDecompose(row) {
-    if (!row) return false;
-    if (Number(row.is_usable) !== 1) return false;
-
-    const status = normalizeStatus(row.status);
-    if (status === "done") return false;
-    if (status === "fetch_error") return false;
-
-    return true;
-  }
-
-  function bindChildActionEvents(parentRow) {
-    if (!ctx?.childTableBody) return;
-
-    const buttons = ctx.childTableBody.querySelectorAll(".btn-decompose-child");
-    buttons.forEach((btn) => {
-      btn.addEventListener("click", async (event) => {
-        event.stopPropagation();
-
-        const index = Number(btn.dataset.index || "-1");
-        const row = currentChildRows[index];
-        if (!row) return;
-
-        const originalText = btn.textContent;
-        btn.disabled = true;
-        btn.textContent = "分解中";
-
-        try {
-          const result = await decomposePage(row);
-          row.status = "done";
-
-          if (ctx.detailPre) {
-            ctx.detailPre.textContent =
-              `page_id: ${result?.page_id ?? row.page_id ?? ""}\n` +
-              `page_url: ${result?.page_url ?? row.page_url ?? ""}\n` +
-              `content_id: ${result?.content_id ?? ""}\n` +
-              `content_length: ${result?.content_length ?? 0}\n` +
-              `message: ${result?.message ?? ""}`;
-          }
-
-          renderChildTable(parentRow, currentChildRows);
-        } catch (e) {
-          console.error(e);
-          if (ctx.detailPre) {
-            ctx.detailPre.textContent = e.message || "分解に失敗しました。";
-          }
-          alert(e.message || "分解に失敗しました");
-          btn.disabled = false;
-          btn.textContent = originalText;
-        }
-      });
-    });
   }
 
   function bindParentRowEvents() {
@@ -300,77 +200,72 @@ window.DataViewPublicUrl = (function () {
     syncParentCheckboxUi();
   }
 
-  function renderChildTable(parentRow, rows) {
-    currentChildRows = Array.isArray(rows) ? rows : [];
+  function renderChildTable(parentRow, allRows) {
+    const rows = Array.isArray(allRows) ? allRows : [];
+    const doneRows = rows.filter((row) => normalizeStatus(row.status) === "done");
+
+    currentChildRows = doneRows;
 
     if (!ctx?.childTableHead || !ctx?.childTableBody) return;
 
     ctx.childTableHead.innerHTML = `
       <tr>
         <th>depth</th>
-        <th>判定</th>
-        <th>採用</th>
         <th>状態</th>
         <th>作成日時</th>
         <th>URL</th>
-        <th>操作</th>
       </tr>
     `;
 
-    if (currentChildRows.length === 0) {
+    if (doneRows.length === 0) {
       ctx.childTableBody.innerHTML = `
         <tr class="placeholder-row">
-          <td colspan="7">子URLがありません</td>
+          <td colspan="4">分解済の子データがありません</td>
         </tr>
       `;
-      return;
+    } else {
+      ctx.childTableBody.innerHTML = doneRows.map((row) => {
+        const pageUrl = row.page_url || "";
+
+        return `
+          <tr class="clickable-row child-row">
+            <td>${escapeHtml(row.depth ?? "")}</td>
+            <td>${renderStatusChip(row.status)}</td>
+            <td>${escapeHtml(formatDateTime(row.created_at || row.fetched_at))}</td>
+            <td title="${escapeHtml(pageUrl)}">
+              <a href="${escapeHtml(pageUrl)}" target="_blank" rel="noopener noreferrer">
+                ${escapeHtml(pageUrl)}
+              </a>
+            </td>
+          </tr>
+        `;
+      }).join("");
     }
 
-    ctx.childTableBody.innerHTML = currentChildRows.map((row, index) => {
-      const pageUrl = row.page_url || "";
-      const actionHtml = canDecompose(row)
-        ? `
-          <button
-            type="button"
-            class="btn btn-primary btn-decompose-child"
-            data-index="${index}"
-          >
-            分解
-          </button>
-        `
-        : `<span class="job-state-text state-waiting">分解済</span>`;
-
-      return `
-        <tr class="clickable-row child-row" data-index="${index}">
-          <td>${escapeHtml(row.depth ?? "")}</td>
-          <td>${renderDecisionChip(row.decision || "")}</td>
-          <td>${renderUsableChip(row.is_usable)}</td>
-          <td>${renderStatusChip(row.status)}</td>
-          <td>${escapeHtml(formatDateTime(row.created_at || row.fetched_at))}</td>
-          <td title="${escapeHtml(pageUrl)}">
-            <a href="${escapeHtml(pageUrl)}" target="_blank" rel="noopener noreferrer">
-              ${escapeHtml(pageUrl)}
-            </a>
-          </td>
-          <td>${actionHtml}</td>
-        </tr>
-      `;
-    }).join("");
-
-    bindChildActionEvents(parentRow);
-
     if (ctx.contextSummary) {
-      ctx.contextSummary.textContent = `親一覧: ${formatParentLabel(parentRow)} / 子 ${currentChildRows.length} 件`;
+      ctx.contextSummary.textContent = `親一覧: ${formatParentLabel(parentRow)} / 分解済 ${doneRows.length} 件 / 全子 ${rows.length} 件`;
     }
 
     if (ctx.detailPre) {
+      const doneCount = rows.filter((row) => normalizeStatus(row.status) === "done").length;
+      const newCount = rows.filter((row) => normalizeStatus(row.status) === "new").length;
+      const runningCount = rows.filter((row) => normalizeStatus(row.status) === "running").length;
+      const errorCount = rows.filter((row) => {
+        const s = normalizeStatus(row.status);
+        return s === "error" || s === "fetch_error";
+      }).length;
+
       ctx.detailPre.textContent =
         `root_id: ${parentRow.root_id ?? ""}\n` +
         `source_type: ${parentRow.source_type ?? ""}\n` +
         `root_url: ${parentRow.root_url ?? ""}\n` +
         `title: ${parentRow.title ?? ""}\n` +
         `status: ${parentRow.status ?? ""}\n` +
-        `child_count: ${parentRow.child_count ?? parentRow.page_count ?? 0}`;
+        `child_count: ${parentRow.child_count ?? parentRow.page_count ?? 0}\n` +
+        `done_count: ${doneCount}\n` +
+        `new_count: ${newCount}\n` +
+        `running_count: ${runningCount}\n` +
+        `error_count: ${errorCount}`;
     }
   }
 
