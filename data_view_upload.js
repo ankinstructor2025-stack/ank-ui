@@ -10,8 +10,7 @@ let ctx = null;
 function formatParentLabel(row) {
   return (
     row?.title ||
-    row?.logical_name ||
-    row?.original_name ||
+    row?.file_name ||
     row?.file_id ||
     "(名称なし)"
   );
@@ -96,8 +95,7 @@ function formatFileSize(bytes) {
 function renderDetailFromParent(row) {
   const lines = [
     `file_id: ${row?.file_id ?? ""}`,
-    `logical_name: ${row?.logical_name ?? ""}`,
-    `original_name: ${row?.original_name ?? ""}`,
+    `file_name: ${row?.file_name ?? ""}`,
     `ext: ${row?.ext ?? ""}`,
     `created_at: ${row?.created_at ?? ""}`,
     `gcs_path: ${row?.gcs_path ?? ""}`,
@@ -153,10 +151,7 @@ async function downloadFile(row) {
   }
 
   const blob = await res.blob();
-  const downloadName =
-    row.original_name ||
-    row.logical_name ||
-    `${fileId}`;
+  const downloadName = row.file_name || `${fileId}`;
 
   const objectUrl = window.URL.createObjectURL(blob);
 
@@ -242,7 +237,7 @@ function renderParentTable(rows) {
     ctx.renderParentPlaceholder("データがありません。");
     clearChildArea("子データはありません。");
 
-    if (ctx.summaryText) ctx.summaryText.textContent = "0 件";
+    if (ctx.summaryText) ctx.summaryText.textContent = `${filteredRows.length} 件`;
     if (ctx.contextSummary) ctx.contextSummary.textContent = "親一覧: アップロード";
     if (ctx.detailPre) ctx.detailPre.textContent = "データがありません。";
 
@@ -253,7 +248,7 @@ function renderParentTable(rows) {
   ctx.parentTableHead.innerHTML = `
     <tr>
       <th class="checkbox-cell"></th>
-      <th>ファイル</th>
+      <th>ファイル名</th>
       <th class="narrow-cell">ext</th>
       <th class="medium-cell">作成日</th>
       <th class="narrow-cell">DL</th>
