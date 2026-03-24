@@ -56,42 +56,8 @@ console.log("data_source_upload.js loaded");
     if (data.logical_name) writeLog(`logical_name=${data.logical_name}`);
     if (data.original_filename) writeLog(`original_filename=${data.original_filename}`);
     if (data.ext) writeLog(`ext=${data.ext}`);
-
-    return data;
-  }
-
-  async function ingestFile({ apiBase, idToken, fileId, writeLog }) {
-    const res = await fetch(`${apiBase}/ingest_uploaded_file/${encodeURIComponent(fileId)}`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${idToken}`
-      }
-    });
-
-    if (res.status === 409) {
-      const text = await readErrorText(res);
-      throw new Error(`取り込みスキップ(409): ${text}`);
-    }
-
-    if (res.status === 401) {
-      const text = await readErrorText(res);
-      throw new Error(`認証エラー(401): ${text}`);
-    }
-
-    if (!res.ok) {
-      const text = await readErrorText(res);
-      throw new Error(`取り込み失敗: ${text}`);
-    }
-
-    const data = await res.json();
-
-    writeLog("row_data 取り込み成功");
-    if (typeof data.row_count === "number") {
-      writeLog(`row_count=${data.row_count}`);
-    }
-    if (data.file_id) {
-      writeLog(`file_id=${data.file_id}`);
-    }
+    if (data.created_at) writeLog(`created_at=${data.created_at}`);
+    if (data.gcs_path) writeLog(`gcs_path=${data.gcs_path}`);
 
     return data;
   }
@@ -117,16 +83,7 @@ console.log("data_source_upload.js loaded");
       throw new Error("file_id を取得できませんでした");
     }
 
-    writeLog("row_data 取り込み開始");
-
-    await ingestFile({
-      apiBase,
-      idToken,
-      fileId: uploaded.file_id,
-      writeLog
-    });
-
-    writeLog("完了");
+    writeLog("登録完了");
   }
 
   window.DataSourceUpload = {
