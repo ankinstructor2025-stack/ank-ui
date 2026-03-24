@@ -1,205 +1,379 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <title>ナレッジ作成</title>
-  <link rel="stylesheet" href="./theme.css">
-  <style>
-    .split-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-      margin-top: 16px;
+<meta charset="UTF-8">
+<title>ナレッジ照会</title>
+<link rel="stylesheet" href="./theme.css">
+
+<style>
+  * {
+    box-sizing: border-box;
+  }
+
+  html, body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  body {
+    min-height: 100vh;
+  }
+
+  .page {
+    width: 100vw !important;
+    height: 100vh !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: block !important;
+  }
+
+  .card {
+    width: 100vw !important;
+    height: 100vh !important;
+    max-width: none !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    padding: 12px 20px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .header-row {
+    flex: 0 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+
+  .page-note {
+    flex: 0 0 auto;
+    margin-bottom: 8px;
+  }
+
+  .common-panel {
+    flex: 0 0 auto;
+    margin-bottom: 10px;
+  }
+
+  .summary-row {
+    flex: 0 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+  }
+
+  .muted-text {
+    color: #9ca3af;
+    font-size: 13px;
+  }
+
+  .work-panel {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .tabs-row {
+    flex: 0 0 auto;
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+  }
+
+  .tab-btn {
+    min-width: 90px;
+  }
+
+  .tab-btn.active {
+    background: #2563eb;
+    color: #ffffff;
+    border-color: #2563eb;
+  }
+
+  .content-split {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: 58% 42%;
+    gap: 12px;
+    overflow: hidden;
+  }
+
+  .left-section,
+  .right-section {
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .panel-title {
+    flex: 0 0 auto;
+    margin: 0 0 8px 0;
+    font-size: 18px;
+    font-weight: 700;
+  }
+
+  .table-wrap {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: auto;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    background: rgba(255,255,255,0.02);
+  }
+
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+
+  .data-table th,
+  .data-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    text-align: left;
+    vertical-align: top;
+    font-size: 14px;
+  }
+
+  .data-table th {
+    background: #d9dee7;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
+
+  .data-table td {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .clickable-row {
+    cursor: pointer;
+  }
+
+  .clickable-row:hover {
+    background: rgba(255,255,255,0.05);
+  }
+
+  .selected-row {
+    background: rgba(59,130,246,0.15);
+  }
+
+  .placeholder-row td {
+    color: #9ca3af;
+    text-align: center;
+    padding: 16px;
+  }
+
+  .narrow-cell {
+    width: 90px;
+  }
+
+  .medium-cell {
+    width: 140px;
+  }
+
+  .wide-cell {
+    width: 220px;
+  }
+
+  .paging-row {
+    flex: 0 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+  }
+
+  .paging-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .detail-wrap {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    padding: 12px 16px;
+    background: rgba(255,255,255,0.02);
+  }
+
+  .detail-pre {
+    white-space: pre-wrap;
+    word-break: break-word;
+    line-height: 1.6;
+    margin: 0;
+    font-family: inherit;
+  }
+
+  .kv-box {
+    display: grid;
+    grid-template-columns: 120px 1fr;
+    gap: 8px 12px;
+    margin-bottom: 16px;
+    font-size: 14px;
+  }
+
+  .kv-key {
+    color: #9ca3af;
+  }
+
+  .kv-value {
+    color: #ffffff;
+    word-break: break-word;
+  }
+
+  @media (max-width: 960px) {
+    html, body {
+      overflow: auto;
     }
 
-    .panel-title {
-      margin: 0 0 12px 0;
-      font-size: 18px;
-      font-weight: 700;
+    .page {
+      width: 100%;
+      height: auto;
+      min-height: 100vh;
     }
 
-    .summary-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 12px;
-      color: #d1d5db;
-      font-size: 14px;
+    .card {
+      width: 100%;
+      height: auto;
+      min-height: 100vh;
+      padding: 10px 12px;
     }
 
-    .muted-text {
-      color: #9ca3af;
-      font-size: 13px;
+    .content-split {
+      grid-template-columns: 1fr;
+      overflow: visible;
     }
 
     .table-wrap {
-      max-height: 220px;
-      overflow: auto;
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 12px;
-    }
-
-    .data-table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-
-    .data-table th,
-    .data-table td {
-      padding: 10px 12px;
-      border-bottom: 1px solid rgba(255,255,255,0.08);
-      text-align: left;
-      vertical-align: top;
-      font-size: 14px;
-    }
-
-    .data-table th {
-      background: rgba(255,255,255,0.04);
-      position: sticky;
-      top: 0;
-      z-index: 1;
-    }
-
-    .checkbox-cell {
-      width: 48px;
-      text-align: center;
-    }
-
-    .clickable-row {
-      cursor: pointer;
-    }
-
-    .clickable-row:hover {
-      background: rgba(255,255,255,0.04);
-    }
-
-    .selected-row {
-      background: rgba(59,130,246,0.12);
-    }
-
-    .placeholder-row td {
-      color: #9ca3af;
-      text-align: center;
-      padding: 16px;
-    }
-
-    .status-pill {
-      display: inline-block;
-      padding: 2px 8px;
-      border-radius: 9999px;
-      font-size: 12px;
-      font-weight: 700;
-      line-height: 1.5;
-    }
-
-    .status-new {
-      background: rgba(59,130,246,0.18);
-      color: #bfdbfe;
-    }
-
-    .status-done {
-      background: rgba(34,197,94,0.18);
-      color: #bbf7d0;
-    }
-
-    .status-error {
-      background: rgba(239,68,68,0.18);
-      color: #fecaca;
+      min-height: 300px;
     }
 
     .detail-wrap {
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 12px;
-      padding: 12px 16px;
-      min-height: 220px;
-      max-height: 360px;
-      overflow: auto;
-      background: rgba(255,255,255,0.02);
+      min-height: 260px;
     }
-
-    .detail-pre {
-      white-space: pre-wrap;
-      word-break: break-word;
-      line-height: 1.6;
-      margin: 0;
-      font-family: inherit;
-    }
-
-    @media (max-width: 960px) {
-      .split-grid {
-        grid-template-columns: 1fr;
-      }
-    }
-  </style>
+  }
+</style>
 </head>
-<body>
 
+<body>
 <div class="page">
   <div class="card">
 
     <div class="header-row">
-      <h2>ナレッジ作成</h2>
-
+      <h2>ナレッジ照会</h2>
       <div class="header-actions">
-        <button id="btnMenu" class="btn" type="button">メニューに戻る</button>
-        <button id="btnLogout" class="btn" type="button">ログアウト</button>
+        <button id="btnMenu" class="btn">メニューに戻る</button>
+        <button id="btnLogout" class="btn">ログアウト</button>
       </div>
     </div>
 
     <div class="page-note">
-      親一覧 → 子一覧 → 詳細表示
+      データ種別 → ナレッジDB選択 → QA / PLAIN 一覧 → 詳細表示
+    </div>
+
+    <div class="common-panel">
+      <div class="common-grid">
+        <div>
+          <label>データ種別</label>
+          <select id="sourceSelect"></select>
+        </div>
+        <div>
+          <label>ナレッジDB</label>
+          <select id="dbSelect" disabled>
+            <option value="">選択してください</option>
+          </select>
+        </div>
+      </div>
     </div>
 
     <div class="work-panel">
-
       <div class="summary-row">
         <div>
           <span id="summaryText">0 件</span>
-          <span id="selectionSummary" class="muted-text" style="margin-left:12px;">選択 0 件</span>
+          <span id="selectionSummary" class="muted-text" style="margin-left:12px;">未選択</span>
         </div>
-
         <div>
-          <span id="contextSummary" class="muted-text">親一覧</span>
-          <button id="btnReload" class="btn" type="button" style="margin-left:12px;">再読込</button>
+          <span id="contextSummary" class="muted-text">ナレッジ一覧</span>
+          <button id="btnReload" class="btn" style="margin-left:12px;">再読込</button>
         </div>
       </div>
 
-      <div class="split-grid">
-        <div>
-          <h3 class="panel-title">親一覧</h3>
+      <div class="tabs-row">
+        <button id="tabQa" class="btn tab-btn active" type="button">QA</button>
+        <button id="tabPlain" class="btn tab-btn" type="button">PLAIN</button>
+      </div>
+
+      <div class="content-split">
+        <div class="left-section">
+          <h3 class="panel-title">ナレッジ一覧</h3>
           <div class="table-wrap">
             <table class="data-table">
-              <thead id="parentTableHead"></thead>
-              <tbody id="parentTableBody"></tbody>
+              <thead id="listTableHead"></thead>
+              <tbody id="listTableBody"></tbody>
             </table>
+          </div>
+
+          <div class="paging-row">
+            <div id="pagingSummary" class="muted-text">0 / 0 ページ</div>
+            <div class="paging-actions">
+              <button id="btnPrevPage" class="btn" type="button">前へ</button>
+              <span id="pageInfo" class="muted-text">1 / 1</span>
+              <button id="btnNextPage" class="btn" type="button">次へ</button>
+            </div>
           </div>
         </div>
 
-        <div>
-          <h3 class="panel-title">子一覧</h3>
-          <div class="table-wrap">
-            <table class="data-table">
-              <thead id="childTableHead"></thead>
-              <tbody id="childTableBody"></tbody>
-            </table>
+        <div class="right-section">
+          <h3 class="panel-title">詳細表示</h3>
+          <div class="detail-wrap">
+            <div class="kv-box">
+              <div class="kv-key">DB</div>
+              <div id="detailDbName" class="kv-value">-</div>
+
+              <div class="kv-key">種別</div>
+              <div id="detailKnowledgeType" class="kv-value">-</div>
+
+              <div class="kv-key">ID</div>
+              <div id="detailKnowledgeId" class="kv-value">-</div>
+
+              <div class="kv-key">ソース</div>
+              <div id="detailSourceType" class="kv-value">-</div>
+            </div>
+            <pre id="detailPre" class="detail-pre">データ種別とナレッジDBを選択してください。</pre>
           </div>
         </div>
       </div>
-
-      <div style="margin-top:16px;">
-        <h3 class="panel-title">詳細表示</h3>
-        <div class="detail-wrap">
-          <pre id="detailPre" class="detail-pre">親一覧を読み込み中です...</pre>
-        </div>
-      </div>
-
     </div>
 
   </div>
 </div>
 
 <script src="./knowledge_view.js"></script>
-
 </body>
 </html>
