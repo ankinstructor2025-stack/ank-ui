@@ -210,10 +210,10 @@ window.DataViewPublicUrl = (function () {
 
     ctx.childTableHead.innerHTML = `
       <tr>
-        <th>depth</th>
-        <th>状態</th>
-        <th>作成日時</th>
-        <th>URL</th>
+        <th class="col-depth">階層</th>
+        <th class="col-url">URL</th>
+        <th class="col-status">状態</th>
+        <th class="col-created">作成日</th>
       </tr>
     `;
 
@@ -229,14 +229,20 @@ window.DataViewPublicUrl = (function () {
 
         return `
           <tr class="clickable-row child-row">
-            <td>${escapeHtml(row.depth ?? "")}</td>
-            <td>${renderStatusChip(row.status)}</td>
-            <td>${escapeHtml(formatDateTime(row.created_at || row.fetched_at))}</td>
-            <td title="${escapeHtml(pageUrl)}">
-              <a href="${escapeHtml(pageUrl)}" target="_blank" rel="noopener noreferrer">
+            <td class="col-depth">${escapeHtml(row.depth ?? "")}</td>
+            <td class="col-url" title="${escapeHtml(pageUrl)}">
+              <a
+                href="${escapeHtml(pageUrl)}"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="child-url-link"
+                title="${escapeHtml(pageUrl)}"
+              >
                 ${escapeHtml(pageUrl)}
               </a>
             </td>
+            <td class="col-status">${renderStatusChip(row.status)}</td>
+            <td class="col-created">${escapeHtml(formatDateTime(row.created_at || row.fetched_at))}</td>
           </tr>
         `;
       }).join("");

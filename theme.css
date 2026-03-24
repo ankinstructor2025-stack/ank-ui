@@ -872,3 +872,51 @@ textarea{
 .btn.btn-primary:hover {
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.24);
 }
+
+/* public_url 子一覧の列バランス調整 */
+#childTableHead th.col-depth,
+#childTableBody td.col-depth {
+  width: 70px;
+  min-width: 70px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+#childTableHead th.col-url,
+#childTableBody td.col-url {
+  width: 520px;
+  min-width: 520px;
+  max-width: 520px;
+}
+
+#childTableHead th.col-status,
+#childTableBody td.col-status {
+  width: 120px;
+  min-width: 120px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+#childTableHead th.col-created,
+#childTableBody td.col-created {
+  width: 170px;
+  min-width: 170px;
+  white-space: nowrap;
+}
+
+#childTableBody td.col-url {
+  overflow: hidden;
+}
+
+#childTableBody td.col-url .child-url-link {
+  display: inline-block;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  word-break: normal;
+}
+
+#childTableBody td.col-url .child-url-link:hover {
+  text-decoration: underline;
+}
