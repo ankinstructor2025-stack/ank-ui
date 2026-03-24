@@ -3,9 +3,7 @@ console.log("data_view_upload.js loaded");
 window.DataViewUpload = (() => {
 
 let currentParentRows = [];
-let currentChildRows = [];
 let selectedParentIndex = -1;
-let selectedChildIndex = -1;
 let checkedParentIndexes = new Set();
 let ctx = null;
 
@@ -17,66 +15,6 @@ function formatParentLabel(row) {
     row?.file_id ||
     "(名称なし)"
   );
-}
-
-function formatChildTitle(row) {
-  return (
-    row?.source_item_id ||
-    row?.row_index ||
-    row?.row_id ||
-    "(名称なし)"
-  );
-}
-
-function parseRowContent(row) {
-  const raw = row?.content || row?.text || row?.body || row?.detail || "";
-
-  if (row?.data && typeof row.data === "object") {
-    return row.data;
-  }
-
-  if (typeof raw === "object" && raw !== null) {
-    return raw;
-  }
-
-  if (typeof raw === "string" && raw.trim()) {
-    try {
-      return JSON.parse(raw);
-    } catch (_) {
-      return raw;
-    }
-  }
-
-  return raw;
-}
-
-function formatChildContent(row) {
-  const parsed = parseRowContent(row);
-
-  if (parsed && typeof parsed === "object") {
-    if (parsed.data && typeof parsed.data === "object") {
-      try {
-        return JSON.stringify(parsed.data, null, 2);
-      } catch (_) {}
-    }
-
-    try {
-      return JSON.stringify(parsed, null, 2);
-    } catch (_) {
-      return String(parsed);
-    }
-  }
-
-  return String(parsed || "");
-}
-
-function extractRowsFromResponse(data) {
-  if (Array.isArray(data)) return data;
-  if (Array.isArray(data.rows)) return data.rows;
-  if (Array.isArray(data.items)) return data.items;
-  if (Array.isArray(data.children)) return data.children;
-  if (Array.isArray(data.results)) return data.results;
-  return [];
 }
 
 function updateCheckedSummary() {
@@ -121,10 +59,7 @@ function bindParentCheckboxEvents() {
   });
 }
 
-function clearChildArea(message = "親一覧から1件選択してください。") {
-  currentChildRows = [];
-  selectedChildIndex = -1;
-
+function clearChildArea(message = "子データはありません。") {
   if (ctx.childTableHead) {
     ctx.childTableHead.innerHTML = "";
   }
@@ -138,28 +73,36 @@ function clearChildArea(message = "親一覧から1件選択してください�
   }
 }
 
-function renderDetailFromChild(row, parentRow) {
-  const parsed = parseRowContent(row);
-  const lines = [
-    `file: ${formatParentLabel(parentRow)}`,
-    `file_id: ${parentRow?.file_id ?? ""}`,
-    `logical_name: ${parentRow?.logical_name ?? ""}`,
-    `original_name: ${parentRow?.original_name ?? ""}`,
-    `ext: ${parentRow?.ext ?? ""}`,
-    `row_index: ${row?.row_index ?? ""}`,
-    `source_item_id: ${row?.source_item_id ?? ""}`,
-    ""
-  ];
-
-  if (parsed && typeof parsed === "object") {
-    try {
-      lines.push(JSON.stringify(parsed, null, 2));
-    } catch (_) {
-      lines.push(String(parsed));
-    }
-  } else {
-    lines.push(formatChildContent(row) || formatChildTitle(row) || "詳細データがありません。");
+function formatDateTime(value) {
+  if (!value) return "";
+  try {
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return String(value);
+    return d.toLocaleString("ja-JP");
+  } catch (_) {
+    return String(value);
   }
+}
+
+function formatFileSize(bytes) {
+  const n = Number(bytes);
+  if (!Number.isFinite(n) || n < 0) return "";
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  if (n < 1024 * 1024 * 1024) return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(n / (1024 * 1024 * 1024)).toFixed(1)} GB`;
+}
+
+function renderDetailFromParent(row) {
+  const lines = [
+    `file_id: ${row?.file_id ?? ""}`,
+    `logical_name: ${row?.logical_name ?? ""}`,
+    `original_name: ${row?.original_name ?? ""}`,
+    `ext: ${row?.ext ?? ""}`,
+    `created_at: ${row?.created_at ?? ""}`,
+    `gcs_path: ${row?.gcs_path ?? ""}`,
+    `file_size: ${formatFileSize(row?.file_size)}`
+  ];
 
   if (ctx.detailPre) {
     ctx.detailPre.textContent = lines.join("\n");
@@ -175,108 +118,99 @@ function setSelectedParentRow(index) {
   });
 }
 
-function setSelectedChildRow(index) {
-  selectedChildIndex = index;
-
-  const rows = ctx.childTableBody.querySelectorAll(".child-row");
-  rows.forEach((el, i) => {
-    el.classList.toggle("selected-row", i === index);
-  });
-}
-
-function bindChildRowEvents() {
-  const rows = ctx.childTableBody.querySelectorAll(".child-row");
-
-  rows.forEach((tr) => {
-    tr.addEventListener("click", () => {
-      const index = Number(tr.dataset.index || "-1");
-      const row = currentChildRows[index];
-      const parentRow = currentParentRows[selectedParentIndex];
-
-      if (!row) return;
-
-      setSelectedChildRow(index);
-      renderDetailFromChild(row, parentRow);
-    });
-  });
-}
-
-function renderChildTable(rows, parentRow) {
-  currentChildRows = Array.isArray(rows) ? rows : [];
-  selectedChildIndex = -1;
-
-  if (!Array.isArray(rows) || rows.length === 0) {
-    clearChildArea("子データがありません。");
-
-    if (ctx.contextSummary) {
-      ctx.contextSummary.textContent = `子一覧: ${formatParentLabel(parentRow)}`;
-    }
-
-    if (ctx.detailPre) {
-      ctx.detailPre.textContent = `選択中: ${formatParentLabel(parentRow)}\n子データがありません。`;
-    }
-
-    return;
-  }
-
-  ctx.childTableHead.innerHTML = `
-    <tr>
-      <th class="narrow-cell">行</th>
-      <th>内容</th>
-    </tr>
-  `;
-
-  ctx.childTableBody.innerHTML = rows.map((row, index) => {
-    const rowNo = row.row_index ?? index + 1;
-    const title = formatChildTitle(row);
-    const content = formatChildContent(row);
-    const preview = content ? String(content).replace(/\s+/g, " ").slice(0, 80) : title;
-
-    return `
-      <tr class="clickable-row child-row" data-index="${index}">
-        <td>${ctx.escapeHtml(rowNo)}</td>
-        <td>${ctx.escapeHtml(preview)}</td>
-      </tr>
-    `;
-  }).join("");
-
-  bindChildRowEvents();
-
-  if (ctx.contextSummary) {
-    ctx.contextSummary.textContent = `子一覧: ${formatParentLabel(parentRow)}`;
-  }
-
-  if (ctx.detailPre) {
-    ctx.detailPre.textContent = `選択中: ${formatParentLabel(parentRow)}\n子一覧を表示しました。`;
-  }
-}
-
-async function loadChildren(parentRow) {
-  const fileId = parentRow?.file_id;
-
+async function downloadFile(row) {
+  const fileId = row?.file_id;
   if (!fileId) {
     throw new Error("file_id がありません。");
   }
 
-  const data = await ctx.apiGet("/upload/rows", {
-    file_id: fileId
-  });
+  const url = `${ctx.apiBase}/upload/download?file_id=${encodeURIComponent(fileId)}`;
 
-  const rows = extractRowsFromResponse(data);
-
-  if (!Array.isArray(rows)) {
-    throw new Error("子一覧データの形式が不正です。");
+  const idToken = sessionStorage.getItem("idToken");
+  if (!idToken) {
+    throw new Error("ログイン情報が見つかりません。");
   }
 
-  return rows;
+  const res = await fetch(url, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${idToken}`
+    }
+  });
+
+  if (!res.ok) {
+    let detail = `ダウンロード失敗 (HTTP ${res.status})`;
+    try {
+      const data = await res.json();
+      if (data?.detail) detail = data.detail;
+    } catch (_) {
+      try {
+        const text = await res.text();
+        if (text) detail = text;
+      } catch (_) {}
+    }
+    throw new Error(detail);
+  }
+
+  const blob = await res.blob();
+  const downloadName =
+    row.original_name ||
+    row.logical_name ||
+    `${fileId}`;
+
+  const objectUrl = window.URL.createObjectURL(blob);
+
+  try {
+    const a = document.createElement("a");
+    a.href = objectUrl;
+    a.download = downloadName;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  } finally {
+    window.URL.revokeObjectURL(objectUrl);
+  }
+}
+
+function bindDownloadEvents() {
+  if (!ctx?.parentTableBody) return;
+
+  const buttons = ctx.parentTableBody.querySelectorAll(".btn-download");
+  buttons.forEach((btn) => {
+    btn.addEventListener("click", async (event) => {
+      event.stopPropagation();
+
+      const index = Number(btn.dataset.index || "-1");
+      const row = currentParentRows[index];
+      if (!row) return;
+
+      const originalText = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = "取得中";
+
+      try {
+        await downloadFile(row);
+      } catch (e) {
+        console.error(e);
+        alert(e.message || "ダウンロードに失敗しました");
+      } finally {
+        btn.disabled = false;
+        btn.textContent = originalText;
+      }
+    });
+  });
 }
 
 function bindParentRowEvents() {
   const rows = ctx.parentTableBody.querySelectorAll(".parent-row");
 
   rows.forEach((tr) => {
-    tr.addEventListener("click", async (event) => {
+    tr.addEventListener("click", (event) => {
       if (event.target.closest(".parent-check")) {
+        return;
+      }
+
+      if (event.target.closest(".btn-download")) {
         return;
       }
 
@@ -286,27 +220,13 @@ function bindParentRowEvents() {
       if (!row) return;
 
       setSelectedParentRow(index);
-      clearChildArea("子一覧を読み込み中です...");
+      clearChildArea("子データはありません。");
 
       if (ctx.contextSummary) {
-        ctx.contextSummary.textContent = `子一覧: ${formatParentLabel(row)}`;
+        ctx.contextSummary.textContent = `ファイル: ${formatParentLabel(row)}`;
       }
 
-      if (ctx.detailPre) {
-        ctx.detailPre.textContent =
-          `選択中: ${formatParentLabel(row)}\n子一覧を読み込み中です...`;
-      }
-
-      try {
-        const children = await loadChildren(row);
-        renderChildTable(children, row);
-      } catch (e) {
-        console.error(e);
-        clearChildArea(e.message || "子一覧の読み込みに失敗しました。");
-        if (ctx.detailPre) {
-          ctx.detailPre.textContent = e.message || "子一覧の読み込みに失敗しました。";
-        }
-      }
+      renderDetailFromParent(row);
     });
   });
 }
@@ -315,14 +235,12 @@ function renderParentTable(rows) {
   const filteredRows = Array.isArray(rows) ? rows : [];
 
   currentParentRows = filteredRows;
-  currentChildRows = [];
   selectedParentIndex = -1;
-  selectedChildIndex = -1;
   checkedParentIndexes = new Set();
 
   if (filteredRows.length === 0) {
     ctx.renderParentPlaceholder("データがありません。");
-    clearChildArea("親一覧から1件選択してください。");
+    clearChildArea("子データはありません。");
 
     if (ctx.summaryText) ctx.summaryText.textContent = "0 件";
     if (ctx.contextSummary) ctx.contextSummary.textContent = "親一覧: アップロード";
@@ -336,8 +254,9 @@ function renderParentTable(rows) {
     <tr>
       <th class="checkbox-cell"></th>
       <th>ファイル</th>
-      <th class="narrow-cell">件数</th>
       <th class="narrow-cell">ext</th>
+      <th class="medium-cell">作成日</th>
+      <th class="narrow-cell">DL</th>
     </tr>
   `;
 
@@ -351,18 +270,30 @@ function renderParentTable(rows) {
             data-index="${index}"
           >
         </td>
-        <td>${ctx.escapeHtml(formatParentLabel(row))}</td>
-        <td>${ctx.escapeHtml(row.row_count ?? "")}</td>
+        <td title="${ctx.escapeHtml(formatParentLabel(row))}">
+          ${ctx.escapeHtml(formatParentLabel(row))}
+        </td>
         <td>${ctx.escapeHtml(row.ext ?? "")}</td>
+        <td>${ctx.escapeHtml(formatDateTime(row.created_at))}</td>
+        <td>
+          <button
+            type="button"
+            class="btn btn-primary btn-download"
+            data-index="${index}"
+          >
+            DL
+          </button>
+        </td>
       </tr>
     `;
   }).join("");
 
   bindParentCheckboxEvents();
   bindParentRowEvents();
+  bindDownloadEvents();
   syncParentCheckboxUi();
 
-  clearChildArea("親一覧から1件選択してください。");
+  clearChildArea("子データはありません。");
 
   if (ctx.summaryText) ctx.summaryText.textContent = `${filteredRows.length} 件`;
   if (ctx.contextSummary) ctx.contextSummary.textContent = "親一覧: アップロード";
@@ -375,12 +306,10 @@ async function load(viewContext) {
   ctx = viewContext;
 
   currentParentRows = [];
-  currentChildRows = [];
   selectedParentIndex = -1;
-  selectedChildIndex = -1;
   checkedParentIndexes = new Set();
 
-  clearChildArea("親一覧から1件選択してください。");
+  clearChildArea("子データはありません。");
 
   try {
     ctx.renderParentPlaceholder("親一覧を読み込み中です...");
@@ -396,7 +325,7 @@ async function load(viewContext) {
   } catch (e) {
     console.error(e);
     ctx.renderParentPlaceholder(e.message || "親一覧の読み込みに失敗しました。");
-    clearChildArea("親一覧から1件選択してください。");
+    clearChildArea("子データはありません。");
 
     if (ctx.detailPre) {
       ctx.detailPre.textContent = e.message || "親一覧の読み込みに失敗しました。";
