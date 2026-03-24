@@ -1,6 +1,36 @@
 console.log("data_source_upload.js loaded");
 
 (function () {
+  function getFileInput() {
+    return document.getElementById("uploadFileInput");
+  }
+
+  function getFileNameView() {
+    return document.getElementById("uploadFileName");
+  }
+
+  function syncSelectedFileName() {
+    const input = getFileInput();
+    const view = getFileNameView();
+    if (!input || !view) return;
+
+    if (input.files && input.files.length > 0) {
+      view.textContent = input.files[0].name;
+      view.classList.remove("is-empty");
+    } else {
+      view.textContent = "ファイルが選択されていません";
+      view.classList.add("is-empty");
+    }
+  }
+
+  function bindFileInputUi() {
+    const input = getFileInput();
+    if (!input) return;
+
+    input.addEventListener("change", syncSelectedFileName);
+    syncSelectedFileName();
+  }
+
   async function readErrorText(res) {
     try {
       const text = await res.text();
@@ -11,7 +41,7 @@ console.log("data_source_upload.js loaded");
   }
 
   function getSelectedFile() {
-    const input = document.getElementById("uploadFileInput");
+    const input = getFileInput();
     if (!input || !input.files || input.files.length === 0) {
       return null;
     }
@@ -53,8 +83,7 @@ console.log("data_source_upload.js loaded");
 
     writeLog("アップロード成功");
     if (data.file_id) writeLog(`file_id=${data.file_id}`);
-    if (data.logical_name) writeLog(`logical_name=${data.logical_name}`);
-    if (data.original_filename) writeLog(`original_filename=${data.original_filename}`);
+    if (data.file_name) writeLog(`file_name=${data.file_name}`);
     if (data.ext) writeLog(`ext=${data.ext}`);
     if (data.created_at) writeLog(`created_at=${data.created_at}`);
     if (data.gcs_path) writeLog(`gcs_path=${data.gcs_path}`);
@@ -86,7 +115,10 @@ console.log("data_source_upload.js loaded");
     writeLog("登録完了");
   }
 
+  document.addEventListener("DOMContentLoaded", bindFileInputUi);
+
   window.DataSourceUpload = {
-    run
+    run,
+    syncSelectedFileName
   };
 })();

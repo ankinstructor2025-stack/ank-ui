@@ -125,10 +125,20 @@
 
             <div class="section-block">
               <div>
-                <label for="uploadFileInput">ファイル</label>
-                <input id="uploadFileInput" type="file">
-              </div>
+                <label>ファイル</label>
 
+                <div class="upload-file-row">
+                  <input id="uploadFileInput" class="upload-file-input" type="file">
+
+                  <label for="uploadFileInput" class="upload-file-btn">
+                    ファイルの選択
+                  </label>
+
+                  <div id="uploadFileName" class="upload-file-name is-empty">
+                    ファイルが選択されていません
+                  </div>
+                </div>
+              </div>
               <div class="compact-actions">
                 <button id="btnUploadRegister" class="btn btn-primary" type="button">
                   アップロード
@@ -136,7 +146,6 @@
               </div>
             </div>
           </div>
-
           <div id="panelOpenData" class="hidden">
             <div class="section-block">
               <div class="compact-actions">
