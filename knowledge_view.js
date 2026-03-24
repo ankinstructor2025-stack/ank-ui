@@ -290,20 +290,6 @@ function formatDateTime(value) {
   return String(value);
 }
 
-function buildRowTitle(row) {
-  if (currentTab === "qa") {
-    return row.question || row.title || "";
-  }
-  return row.title || row.content || "";
-}
-
-function buildRowPreview(row) {
-  if (currentTab === "qa") {
-    return row.answer || row.content || "";
-  }
-  return row.content || "";
-}
-
 function renderListTable(rows) {
   const safeRows = Array.isArray(rows) ? rows : [];
 
@@ -330,7 +316,7 @@ function renderListTable(rows) {
   if (safeRows.length === 0) {
     listTableBody.innerHTML = `
       <tr class="placeholder-row">
-        <td colspan="${currentTab === "qa" ? 4 : 4}">データがありません。</td>
+        <td colspan="4">データがありません。</td>
       </tr>
     `;
     return;
@@ -447,14 +433,6 @@ async function loadKnowledgeDbOptions() {
     return;
   }
 
-  /*
-    想定レスポンス例:
-    {
-      "items": [
-        { "db_name": "knowledge_20260324192240.sqlite", "created_at": "..." }
-      ]
-    }
-  */
   const data = await apiGet("/knowledge/dbs", {
     source_type: currentSourceType
   });
@@ -463,13 +441,18 @@ async function loadKnowledgeDbOptions() {
   const options = [`<option value="">選択してください</option>`];
 
   items.forEach((item) => {
-    const dbName = item.db_name || item.name || "";
+    const dbName = item.database_name || "";
     if (!dbName) return;
     options.push(`<option value="${escapeHtml(dbName)}">${escapeHtml(dbName)}</option>`);
   });
 
   dbSelect.innerHTML = options.join("");
   dbSelect.disabled = false;
+
+  if (items.length === 0) {
+    resetListState("該当するナレッジDBがありません。");
+    return;
+  }
 
   resetListState("ナレッジDBを選択してください。");
 }
@@ -488,34 +471,6 @@ async function loadKnowledgeItems() {
   renderListPlaceholder("読み込み中です...");
   clearDetail("読み込み中です...");
 
-  /*
-    想定レスポンス例:
-    {
-      "db_name": "knowledge_xxx.sqlite",
-      "knowledge_type": "qa",
-      "page": 1,
-      "page_size": 10,
-      "total": 123,
-      "items": [
-        {
-          "knowledge_id": "...",
-          "knowledge_type": "qa",
-          "source_type": "upload",
-          "source_id": "...",
-          "job_id": "...",
-          "job_item_id": "...",
-          "question": "...",
-          "answer": "...",
-          "content": "...",
-          "sort_no": 1,
-          "status": "active",
-          "review_status": "new",
-          "created_at": "...",
-          "updated_at": "..."
-        }
-      ]
-    }
-  */
   const data = await apiGet("/knowledge/items", {
     source_type: currentSourceType,
     db_name: currentDbName,
@@ -545,6 +500,8 @@ function bindEvents() {
       const source = sourceMap[currentSourceKey];
       currentSourceType = source?.sourceType || "";
       currentDbName = "";
+      currentSelectedRow = null;
+      currentPage = 1;
 
       await loadKnowledgeDbOptions();
     } catch (e) {

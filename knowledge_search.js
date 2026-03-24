@@ -11,6 +11,7 @@ const API_BASE =
    DOM
 ============================== */
 
+const sourceTypeSelect = document.getElementById("sourceTypeSelect");
 const databaseSelect = document.getElementById("databaseSelect");
 const queryText = document.getElementById("queryText");
 
@@ -20,6 +21,7 @@ const btnLogout = document.getElementById("btnLogout");
 
 const summaryText = document.getElementById("summaryText");
 const selectionSummary = document.getElementById("selectionSummary");
+const sourceSummary = document.getElementById("sourceSummary");
 const contextSummary = document.getElementById("contextSummary");
 
 const resultQaSimilarity = document.getElementById("resultQaSimilarity");
@@ -31,6 +33,7 @@ const resultAiAnswer = document.getElementById("resultAiAnswer");
 const tabButtons = Array.from(document.querySelectorAll(".tab-btn"));
 const tabPanels = Array.from(document.querySelectorAll(".tab-panel"));
 
+let currentSourceType = "";
 let currentDatabase = "";
 let currentTab = "qa";
 
@@ -153,24 +156,53 @@ function getResultBoxByTab(tabName) {
   return resultQaSimilarity;
 }
 
+function clearStoredResults() {
+  lastQaResult = null;
+  lastPlainResult = null;
+  lastHybridResult = null;
+  lastHybridAiResult = null;
+  lastAiAnswerResult = null;
+}
+
+function setDatabaseDisabledState(disabled) {
+  databaseSelect.disabled = !!disabled;
+}
+
+function resetDatabaseOptions(placeholder = "選択してください") {
+  databaseSelect.innerHTML =
+    `<option value="" selected disabled>${escapeHtml(placeholder)}</option>`;
+  currentDatabase = "";
+  contextSummary.textContent = "DB:-";
+}
+
+function renderAllEmpty(message) {
+  renderEmpty(resultQaSimilarity, message);
+  renderEmpty(resultPlainFts, message);
+  renderEmpty(resultHybrid, message);
+  renderEmpty(resultHybridAi, message);
+  renderEmpty(resultAiAnswer, message);
+}
+
 /* ==============================
    DB一覧取得
 ============================== */
 
-async function fetchDatabaseList() {
+async function fetchDatabaseList(sourceType) {
   const idToken = getIdToken();
 
-  const response = await fetch(
-    `${API_BASE}/knowledge/dbs`,
-    {
-      method: "GET",
-      headers: {
-        "Authorization": idToken
-          ? `Bearer ${idToken}`
-          : ""
-      }
+  const url = new URL(`${API_BASE}/knowledge/dbs`);
+  if (sourceType) {
+    url.searchParams.set("source_type", sourceType);
+  }
+
+  const response = await fetch(url.toString(), {
+    method: "GET",
+    headers: {
+      "Authorization": idToken
+        ? `Bearer ${idToken}`
+        : ""
     }
-  );
+  });
 
   let data = {};
 
@@ -196,9 +228,12 @@ function renderDatabaseOptions(list) {
     `<option value="" selected disabled>選択してください</option>`
   ];
 
-  list.forEach((item) => {
+  (list || []).forEach((item) => {
+    const dbName = item.database_name || item.db_name || "";
+    if (!dbName) return;
+
     html.push(
-      `<option value="${escapeHtml(item.db_name)}">${escapeHtml(item.db_name)}</option>`
+      `<option value="${escapeHtml(dbName)}">${escapeHtml(dbName)}</option>`
     );
   });
 
@@ -212,7 +247,8 @@ function applyInitialDatabase(list) {
     return;
   }
 
-  const firstDb = list[0].db_name || "";
+  const first = list[0] || {};
+  const firstDb = first.database_name || first.db_name || "";
 
   if (!firstDb) {
     currentDatabase = "";
@@ -223,6 +259,40 @@ function applyInitialDatabase(list) {
   databaseSelect.value = firstDb;
   currentDatabase = firstDb;
   contextSummary.textContent = `DB:${firstDb}`;
+}
+
+async function reloadDatabaseListBySourceType() {
+  clearStoredResults();
+  resetDatabaseOptions("読込中です...");
+  setDatabaseDisabledState(true);
+
+  summaryText.textContent = "件数:0件";
+  selectionSummary.textContent = "入力:未実行";
+  sourceSummary.textContent = currentSourceType || "-";
+
+  if (!currentSourceType) {
+    resetDatabaseOptions("データ種別を選択してください");
+    renderAllEmpty("データ種別を選択してください。");
+    return;
+  }
+
+  const dbList = await fetchDatabaseList(currentSourceType);
+
+  renderDatabaseOptions(dbList);
+  setDatabaseDisabledState(false);
+  applyInitialDatabase(dbList);
+
+  summaryText.textContent = "件数:0件";
+  selectionSummary.textContent = "入力:未実行";
+  sourceSummary.textContent = currentSourceType || "-";
+
+  if (!dbList.length) {
+    contextSummary.textContent = "DB:-";
+    renderAllEmpty("該当するデータベースがありません。");
+    return;
+  }
+
+  renderAllEmpty("検索文字列を入力してください。");
 }
 
 /* ==============================
@@ -530,6 +600,11 @@ function renderCurrentTab() {
 ============================== */
 
 async function executeSearch() {
+  if (!currentSourceType) {
+    alert("データ種別を選択してください");
+    return;
+  }
+
   if (!currentDatabase) {
     alert("データベースを選択してください");
     return;
@@ -543,14 +618,11 @@ async function executeSearch() {
   }
 
   selectionSummary.textContent = `入力:検索語 ${lines.length} 行`;
+  sourceSummary.textContent = currentSourceType || "-";
   contextSummary.textContent = `DB:${currentDatabase}`;
   summaryText.textContent = "件数:検索中";
 
-  renderEmpty(resultQaSimilarity, "検索中...");
-  renderEmpty(resultPlainFts, "検索中...");
-  renderEmpty(resultHybrid, "検索中...");
-  renderEmpty(resultHybridAi, "検索中...");
-  renderEmpty(resultAiAnswer, "検索中...");
+  renderAllEmpty("検索中...");
 
   try {
     const [
@@ -591,11 +663,7 @@ async function executeSearch() {
     console.error("search error", err);
     summaryText.textContent = "件数:0件";
 
-    renderEmpty(resultQaSimilarity, err.message || "検索に失敗しました。");
-    renderEmpty(resultPlainFts, err.message || "検索に失敗しました。");
-    renderEmpty(resultHybrid, err.message || "検索に失敗しました。");
-    renderEmpty(resultHybridAi, err.message || "検索に失敗しました。");
-    renderEmpty(resultAiAnswer, err.message || "検索に失敗しました。");
+    renderAllEmpty(err.message || "検索に失敗しました。");
   }
 }
 
@@ -604,12 +672,37 @@ async function executeSearch() {
 ============================== */
 
 function bindEvents() {
+  sourceTypeSelect.addEventListener("change", async () => {
+    currentSourceType = sourceTypeSelect.value || "";
+    currentDatabase = "";
+
+    try {
+      await reloadDatabaseListBySourceType();
+    } catch (err) {
+      console.error("db list load error", err);
+
+      resetDatabaseOptions("取得失敗");
+      setDatabaseDisabledState(true);
+
+      summaryText.textContent = "件数:0件";
+      selectionSummary.textContent = "入力:未実行";
+      sourceSummary.textContent = currentSourceType || "-";
+      contextSummary.textContent = "DB:-";
+
+      renderAllEmpty(err.message || "DB一覧の取得に失敗しました。");
+    }
+  });
+
   databaseSelect.addEventListener("change", () => {
     currentDatabase = databaseSelect.value || "";
     summaryText.textContent = "件数:0件";
     selectionSummary.textContent = "入力:未実行";
+    sourceSummary.textContent = currentSourceType || "-";
     contextSummary.textContent =
       currentDatabase ? `DB:${currentDatabase}` : "DB:-";
+
+    clearStoredResults();
+    renderAllEmpty(currentDatabase ? "検索文字列を入力してください。" : "データベースを選択してください。");
   });
 
   btnSearch.addEventListener("click", executeSearch);
@@ -634,49 +727,14 @@ function bindEvents() {
 document.addEventListener("DOMContentLoaded", async () => {
   bindEvents();
 
-  try {
-    const dbList = await fetchDatabaseList();
+  resetDatabaseOptions("データ種別を選択してください");
+  setDatabaseDisabledState(true);
 
-    renderDatabaseOptions(dbList);
-    applyInitialDatabase(dbList);
+  summaryText.textContent = "件数:0件";
+  selectionSummary.textContent = "入力:未実行";
+  sourceSummary.textContent = "-";
+  contextSummary.textContent = "DB:-";
 
-    summaryText.textContent = "件数:0件";
-    selectionSummary.textContent = "入力:未実行";
-
-    renderEmpty(
-      resultQaSimilarity,
-      dbList.length ? "検索文字列を入力してください。" : "データベースがありません。"
-    );
-    renderEmpty(
-      resultPlainFts,
-      dbList.length ? "検索文字列を入力してください。" : "データベースがありません。"
-    );
-    renderEmpty(
-      resultHybrid,
-      dbList.length ? "検索文字列を入力してください。" : "データベースがありません。"
-    );
-    renderEmpty(
-      resultHybridAi,
-      dbList.length ? "検索文字列を入力してください。" : "データベースがありません。"
-    );
-    renderEmpty(
-      resultAiAnswer,
-      dbList.length ? "検索文字列を入力してください。" : "データベースがありません。"
-    );
-
-    setActiveTab("qa");
-
-  } catch (err) {
-    console.error("db list load error", err);
-
-    summaryText.textContent = "件数:0件";
-    selectionSummary.textContent = "入力:未実行";
-    contextSummary.textContent = "DB:-";
-
-    renderEmpty(resultQaSimilarity, "DB一覧の取得に失敗しました。");
-    renderEmpty(resultPlainFts, "DB一覧の取得に失敗しました。");
-    renderEmpty(resultHybrid, "DB一覧の取得に失敗しました。");
-    renderEmpty(resultHybridAi, "DB一覧の取得に失敗しました。");
-    renderEmpty(resultAiAnswer, "DB一覧の取得に失敗しました。");
-  }
+  renderAllEmpty("データ種別を選択してください。");
+  setActiveTab("qa");
 });

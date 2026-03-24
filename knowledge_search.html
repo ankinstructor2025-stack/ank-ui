@@ -67,7 +67,7 @@ body{
 
 .search-grid{
   display:grid;
-  grid-template-columns:420px 1fr 96px;
+  grid-template-columns:240px 420px 1fr 96px;
   gap:12px;
   align-items:start;
 }
@@ -205,13 +205,13 @@ textarea{
   padding:12px 4px;
 }
 
-@media (max-width:1100px){
+@media (max-width:1200px){
   .search-grid{
-    grid-template-columns:360px 1fr 96px;
+    grid-template-columns:220px 340px 1fr 96px;
   }
 }
 
-@media (max-width:900px){
+@media (max-width:960px){
   .search-grid{
     grid-template-columns:1fr;
   }
@@ -245,8 +245,21 @@ textarea{
       <div class="search-grid">
 
         <div class="search-col">
-          <label for="databaseSelect">データベース選択</label>
-          <select id="databaseSelect"></select>
+          <label for="sourceTypeSelect">データ種別</label>
+          <select id="sourceTypeSelect">
+            <option value="">選択してください</option>
+            <option value="kokkai">国会議事録</option>
+            <option value="opendata">オープンデータ</option>
+            <option value="public_url">公開URL</option>
+            <option value="upload">アップロード</option>
+          </select>
+        </div>
+
+        <div class="search-col">
+          <label for="databaseSelect">ナレッジDB</label>
+          <select id="databaseSelect" disabled>
+            <option value="">選択してください</option>
+          </select>
         </div>
 
         <div class="search-col">
@@ -264,6 +277,7 @@ textarea{
     <div class="summary-bar">
       <div class="summary-item">件数: <span id="summaryText">0 件</span></div>
       <div class="summary-item">入力: <span id="selectionSummary">未実行</span></div>
+      <div class="summary-item">種別: <span id="sourceSummary">-</span></div>
       <div class="summary-item">DB: <span id="contextSummary">-</span></div>
     </div>
 
