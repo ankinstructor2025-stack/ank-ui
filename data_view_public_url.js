@@ -4,6 +4,7 @@ window.DataViewPublicUrl = (function () {
   let ctx = null;
   let currentParentRows = [];
   let currentChildRows = [];
+  let currentAllChildRows = [];
   let selectedParentIndex = -1;
 
   function init(context) {
@@ -56,7 +57,9 @@ window.DataViewPublicUrl = (function () {
 
   function updateSelectedCount() {
     if (!ctx?.selectedCountEl) return;
-    const count = Array.from(ctx.parentTableBody?.querySelectorAll(".parent-check:checked") || []).length;
+    const count = Array.from(
+      ctx.parentTableBody?.querySelectorAll(".parent-check:checked") || []
+    ).length;
     ctx.selectedCountEl.textContent = `選択 ${count} 件`;
   }
 
@@ -75,6 +78,7 @@ window.DataViewPublicUrl = (function () {
 
   function clearChildArea(message = "") {
     currentChildRows = [];
+    currentAllChildRows = [];
 
     if (ctx?.childTableHead) ctx.childTableHead.innerHTML = "";
     if (ctx?.childTableBody) {
@@ -204,6 +208,7 @@ window.DataViewPublicUrl = (function () {
     const rows = Array.isArray(allRows) ? allRows : [];
     const doneRows = rows.filter((row) => normalizeStatus(row.status) === "done");
 
+    currentAllChildRows = rows;
     currentChildRows = doneRows;
 
     if (!ctx?.childTableHead || !ctx?.childTableBody) return;
@@ -211,7 +216,7 @@ window.DataViewPublicUrl = (function () {
     ctx.childTableHead.innerHTML = `
       <tr>
         <th class="col-depth">階層</th>
-        <th class="col-url">URL</th>
+        <th class="col-url text-left">URL</th>
         <th class="col-status">状態</th>
         <th class="col-created">作成日</th>
       </tr>
@@ -230,7 +235,7 @@ window.DataViewPublicUrl = (function () {
         return `
           <tr class="clickable-row child-row">
             <td class="col-depth">${escapeHtml(row.depth ?? "")}</td>
-            <td class="col-url" title="${escapeHtml(pageUrl)}">
+            <td class="col-url text-left" title="${escapeHtml(pageUrl)}">
               <a
                 href="${escapeHtml(pageUrl)}"
                 target="_blank"
@@ -248,19 +253,20 @@ window.DataViewPublicUrl = (function () {
       }).join("");
     }
 
+    const doneCount = rows.filter((row) => normalizeStatus(row.status) === "done").length;
+    const newCount = rows.filter((row) => normalizeStatus(row.status) === "new").length;
+    const runningCount = rows.filter((row) => normalizeStatus(row.status) === "running").length;
+    const errorCount = rows.filter((row) => {
+      const s = normalizeStatus(row.status);
+      return s === "error" || s === "fetch_error";
+    }).length;
+
     if (ctx.contextSummary) {
-      ctx.contextSummary.textContent = `親一覧: ${formatParentLabel(parentRow)} / 分解済 ${doneRows.length} 件 / 全子 ${rows.length} 件`;
+      ctx.contextSummary.textContent =
+        `親一覧: ${formatParentLabel(parentRow)} / 分解済 ${doneCount} 件 / 全子 ${rows.length} 件`;
     }
 
     if (ctx.detailPre) {
-      const doneCount = rows.filter((row) => normalizeStatus(row.status) === "done").length;
-      const newCount = rows.filter((row) => normalizeStatus(row.status) === "new").length;
-      const runningCount = rows.filter((row) => normalizeStatus(row.status) === "running").length;
-      const errorCount = rows.filter((row) => {
-        const s = normalizeStatus(row.status);
-        return s === "error" || s === "fetch_error";
-      }).length;
-
       ctx.detailPre.textContent =
         `root_id: ${parentRow.root_id ?? ""}\n` +
         `source_type: ${parentRow.source_type ?? ""}\n` +

@@ -920,3 +920,87 @@ textarea{
 #childTableBody td.col-url .child-url-link:hover {
   text-decoration: underline;
 }
+
+/* =========================================
+   public_url child table tuning
+   既存を壊さない追記
+========================================= */
+
+#childTableWrap.child-table-wrap{
+  overflow-x:auto;
+  overflow-y:auto;
+}
+
+#childTable.child-data-table{
+  width:max-content;
+  min-width:100%;
+  table-layout:fixed;
+}
+
+#childTableHead th.col-depth,
+#childTableBody td.col-depth{
+  width:72px;
+  min-width:72px;
+  text-align:center;
+  white-space:nowrap;
+}
+
+#childTableHead th.col-url,
+#childTableBody td.col-url{
+  width:620px;
+  min-width:620px;
+  max-width:620px;
+  text-align:left;
+}
+
+#childTableHead th.col-status,
+#childTableBody td.col-status{
+  width:120px;
+  min-width:120px;
+  text-align:center;
+  white-space:nowrap;
+}
+
+#childTableHead th.col-created,
+#childTableBody td.col-created{
+  width:180px;
+  min-width:180px;
+  text-align:left;
+  white-space:nowrap;
+}
+
+#childTableHead th.text-left,
+#childTableBody td.text-left{
+  text-align:left;
+}
+
+#childTableBody td.col-url{
+  overflow:hidden;
+}
+
+#childTableBody td.col-url .child-url-link{
+  display:inline-block;
+  width:100%;
+  text-align:left;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  word-break:normal;
+}
+
+#childTableBody td.col-url .child-url-link:hover{
+  text-decoration:underline;
+}
+
+#childTableBody td.col-url a{
+  text-align:left;
+}
+
+#childTableBody td.col-status .job-status-chip{
+  margin:0 auto;
+}
+
+#childTableWrap .table-like,
+#childTableWrap .data-table{
+  min-width:992px;
+}
