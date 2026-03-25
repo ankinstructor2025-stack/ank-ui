@@ -725,9 +725,76 @@ function summarizeJobItems(items) {
   };
 }
 
+function summarizeJobStatusFallback(data) {
+  const total = Number(data?.selected_count ?? 0);
+  const status = String(data?.status || "").toLowerCase();
+
+  if (total <= 0) {
+    return {
+      total: 0,
+      doneCountOnly: 0,
+      errorCount: 0,
+      runningCount: 0,
+      queuedCount: 0,
+      doneCount: 0,
+      remaining: 0
+    };
+  }
+
+  if (status === "done") {
+    return {
+      total,
+      doneCountOnly: total,
+      errorCount: 0,
+      runningCount: 0,
+      queuedCount: 0,
+      doneCount: total,
+      remaining: 0
+    };
+  }
+
+  if (status === "error") {
+    return {
+      total,
+      doneCountOnly: 0,
+      errorCount: total,
+      runningCount: 0,
+      queuedCount: 0,
+      doneCount: total,
+      remaining: 0
+    };
+  }
+
+  if (status === "running" || status === "processing") {
+    return {
+      total,
+      doneCountOnly: 0,
+      errorCount: 0,
+      runningCount: total,
+      queuedCount: 0,
+      doneCount: 0,
+      remaining: total
+    };
+  }
+
+  return {
+    total,
+    doneCountOnly: 0,
+    errorCount: 0,
+    runningCount: 0,
+    queuedCount: total,
+    doneCount: 0,
+    remaining: total
+  };
+}
+
 function updatePollingSummary(data) {
   const items = Array.isArray(data?.items) ? data.items : [];
-  const summary = summarizeJobItems(items);
+  const summary =
+    items.length > 0
+      ? summarizeJobItems(items)
+      : summarizeJobStatusFallback(data);
+
   const totalForDisplay = summary.total || Number(data?.selected_count) || 0;
   const p = getProgressValues(data);
 
