@@ -167,24 +167,42 @@ async function apiGet(path, query = {}) {
   return await res.json();
 }
 
-function mapKeyToSourceType(key, type) {
-  if (key === "api_kokkai") return "kokkai";
-  if (key === "api_datago") return "opendata";
-  if (type === "public_url" || String(key || "").startsWith("url_")) return "public_url";
-  if (key === "file_upload") return "upload";
+function normalizeSourceType(key, type) {
+  const keyText = String(key || "").trim();
+  const typeText = String(type || "").trim();
+
+  if (typeText === "upload") return "upload";
+  if (typeText === "public_url") return "public_url";
+
+  if (keyText === "api_kokkai") return "kokkai";
+  if (keyText === "api_datago") return "opendata";
+
+  if (keyText.startsWith("url_") || keyText.startsWith("url")) return "public_url";
+  if (keyText === "file_upload") return "upload";
+
   return "";
 }
 
 function normalizeSourceMaster(list) {
   if (!Array.isArray(list)) return [];
 
-  return list.map((item) => ({
-    key: item.key,
-    label: item.label || item.name || item.key,
-    group: item.group || "その他",
-    type: item.type || "",
-    sourceType: mapKeyToSourceType(item.key, item.type)
-  }));
+  return list
+    .map((item) => {
+      const key = String(item?.key || "").trim();
+      const label = String(item?.label || item?.name || key).trim();
+      const group = String(item?.group || "その他").trim();
+      const type = String(item?.type || "").trim();
+      const sourceType = normalizeSourceType(key, type);
+
+      return {
+        key,
+        label,
+        group,
+        type,
+        sourceType
+      };
+    })
+    .filter((item) => item.key);
 }
 
 function renderSourceOptions(list) {
@@ -196,7 +214,7 @@ function renderSourceOptions(list) {
     groups[groupName].push(item);
   });
 
-  const html = [`<option value="" selected disabled>選択してください</option>`];
+  const html = [`<option value="" selected>選択してください</option>`];
 
   Object.keys(groups).forEach((groupName) => {
     html.push(`<optgroup label="${escapeHtml(groupName)}">`);
@@ -256,14 +274,14 @@ function renderListPlaceholder(message) {
   listTableHead.innerHTML = "";
   listTableBody.innerHTML = `
     <tr class="placeholder-row">
-      <td>${escapeHtml(message)}</td>
+      <td colspan="4">${escapeHtml(message)}</td>
     </tr>
   `;
 }
 
-function resetDbOptions() {
+function resetDbOptions(placeholder = "選択してください") {
   currentDbName = "";
-  dbSelect.innerHTML = `<option value="">選択してください</option>`;
+  dbSelect.innerHTML = `<option value="">${escapeHtml(placeholder)}</option>`;
   dbSelect.disabled = true;
 }
 
@@ -425,10 +443,11 @@ function updatePaging(total, page, pageSize) {
 }
 
 async function loadKnowledgeDbOptions() {
-  resetDbOptions();
+  resetDbOptions("読込中です...");
   resetListState("ナレッジDBを読込中です...");
 
   if (!currentSourceType) {
+    resetDbOptions("データ種別を選択してください");
     resetListState("データ種別を選択してください。");
     return;
   }
@@ -441,9 +460,12 @@ async function loadKnowledgeDbOptions() {
   const options = [`<option value="">選択してください</option>`];
 
   items.forEach((item) => {
-    const dbName = item.database_name || "";
+    const dbName = item.database_name || item.db_name || "";
     if (!dbName) return;
-    options.push(`<option value="${escapeHtml(dbName)}">${escapeHtml(dbName)}</option>`);
+
+    options.push(
+      `<option value="${escapeHtml(dbName)}">${escapeHtml(dbName)}</option>`
+    );
   });
 
   dbSelect.innerHTML = options.join("");
@@ -481,7 +503,11 @@ async function loadKnowledgeItems() {
 
   const rows = Array.isArray(data?.items) ? data.items : [];
   renderListTable(rows);
-  updatePaging(data?.total || 0, Number(data?.page) || currentPage, Number(data?.page_size) || PAGE_SIZE);
+  updatePaging(
+    data?.total || 0,
+    Number(data?.page) || currentPage,
+    Number(data?.page_size) || PAGE_SIZE
+  );
 
   if (rows.length > 0) {
     currentSelectedRow = rows[0];
@@ -497,6 +523,7 @@ function bindEvents() {
   sourceSelect.addEventListener("change", async () => {
     try {
       currentSourceKey = sourceSelect.value || "";
+
       const source = sourceMap[currentSourceKey];
       currentSourceType = source?.sourceType || "";
       currentDbName = "";
@@ -506,7 +533,7 @@ function bindEvents() {
       await loadKnowledgeDbOptions();
     } catch (e) {
       console.error(e);
-      resetDbOptions();
+      resetDbOptions("取得失敗");
       resetListState(e.message || "ナレッジDB読込に失敗しました。");
     }
   });
@@ -543,20 +570,22 @@ function bindEvents() {
     }
   });
 
-  btnReload.addEventListener("click", async () => {
-    try {
-      if (currentDbName) {
-        await loadKnowledgeItems();
-      } else if (currentSourceType) {
-        await loadKnowledgeDbOptions();
-      } else {
-        resetListState("データ種別を選択してください。");
+  if (btnReload) {
+    btnReload.addEventListener("click", async () => {
+      try {
+        if (currentDbName) {
+          await loadKnowledgeItems();
+        } else if (currentSourceType) {
+          await loadKnowledgeDbOptions();
+        } else {
+          resetListState("データ種別を選択してください。");
+        }
+      } catch (e) {
+        console.error(e);
+        resetListState(e.message || "再読込に失敗しました。");
       }
-    } catch (e) {
-      console.error(e);
-      resetListState(e.message || "再読込に失敗しました。");
-    }
-  });
+    });
+  }
 
   btnPrevPage.addEventListener("click", async () => {
     if (currentPage <= 1) return;
@@ -593,12 +622,14 @@ function bindEvents() {
 
   btnLogout.addEventListener("click", () => {
     sessionStorage.removeItem("idToken");
+    localStorage.removeItem("idToken");
     window.location.href = "./index.html";
   });
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
   bindEvents();
+  resetDbOptions("データ種別を選択してください");
   resetListState("データ種別を選択してください。");
 
   try {
