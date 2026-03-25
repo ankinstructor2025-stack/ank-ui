@@ -27,8 +27,6 @@ const pagingSummary = document.getElementById("pagingSummary");
 
 const detailDbName = document.getElementById("detailDbName");
 const detailKnowledgeType = document.getElementById("detailKnowledgeType");
-const detailKnowledgeId = document.getElementById("detailKnowledgeId");
-const detailSourceType = document.getElementById("detailSourceType");
 const detailPre = document.getElementById("detailPre");
 
 let sourceList = [];
@@ -265,15 +263,13 @@ function setActiveTab(tab) {
 function clearDetail(message = "一覧から1件選択してください。") {
   detailDbName.textContent = currentDbName || "-";
   detailKnowledgeType.textContent = currentTab.toUpperCase();
-  detailKnowledgeId.textContent = "-";
-  detailSourceType.textContent = "-";
   detailPre.textContent = message;
 }
 
 function renderListPlaceholder(message) {
   listTableHead.innerHTML = "";
   listTableBody.innerHTML = `
-    <tr class="placeholder-row">
+    <tr class="kv-placeholder-row">
       <td colspan="4">${escapeHtml(message)}</td>
     </tr>
   `;
@@ -314,26 +310,26 @@ function renderListTable(rows) {
   if (currentTab === "qa") {
     listTableHead.innerHTML = `
       <tr>
-        <th class="medium-cell">knowledge_id</th>
+        <th class="kv-medium-cell">knowledge_id</th>
         <th>質問</th>
         <th>回答</th>
-        <th class="narrow-cell">sort_no</th>
+        <th class="kv-narrow-cell">sort_no</th>
       </tr>
     `;
   } else {
     listTableHead.innerHTML = `
       <tr>
-        <th class="medium-cell">knowledge_id</th>
+        <th class="kv-medium-cell">knowledge_id</th>
         <th>内容</th>
-        <th class="narrow-cell">sort_no</th>
-        <th class="wide-cell">updated_at</th>
+        <th class="kv-narrow-cell">sort_no</th>
+        <th class="kv-wide-cell">updated_at</th>
       </tr>
     `;
   }
 
   if (safeRows.length === 0) {
     listTableBody.innerHTML = `
-      <tr class="placeholder-row">
+      <tr class="kv-placeholder-row">
         <td colspan="4">データがありません。</td>
       </tr>
     `;
@@ -343,12 +339,12 @@ function renderListTable(rows) {
   listTableBody.innerHTML = safeRows.map((row, idx) => {
     const selectedClass =
       currentSelectedRow && currentSelectedRow.knowledge_id === row.knowledge_id
-        ? "selected-row"
+        ? "kv-selected-row"
         : "";
 
     if (currentTab === "qa") {
       return `
-        <tr class="clickable-row ${selectedClass}" data-index="${idx}">
+        <tr class="kv-clickable-row ${selectedClass}" data-index="${idx}">
           <td>${escapeHtml(row.knowledge_id || "")}</td>
           <td title="${escapeHtml(row.question || "")}">${escapeHtml(row.question || "")}</td>
           <td title="${escapeHtml(row.answer || "")}">${escapeHtml(row.answer || "")}</td>
@@ -358,7 +354,7 @@ function renderListTable(rows) {
     }
 
     return `
-      <tr class="clickable-row ${selectedClass}" data-index="${idx}">
+      <tr class="kv-clickable-row ${selectedClass}" data-index="${idx}">
         <td>${escapeHtml(row.knowledge_id || "")}</td>
         <td title="${escapeHtml(row.content || "")}">${escapeHtml(row.content || "")}</td>
         <td>${escapeHtml(row.sort_no ?? "")}</td>
@@ -367,7 +363,7 @@ function renderListTable(rows) {
     `;
   }).join("");
 
-  listTableBody.querySelectorAll("tr.clickable-row").forEach((tr) => {
+  listTableBody.querySelectorAll("tr.kv-clickable-row").forEach((tr) => {
     tr.addEventListener("click", () => {
       const index = Number(tr.dataset.index);
       const row = safeRows[index];
@@ -388,23 +384,8 @@ function renderDetail(row) {
 
   detailDbName.textContent = currentDbName || "-";
   detailKnowledgeType.textContent = (row.knowledge_type || currentTab || "-").toUpperCase();
-  detailKnowledgeId.textContent = row.knowledge_id || "-";
-  detailSourceType.textContent = row.source_type || "-";
 
   const lines = [];
-
-  lines.push(`knowledge_id: ${row.knowledge_id || ""}`);
-  lines.push(`knowledge_type: ${row.knowledge_type || ""}`);
-  lines.push(`source_type: ${row.source_type || ""}`);
-  lines.push(`source_id: ${row.source_id || ""}`);
-  lines.push(`job_id: ${row.job_id || ""}`);
-  lines.push(`job_item_id: ${row.job_item_id || ""}`);
-  lines.push(`sort_no: ${row.sort_no ?? ""}`);
-  lines.push(`status: ${row.status || ""}`);
-  lines.push(`review_status: ${row.review_status || ""}`);
-  lines.push(`created_at: ${row.created_at || ""}`);
-  lines.push(`updated_at: ${row.updated_at || ""}`);
-  lines.push("");
 
   if (currentTab === "qa") {
     lines.push("[質問]");
@@ -412,11 +393,14 @@ function renderDetail(row) {
     lines.push("");
     lines.push("[回答]");
     lines.push(row.answer || "");
-    lines.push("");
-    lines.push("[content]");
-    lines.push(row.content || "");
+
+    if (row.content && String(row.content).trim()) {
+      lines.push("");
+      lines.push("[説明文]");
+      lines.push(row.content || "");
+    }
   } else {
-    lines.push("[内容]");
+    lines.push("[説明文]");
     lines.push(row.content || "");
   }
 

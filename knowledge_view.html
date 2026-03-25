@@ -6,10 +6,6 @@
 <link rel="stylesheet" href="./theme.css">
 
 <style>
-  * {
-    box-sizing: border-box;
-  }
-
   html, body {
     width: 100%;
     height: 100%;
@@ -22,268 +18,17 @@
     min-height: 100vh;
   }
 
-  .page {
-    width: 100vw !important;
-    height: 100vh !important;
-    max-width: none !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    display: block !important;
-  }
-
-  .card {
-    width: 100vw !important;
-    height: 100vh !important;
-    max-width: none !important;
-    margin: 0 !important;
-    border-radius: 0 !important;
-    padding: 12px 20px;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-  }
-
-  .header-row {
-    flex: 0 0 auto;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 6px;
-  }
-
-  .page-note {
-    flex: 0 0 auto;
-    margin-bottom: 8px;
-  }
-
-  .common-panel {
-    flex: 0 0 auto;
-    margin-bottom: 10px;
-  }
-
-  .summary-row {
-    flex: 0 0 auto;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 10px;
-    flex-wrap: wrap;
-  }
-
-  .muted-text {
-    color: #9ca3af;
-    font-size: 13px;
-  }
-
-  .work-panel {
-    flex: 1 1 auto;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-  }
-
-  .tabs-row {
-    flex: 0 0 auto;
-    display: flex;
-    gap: 8px;
-    margin-bottom: 10px;
-    flex-wrap: wrap;
-  }
-
-  .tab-btn {
-    min-width: 90px;
-  }
-
-  .tab-btn.active {
-    background: #2563eb;
-    color: #ffffff;
-    border-color: #2563eb;
-  }
-
-  .content-split {
-    flex: 1 1 auto;
-    min-height: 0;
-    display: grid;
-    grid-template-columns: 58% 42%;
-    gap: 12px;
-    overflow: hidden;
-  }
-
-  .left-section,
-  .right-section {
-    min-width: 0;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-  }
-
-  .panel-title {
-    flex: 0 0 auto;
-    margin: 0 0 8px 0;
-    font-size: 18px;
-    font-weight: 700;
-  }
-
-  .table-wrap {
-    flex: 1 1 auto;
-    min-height: 0;
-    height: 100%;
-    overflow-y: auto;
-    overflow-x: auto;
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 12px;
-    background: rgba(255,255,255,0.02);
-  }
-
-  .data-table {
-    width: 100%;
-    border-collapse: collapse;
-    table-layout: fixed;
-  }
-
-  .data-table th,
-  .data-table td {
-    padding: 10px 12px;
-    border-bottom: 1px solid rgba(255,255,255,0.08);
-    text-align: left;
-    vertical-align: top;
-    font-size: 14px;
-  }
-
-  .data-table th {
-    background: #d9dee7;
-    position: sticky;
-    top: 0;
-    z-index: 2;
-  }
-
-  .data-table td {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .clickable-row {
-    cursor: pointer;
-  }
-
-  .clickable-row:hover {
-    background: rgba(255,255,255,0.05);
-  }
-
-  .selected-row {
-    background: rgba(59,130,246,0.15);
-  }
-
-  .placeholder-row td {
-    color: #9ca3af;
-    text-align: center;
-    padding: 16px;
-  }
-
-  .narrow-cell {
-    width: 90px;
-  }
-
-  .medium-cell {
-    width: 140px;
-  }
-
-  .wide-cell {
-    width: 220px;
-  }
-
-  .paging-row {
-    flex: 0 0 auto;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
-    margin-top: 10px;
-    flex-wrap: wrap;
-  }
-
-  .paging-actions {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-  }
-
-  .detail-wrap {
-    flex: 1 1 auto;
-    min-height: 0;
-    overflow: auto;
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 12px;
-    padding: 12px 16px;
-    background: rgba(255,255,255,0.02);
-  }
-
-  .detail-pre {
-    white-space: pre-wrap;
-    word-break: break-word;
-    line-height: 1.6;
-    margin: 0;
-    font-family: inherit;
-  }
-
-  .kv-box {
-    display: grid;
-    grid-template-columns: 120px 1fr;
-    gap: 8px 12px;
-    margin-bottom: 16px;
-    font-size: 14px;
-  }
-
-  .kv-key {
-    color: #9ca3af;
-  }
-
-  .kv-value {
-    color: #ffffff;
-    word-break: break-word;
-  }
-
   @media (max-width: 960px) {
     html, body {
       overflow: auto;
-    }
-
-    .page {
-      width: 100%;
-      height: auto;
-      min-height: 100vh;
-    }
-
-    .card {
-      width: 100%;
-      height: auto;
-      min-height: 100vh;
-      padding: 10px 12px;
-    }
-
-    .content-split {
-      grid-template-columns: 1fr;
-      overflow: visible;
-    }
-
-    .table-wrap {
-      min-height: 300px;
-    }
-
-    .detail-wrap {
-      min-height: 260px;
     }
   }
 </style>
 </head>
 
 <body>
-<div class="page">
-  <div class="card">
+<div class="page kv-page">
+  <div class="card kv-card">
 
     <div class="header-row">
       <h2>ナレッジ照会</h2>
@@ -293,7 +38,7 @@
       </div>
     </div>
 
-    <div class="page-note">
+    <div class="kv-page-note">
       データ種別 → ナレッジDB選択 → QA / PLAIN 一覧 → 詳細表示
     </div>
 
@@ -312,60 +57,54 @@
       </div>
     </div>
 
-    <div class="work-panel">
-      <div class="summary-row">
+    <div class="work-panel kv-work-panel">
+      <div class="kv-summary-row">
         <div>
           <span id="summaryText">0 件</span>
-          <span id="selectionSummary" class="muted-text" style="margin-left:12px;">未選択</span>
+          <span id="selectionSummary" class="kv-muted" style="margin-left:12px;">未選択</span>
         </div>
         <div>
-          <span id="contextSummary" class="muted-text">ナレッジ一覧</span>
+          <span id="contextSummary" class="kv-muted">ナレッジ一覧</span>
           <button id="btnReload" class="btn" style="margin-left:12px;">再読込</button>
         </div>
       </div>
 
-      <div class="tabs-row">
-        <button id="tabQa" class="btn tab-btn active" type="button">QA</button>
-        <button id="tabPlain" class="btn tab-btn" type="button">PLAIN</button>
+      <div class="kv-tabs-row">
+        <button id="tabQa" class="kv-tab-btn active" type="button">QA</button>
+        <button id="tabPlain" class="kv-tab-btn" type="button">PLAIN</button>
       </div>
 
-      <div class="content-split">
-        <div class="left-section">
-          <h3 class="panel-title">ナレッジ一覧</h3>
-          <div class="table-wrap">
-            <table class="data-table">
+      <div class="kv-content-split">
+        <div class="kv-left-section">
+          <div class="kv-list-header">
+            <h3 class="kv-panel-title">ナレッジ一覧</h3>
+            <div class="kv-paging-top">
+              <button id="btnPrevPage" class="kv-pager-btn" type="button">前へ</button>
+              <span id="pageInfo" class="kv-page-info">1 / 1</span>
+              <button id="btnNextPage" class="kv-pager-btn" type="button">次へ</button>
+              <span id="pagingSummary" class="kv-muted">0 / 0 ページ</span>
+            </div>
+          </div>
+
+          <div class="kv-table-wrap">
+            <table class="kv-data-table">
               <thead id="listTableHead"></thead>
               <tbody id="listTableBody"></tbody>
             </table>
           </div>
-
-          <div class="paging-row">
-            <div id="pagingSummary" class="muted-text">0 / 0 ページ</div>
-            <div class="paging-actions">
-              <button id="btnPrevPage" class="btn" type="button">前へ</button>
-              <span id="pageInfo" class="muted-text">1 / 1</span>
-              <button id="btnNextPage" class="btn" type="button">次へ</button>
-            </div>
-          </div>
         </div>
 
-        <div class="right-section">
-          <h3 class="panel-title">詳細表示</h3>
-          <div class="detail-wrap">
-            <div class="kv-box">
-              <div class="kv-key">DB</div>
-              <div id="detailDbName" class="kv-value">-</div>
+        <div class="kv-right-section">
+          <h3 class="kv-panel-title">詳細表示</h3>
+          <div class="kv-detail-wrap">
+            <div class="kv-detail-head">
+              <div class="kv-detail-key">DB</div>
+              <div id="detailDbName" class="kv-detail-value">-</div>
 
-              <div class="kv-key">種別</div>
-              <div id="detailKnowledgeType" class="kv-value">-</div>
-
-              <div class="kv-key">ID</div>
-              <div id="detailKnowledgeId" class="kv-value">-</div>
-
-              <div class="kv-key">ソース</div>
-              <div id="detailSourceType" class="kv-value">-</div>
+              <div class="kv-detail-key">種別</div>
+              <div id="detailKnowledgeType" class="kv-detail-value">-</div>
             </div>
-            <pre id="detailPre" class="detail-pre">データ種別とナレッジDBを選択してください。</pre>
+            <pre id="detailPre" class="kv-detail-pre">データ種別とナレッジDBを選択してください。</pre>
           </div>
         </div>
       </div>
