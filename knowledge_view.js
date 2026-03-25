@@ -393,12 +393,6 @@ function renderDetail(row) {
     lines.push("");
     lines.push("[回答]");
     lines.push(row.answer || "");
-
-    if (row.content && String(row.content).trim()) {
-      lines.push("");
-      lines.push("[説明文]");
-      lines.push(row.content || "");
-    }
   } else {
     lines.push("[説明文]");
     lines.push(row.content || "");
