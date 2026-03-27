@@ -1387,7 +1387,8 @@ textarea{
   font-weight:700;
   line-height:1.2;
   white-space:nowrap;
-  padding-bottom:2px;
+  align-self:start;
+  padding-top:2px;
 }
 
 .page-toolbar-main{
