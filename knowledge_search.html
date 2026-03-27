@@ -4,44 +4,38 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ナレッジ検索</title>
-<link rel="stylesheet" href="./theme.css">
+<link rel="stylesheet" href="theme_video.css">
 </head>
 <body>
-<div class="page search-page">
-  <div class="card search-card">
+<div class="page page-full">
+  <div class="card">
     <div class="header-row">
-      <h2>ナレッジ検索</h2>
+      <div>
+        <h2>ナレッジ検索</h2>
+        <div class="page-lead">作成したナレッジを横断検索し、検索結果、回答候補、AI整理結果を見比べます。</div>
+      </div>
       <div class="header-actions">
-        <button id="btnMenu" class="btn" type="button">メニューに戻る</button>
+        <button id="btnMenu" class="btn" type="button">メニュー</button>
         <button id="btnLogout" class="btn" type="button">ログアウト</button>
       </div>
     </div>
 
-    <div class="search-panel">
+    <div class="common-panel search-panel">
       <div class="search-grid">
         <div class="search-col">
-          <label for="sourceTypeSelect">データ種別</label>
-          <select id="sourceTypeSelect">
-            <option value="">選択してください</option>
-            <option value="kokkai">国会議事録</option>
-            <option value="opendata">オープンデータ</option>
-            <option value="public_url">公開URL</option>
-            <option value="upload">アップロード</option>
-          </select>
+          <label for="sourceSelect">データ種別</label>
+          <select id="sourceSelect"></select>
         </div>
-
         <div class="search-col">
-          <label for="databaseSelect">ナレッジDB</label>
-          <select id="databaseSelect" disabled>
+          <label for="dbSelect">ナレッジDB</label>
+          <select id="dbSelect" disabled>
             <option value="">選択してください</option>
           </select>
         </div>
-
         <div class="search-col">
-          <label for="queryText">検索文字列</label>
-          <textarea id="queryText" rows="3" placeholder="検索文字列を入力してください。複数行でも利用できます。"></textarea>
+          <label for="queryInput">検索内容</label>
+          <textarea id="queryInput" placeholder="検索したい内容を入力してください"></textarea>
         </div>
-
         <div class="search-button-col">
           <button id="btnSearch" class="btn btn-primary" type="button">検索</button>
         </div>
@@ -49,27 +43,36 @@
     </div>
 
     <div class="summary-bar">
-      <div class="summary-item">件数 <span id="summaryText">0 件</span></div>
-      <div class="summary-item">入力 <span id="selectionSummary">未実行</span></div>
-      <div class="summary-item">種別 <span id="sourceSummary">-</span></div>
-      <div class="summary-item">DB <span id="contextSummary">-</span></div>
+      <div class="summary-item"><span id="dbSummary">ナレッジDB未選択</span></div>
+      <div class="summary-item"><span id="resultSummary">検索前</span></div>
+      <div class="summary-item"><span id="statusSummary">待機中</span></div>
     </div>
 
     <div class="tabs-header">
-      <button class="tab-btn active" data-tab="qa" type="button">QA類似</button>
-      <button class="tab-btn" data-tab="plain" type="button">プレインFTS</button>
-      <button class="tab-btn" data-tab="hybrid" type="button">ハイブリッド</button>
-      <button class="tab-btn" data-tab="hybrid-ai" type="button">ハイブリッド＋AI整理</button>
-      <button class="tab-btn" data-tab="ai-answer" type="button">AI回答</button>
+      <button id="tabQaSimilar" class="tab-btn active" type="button">QA類似</button>
+      <button id="tabPlainFts" class="tab-btn" type="button">プレインFTS</button>
+      <button id="tabHybrid" class="tab-btn" type="button">ハイブリッド</button>
+      <button id="tabAiAnswer" class="tab-btn" type="button">AI整理</button>
     </div>
 
-    <div id="panel-qa" class="tab-panel active"><div id="resultQaSimilarity"></div></div>
-    <div id="panel-plain" class="tab-panel"><div id="resultPlainFts"></div></div>
-    <div id="panel-hybrid" class="tab-panel"><div id="resultHybrid"></div></div>
-    <div id="panel-hybrid-ai" class="tab-panel"><div id="resultHybridAi"></div></div>
-    <div id="panel-ai-answer" class="tab-panel"><div id="resultAiAnswer"></div></div>
+    <div class="kv-content-split">
+      <div class="kv-left-section">
+        <div class="kv-list-header">
+          <h3 class="kv-panel-title">検索結果</h3>
+        </div>
+        <div class="kv-table-wrap">
+          <div id="resultArea">検索条件を指定してください。</div>
+        </div>
+      </div>
+      <div class="kv-right-section">
+        <h3 class="kv-panel-title">詳細表示</h3>
+        <div class="kv-detail-wrap">
+          <pre id="detailArea" class="kv-detail-pre">検索結果を選択すると内容を表示します。</pre>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
-<script src="./knowledge_search.js"></script>
+<script src="knowledge_search.js"></script>
 </body>
 </html>

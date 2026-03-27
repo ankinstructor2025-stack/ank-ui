@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>ログイン</title>
-  <link rel="stylesheet" href="./theme.css">
+  <link rel="stylesheet" href="theme_video.css">
 </head>
 <body>
   <div class="login-page">
@@ -12,12 +12,15 @@
       <div class="login-brand">AI Knowledge Studio</div>
       <div class="card login-card">
         <h1 class="login-title">ログイン</h1>
-        <p class="login-lead">作業画面全体の見た目を揃える前提で、ログイン画面も文字を大きくし、余白を整理しました。</p>
-        <button id="loginButton" class="btn btn-primary login-btn" type="button">Googleでログイン</button>
-        <div class="login-note">認証後にメニュー画面へ移動します。</div>
+        <p class="login-note">作業画面全体の見た目を揃える前提で、ログイン画面も文字を大きくし、余白を整理しました。</p>
+        <div class="login-actions">
+          <button id="googleLoginBtn" class="btn btn-primary" type="button">Googleでログイン</button>
+        </div>
+        <div class="login-subnote">認証後にメニュー画面へ移動します。</div>
+        <div id="errorBox" class="error"></div>
       </div>
     </div>
   </div>
-  <script type="module" src="index.js"></script>
+  <script src="index.js"></script>
 </body>
 </html>
