@@ -4,96 +4,54 @@
 <meta charset="UTF-8">
 <title>ナレッジ照会</title>
 <link rel="stylesheet" href="./theme.css">
-
-<style>
-  html, body {
-    width: 100%;
-    height: 100%;
-    margin: 0;
-    padding: 0;
-    overflow: hidden;
-  }
-
-  body {
-    min-height: 100vh;
-  }
-
-  @media (max-width: 960px) {
-    html, body {
-      overflow: auto;
-    }
-  }
-</style>
 </head>
 
 <body>
 <div class="page kv-page">
   <div class="card kv-card">
 
-    <!-- =========================
-         共通ツールバー
-    ========================== -->
     <div id="pageToolbar"></div>
-    <!-- =========================
-         作業領域
-    ========================== -->
-    <div class="work-panel kv-work-panel">
 
-      <!-- サマリ -->
+    <div class="work-panel kv-work-panel">
       <div class="kv-summary-row">
-        <div>
+        <div class="kv-summary-meta">
           <span id="summaryText">0 件</span>
-          <span id="selectionSummary" class="kv-muted" style="margin-left:12px;">未選択</span>
+          <span id="selectionSummary" class="kv-muted">未選択</span>
         </div>
-        <div>
+
+        <div class="kv-summary-right">
           <span id="contextSummary" class="kv-muted">ナレッジ一覧</span>
-          <button id="btnReload" class="btn" style="margin-left:12px;">再読込</button>
+          <button id="btnReload" class="btn kv-btn-inline" type="button">再読込</button>
         </div>
       </div>
 
-      <!-- タブ -->
       <div class="kv-tabs-row">
         <button id="tabQa" class="kv-tab-btn active" type="button">QA</button>
         <button id="tabPlain" class="kv-tab-btn" type="button">PLAIN</button>
       </div>
 
-      <!-- 分割 -->
       <div class="kv-content-split">
-
-        <!-- 左：一覧 -->
         <div class="kv-left-section">
           <div class="kv-list-header">
             <h3 class="kv-panel-title">ナレッジ一覧</h3>
           </div>
-
-          <div id="listContainer" class="kv-list">
-            <!-- JSで描画 -->
-          </div>
+          <div id="listContainer" class="kv-list"></div>
         </div>
 
-        <!-- 右：詳細 -->
         <div class="kv-right-section">
           <div class="kv-list-header">
             <h3 class="kv-panel-title">詳細</h3>
           </div>
-
-          <div id="detailContainer" class="kv-detail">
-            <!-- JSで描画 -->
-          </div>
+          <div id="detailContainer" class="kv-detail"></div>
         </div>
-
       </div>
     </div>
 
   </div>
 </div>
 
-<!-- =========================
-     共通ツールバーJS
-========================= -->
 <script src="./common_toolbar.js"></script>
 <script src="./knowledge_view.js"></script>
-
 <script>
 renderPageToolbar({
   mountId: "pageToolbar",

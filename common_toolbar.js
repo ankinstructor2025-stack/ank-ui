@@ -1,9 +1,3 @@
-/**
- * 共通ツールバー描画
- * 必須:
- *  - mountId
- *  - title
- */
 function renderPageToolbar(options) {
   const {
     mountId,
@@ -19,32 +13,30 @@ function renderPageToolbar(options) {
     return;
   }
 
-  // =========================
-  // HTML生成
-  // =========================
+  const mainClasses = ["page-toolbar-main"];
+  if (showSourceSelect) mainClasses.push("has-source");
+  if (showDbSelect) mainClasses.push("has-db");
+
   const html = `
     <div class="page-toolbar">
-      
       <div class="page-toolbar-title">
         ${escapeHtml(title)}
       </div>
 
-      <div class="page-toolbar-main ${showDbSelect ? "has-db" : ""}">
-        
+      <div class="${mainClasses.join(" ")}">
         ${showSourceSelect ? `
         <div class="toolbar-field">
-          <label>データ種別</label>
+          <label for="sourceSelect">データ種別</label>
           <select id="sourceSelect" class="toolbar-select"></select>
         </div>
         ` : ""}
 
         ${showDbSelect ? `
         <div class="toolbar-field">
-          <label>ナレッジDB</label>
+          <label for="dbSelect">ナレッジDB</label>
           <select id="dbSelect" class="toolbar-select"></select>
         </div>
         ` : ""}
-
       </div>
 
       <div class="page-toolbar-actions">
@@ -54,16 +46,12 @@ function renderPageToolbar(options) {
           </button>
         `).join("")}
       </div>
-
     </div>
   `;
 
   mount.innerHTML = html;
 }
 
-/**
- * HTMLエスケープ
- */
 function escapeHtml(str) {
   return String(str || "")
     .replace(/&/g, "&amp;")
