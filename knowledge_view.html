@@ -2,31 +2,54 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ナレッジ照会</title>
 <link rel="stylesheet" href="./theme.css">
+
+<style>
+  html, body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  body {
+    min-height: 100vh;
+  }
+
+  @media (max-width: 960px) {
+    html, body {
+      overflow: auto;
+    }
+  }
+</style>
 </head>
+
 <body>
 <div class="page kv-page">
   <div class="card kv-card">
+
     <div class="header-row">
       <h2>ナレッジ照会</h2>
       <div class="header-actions">
-        <button id="btnMenu" class="btn" type="button">メニューに戻る</button>
-        <button id="btnLogout" class="btn" type="button">ログアウト</button>
+        <button id="btnMenu" class="btn">メニューに戻る</button>
+        <button id="btnLogout" class="btn">ログアウト</button>
       </div>
     </div>
 
-    <div class="kv-page-note">データ種別を選び、ナレッジDBを切り替えながら一覧と詳細を同時に確認します。</div>
+    <div class="kv-page-note">
+      データ種別 → ナレッジDB選択 → QA / PLAIN 一覧 → 詳細表示
+    </div>
 
     <div class="common-panel">
       <div class="common-grid">
         <div>
-          <label for="sourceSelect">データ種別</label>
+          <label>データ種別</label>
           <select id="sourceSelect"></select>
         </div>
         <div>
-          <label for="dbSelect">ナレッジDB</label>
+          <label>ナレッジDB</label>
           <select id="dbSelect" disabled>
             <option value="">選択してください</option>
           </select>
@@ -42,7 +65,7 @@
         </div>
         <div>
           <span id="contextSummary" class="kv-muted">ナレッジ一覧</span>
-          <button id="btnReload" class="btn" type="button" style="margin-left:12px;">再読込</button>
+          <button id="btnReload" class="btn" style="margin-left:12px;">再読込</button>
         </div>
       </div>
 
@@ -56,9 +79,9 @@
           <div class="kv-list-header">
             <h3 class="kv-panel-title">ナレッジ一覧</h3>
             <div class="kv-paging-top">
-              <button id="btnPrevPage" class="btn kv-pager-btn" type="button">前へ</button>
+              <button id="btnPrevPage" class="kv-pager-btn" type="button">前へ</button>
               <span id="pageInfo" class="kv-page-info">1 / 1</span>
-              <button id="btnNextPage" class="btn kv-pager-btn" type="button">次へ</button>
+              <button id="btnNextPage" class="kv-pager-btn" type="button">次へ</button>
               <span id="pagingSummary" class="kv-muted">0 / 0 ページ</span>
             </div>
           </div>
@@ -77,6 +100,7 @@
             <div class="kv-detail-head">
               <div class="kv-detail-key">DB</div>
               <div id="detailDbName" class="kv-detail-value">-</div>
+
               <div class="kv-detail-key">種別</div>
               <div id="detailKnowledgeType" class="kv-detail-value">-</div>
             </div>
@@ -85,8 +109,10 @@
         </div>
       </div>
     </div>
+
   </div>
 </div>
+
 <script src="./knowledge_view.js"></script>
 </body>
 </html>

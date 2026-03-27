@@ -2,109 +2,212 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>データ取得</title>
   <link rel="stylesheet" href="./theme.css">
+  <style>
+    html, body{
+      height:100%;
+    }
+
+    #dataSourcePage{
+      width:100%;
+      max-width:none;
+      min-height:100vh;
+      margin:0;
+      padding:16px;
+    }
+
+    #dataSourceCard{
+      width:100%;
+      min-height:calc(100vh - 32px);
+      display:flex;
+      flex-direction:column;
+    }
+
+    .ds-wrap{
+      display:flex;
+      flex-direction:column;
+      gap:16px;
+      flex:1;
+      min-height:0;
+    }
+
+    .main-area{
+      display:flex;
+      flex-direction:column;
+      gap:16px;
+      flex:1;
+      min-height:0;
+    }
+
+    .work-panel{
+      flex:1;
+      min-height:0;
+    }
+
+    #panelOpenData,
+    #panelUrl,
+    #panelUpload,
+    #panelKokkai{
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+      flex:1;
+      min-height:0;
+    }
+
+    #panelUrl .section-block{
+      gap:8px;
+    }
+
+    #panelUrl .compact-actions{
+      margin-top:2px;
+    }
+
+    #publicUrlTarget{
+      width:100%;
+      min-height:72px;
+      resize:none;
+      overflow:hidden;
+    }
+  </style>
 </head>
 <body>
-<div id="dataSourcePage" class="page app-page">
-  <div id="dataSourceCard" class="card app-card">
-    <div class="header-row">
-      <h2>データ取得</h2>
-      <div class="header-actions">
-        <button id="btnMenu" class="btn" type="button">メニュー</button>
-        <button id="btnLogout" class="btn" type="button">ログアウト</button>
-      </div>
-    </div>
 
-    <div class="common-panel">
-      <div class="common-grid">
-        <div>
-          <label for="sourceSelect">取得元</label>
-          <select id="sourceSelect"></select>
-        </div>
-        <div>
-          <label for="sourceName">名称</label>
-          <input id="sourceName" readonly>
-        </div>
-      </div>
-    </div>
+<div id="dataSourcePage" class="page">
+  <div id="dataSourceCard" class="card">
+    <div class="ds-wrap">
 
-    <div class="work-panel">
-      <div id="panelEmpty" class="placeholder">取得元を選択してください。</div>
+      <div class="header-row">
+        <h2>データ取得</h2>
 
-      <div id="panelKokkai" class="hidden">
-        <h3 class="panel-title">国会議事録取得</h3>
-        <div class="section-block">
-          <div class="compact-actions">
-            <button id="btnKokkaiRegister" class="btn btn-primary" type="button">国会議事録取得</button>
-          </div>
+        <div class="header-actions">
+          <button id="btnMenu" class="btn" type="button">メニュー</button>
+          <button id="btnLogout" class="btn" type="button">ログアウト</button>
         </div>
       </div>
 
-      <div id="panelUpload" class="hidden">
-        <h3 class="panel-title">ファイルアップロード</h3>
-        <div class="section-block">
-          <div>
-            <label for="uploadFileInput">ファイル</label>
-            <div class="upload-file-row">
-              <input id="uploadFileInput" class="upload-file-input" type="file">
-              <label for="uploadFileInput" class="upload-file-btn">ファイルの選択</label>
-              <div id="uploadFileName" class="upload-file-name is-empty">ファイルが選択されていません</div>
+      <div class="main-area">
+        <div class="common-panel">
+          <div class="common-grid">
+            <div>
+              <label for="sourceSelect">取得元</label>
+              <select id="sourceSelect"></select>
+            </div>
+
+            <div>
+              <label for="sourceName">名称</label>
+              <input id="sourceName" readonly>
             </div>
           </div>
-          <div class="compact-actions">
-            <button id="btnUploadRegister" class="btn btn-primary" type="button">アップロード</button>
+        </div>
+
+        <div class="work-panel">
+
+          <div id="panelEmpty" class="placeholder">
+            取得元を選択してください
           </div>
+
+          <div id="panelKokkai" class="hidden">
+            <h3 class="panel-title">国会議事録取得</h3>
+
+            <div class="section-block">
+              <div class="compact-actions">
+                <button id="btnKokkaiRegister" class="btn btn-primary" type="button">
+                  国会議事録取得
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div id="panelUpload" class="hidden">
+            <h3 class="panel-title">ファイルアップロード</h3>
+
+            <div class="section-block">
+              <div>
+                <label>ファイル</label>
+
+                <div class="upload-file-row">
+                  <input id="uploadFileInput" class="upload-file-input" type="file">
+
+                  <label for="uploadFileInput" class="upload-file-btn">
+                    ファイルの選択
+                  </label>
+
+                  <div id="uploadFileName" class="upload-file-name is-empty">
+                    ファイルが選択されていません
+                  </div>
+                </div>
+              </div>
+              <div class="compact-actions">
+                <button id="btnUploadRegister" class="btn btn-primary" type="button">
+                  アップロード
+                </button>
+              </div>
+            </div>
+          </div>
+          <div id="panelOpenData" class="hidden">
+            <div class="section-block">
+              <div class="compact-actions">
+                <button id="btnFetchDatasets" class="btn btn-primary" type="button">
+                  データセット取得
+                </button>
+              </div>
+
+              <div class="dataset-list-wrap">
+                <div id="openDataDatasetList" class="placeholder">
+                  まだ取得していません
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="panelUrl" class="hidden">
+            <h3 class="panel-title">公開URL取得</h3>
+
+            <div class="section-block" style="flex:0 0 auto;">
+              <div>
+                <label for="publicUrlTarget">取得元URL</label>
+                <textarea id="publicUrlTarget" rows="2" readonly></textarea>
+              </div>
+
+              <div class="compact-actions">
+                <button id="btnUrlRegister" class="btn btn-primary" type="button">
+                  公開URL取得
+                </button>
+              </div>
+            </div>
+
+            <div class="section-block">
+              <h4 class="panel-subtitle">子URL一覧</h4>
+              <div class="resource-list-wrap">
+                <div id="publicUrlPageList" class="placeholder">
+                  まだ取得していません
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="log hidden" id="logBox">
+          <div class="log-head">
+            <strong>ログ</strong>
+            <button id="btnClearLog" class="btn" type="button">クリア</button>
+          </div>
+          <pre id="logText"></pre>
         </div>
       </div>
 
-      <div id="panelOpenData" class="hidden">
-        <h3 class="panel-title">オープンデータ取得</h3>
-        <div class="section-block">
-          <div class="compact-actions">
-            <button id="btnFetchDatasets" class="btn btn-primary" type="button">データセット取得</button>
-          </div>
-          <div class="dataset-list-wrap">
-            <div id="openDataDatasetList" class="placeholder">まだ取得していません</div>
-          </div>
-        </div>
-      </div>
-
-      <div id="panelUrl" class="hidden">
-        <h3 class="panel-title">公開URL取得</h3>
-        <div class="section-block" style="flex:0 0 auto;">
-          <div>
-            <label for="publicUrlTarget">取得元URL</label>
-            <textarea id="publicUrlTarget" class="public-url-readonly" rows="2" readonly></textarea>
-          </div>
-          <div class="compact-actions">
-            <button id="btnUrlRegister" class="btn btn-primary" type="button">公開URL取得</button>
-          </div>
-        </div>
-
-        <div class="section-block">
-          <h4 class="panel-subtitle">子URL一覧</h4>
-          <div class="resource-list-wrap">
-            <div id="publicUrlPageList" class="placeholder">まだ取得していません</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="log hidden" id="logBox">
-      <div class="log-head">
-        <strong>ログ</strong>
-        <button id="btnClearLog" class="btn" type="button">クリア</button>
-      </div>
-      <pre id="logText"></pre>
     </div>
   </div>
 </div>
+
 <script src="./data_source_upload.js"></script>
 <script src="./data_source_kokkai.js"></script>
 <script src="./data_source_opendata.js"></script>
 <script src="./data_source_url.js"></script>
 <script src="./data_source.js"></script>
+
 </body>
 </html>

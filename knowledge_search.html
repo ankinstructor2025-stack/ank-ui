@@ -4,75 +4,314 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ナレッジ検索</title>
-<link rel="stylesheet" href="theme_video.css">
+
+<style>
+body{
+  margin:0;
+  font-family:sans-serif;
+  background:#0f172a;
+  color:#ffffff;
+}
+
+.page{
+  max-width:1280px;
+  margin:auto;
+  padding:8px 18px 18px;
+}
+
+.card{
+  background:#111827;
+  border-radius:14px;
+  padding:18px;
+}
+
+.header-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:18px;
+}
+
+.header-actions{
+  display:flex;
+  gap:10px;
+}
+
+.btn{
+  padding:8px 14px;
+  border-radius:10px;
+  border:1px solid rgba(255,255,255,0.15);
+  background:#1f2937;
+  color:#ffffff;
+  cursor:pointer;
+  font-weight:600;
+}
+
+.btn:hover{
+  opacity:0.95;
+}
+
+.btn-primary{
+  background:#2563eb;
+  border-color:#2563eb;
+}
+
+.btn-primary:hover{
+  background:#1d4ed8;
+  border-color:#1d4ed8;
+}
+
+.search-panel{
+  margin-bottom:16px;
+}
+
+.search-grid{
+  display:grid;
+  grid-template-columns:240px 420px 1fr 96px;
+  gap:12px;
+  align-items:start;
+}
+
+.search-col{
+  min-width:0;
+}
+
+.search-button-col{
+  display:flex;
+  align-items:flex-end;
+  height:100%;
+}
+
+.search-button-col .btn{
+  width:100%;
+  min-height:44px;
+}
+
+label{
+  font-size:14px;
+  display:block;
+  margin-bottom:6px;
+  font-weight:600;
+}
+
+select,
+textarea{
+  width:100%;
+  border-radius:10px;
+  border:1px solid #374151;
+  background:#1f2937;
+  color:#ffffff;
+  padding:10px 12px;
+  box-sizing:border-box;
+}
+
+select{
+  height:44px;
+}
+
+textarea{
+  resize:vertical;
+  min-height:88px;
+  line-height:1.5;
+}
+
+.summary-bar{
+  display:flex;
+  gap:16px;
+  flex-wrap:wrap;
+  margin-bottom:14px;
+  color:#cbd5e1;
+  font-size:13px;
+}
+
+.summary-item{
+  background:#0f172a;
+  border:1px solid rgba(255,255,255,0.08);
+  border-radius:10px;
+  padding:8px 12px;
+}
+
+.tabs-header{
+  display:flex;
+  gap:10px;
+  margin-top:14px;
+  margin-bottom:10px;
+  flex-wrap:wrap;
+}
+
+.tab-btn{
+  border:1px solid rgba(255,255,255,0.2);
+  background:#1f2937;
+  color:#e5e7eb;
+  padding:8px 14px;
+  border-radius:10px;
+  cursor:pointer;
+  font-weight:600;
+}
+
+.tab-btn:hover{
+  background:#2563eb;
+  color:#ffffff;
+}
+
+.tab-btn.active{
+  background:#1d4ed8;
+  border-color:#1d4ed8;
+  color:#ffffff;
+}
+
+.tab-panel{
+  display:none;
+  background:#e5e7eb;
+  border-radius:12px;
+  padding:16px;
+  min-height:300px;
+}
+
+.tab-panel.active{
+  display:block;
+}
+
+.result-card{
+  background:#ffffff;
+  border-radius:8px;
+  padding:12px;
+  margin-bottom:10px;
+  border:1px solid #d1d5db;
+}
+
+.result-card-title{
+  font-weight:700;
+  color:#111827;
+  margin-bottom:6px;
+  font-size:16px;
+}
+
+.result-card-sub{
+  font-size:12px;
+  color:#4b5563;
+  margin-bottom:8px;
+  line-height:1.5;
+}
+
+.result-card-body{
+  color:#111827;
+  white-space:pre-wrap;
+  line-height:1.7;
+}
+
+.result-empty{
+  color:#374151;
+  padding:12px 4px;
+}
+
+@media (max-width:1200px){
+  .search-grid{
+    grid-template-columns:220px 340px 1fr 96px;
+  }
+}
+
+@media (max-width:960px){
+  .search-grid{
+    grid-template-columns:1fr;
+  }
+
+  .search-button-col{
+    align-items:stretch;
+  }
+
+  .search-button-col .btn{
+    width:140px;
+  }
+}
+</style>
 </head>
+
 <body>
-<div class="page page-full">
+
+<div class="page">
   <div class="card">
+
     <div class="header-row">
-      <div>
-        <h2>ナレッジ検索</h2>
-        <div class="page-lead">作成したナレッジを横断検索し、検索結果、回答候補、AI整理結果を見比べます。</div>
-      </div>
+      <h2>ナレッジ検索</h2>
+
       <div class="header-actions">
-        <button id="btnMenu" class="btn" type="button">メニュー</button>
+        <button id="btnMenu" class="btn" type="button">メニューに戻る</button>
         <button id="btnLogout" class="btn" type="button">ログアウト</button>
       </div>
     </div>
 
-    <div class="common-panel search-panel">
+    <div class="search-panel">
       <div class="search-grid">
+
         <div class="search-col">
-          <label for="sourceSelect">データ種別</label>
-          <select id="sourceSelect"></select>
+          <label for="sourceTypeSelect">データ種別</label>
+          <select id="sourceTypeSelect">
+            <option value="">選択してください</option>
+            <option value="kokkai">国会議事録</option>
+            <option value="opendata">オープンデータ</option>
+            <option value="public_url">公開URL</option>
+            <option value="upload">アップロード</option>
+          </select>
         </div>
+
         <div class="search-col">
-          <label for="dbSelect">ナレッジDB</label>
-          <select id="dbSelect" disabled>
+          <label for="databaseSelect">ナレッジDB</label>
+          <select id="databaseSelect" disabled>
             <option value="">選択してください</option>
           </select>
         </div>
+
         <div class="search-col">
-          <label for="queryInput">検索内容</label>
-          <textarea id="queryInput" placeholder="検索したい内容を入力してください"></textarea>
+          <label for="queryText">検索文字列</label>
+          <textarea id="queryText" rows="3" placeholder="検索文字列（複数行OK）"></textarea>
         </div>
+
         <div class="search-button-col">
           <button id="btnSearch" class="btn btn-primary" type="button">検索</button>
         </div>
+
       </div>
     </div>
 
     <div class="summary-bar">
-      <div class="summary-item"><span id="dbSummary">ナレッジDB未選択</span></div>
-      <div class="summary-item"><span id="resultSummary">検索前</span></div>
-      <div class="summary-item"><span id="statusSummary">待機中</span></div>
+      <div class="summary-item">件数: <span id="summaryText">0 件</span></div>
+      <div class="summary-item">入力: <span id="selectionSummary">未実行</span></div>
+      <div class="summary-item">種別: <span id="sourceSummary">-</span></div>
+      <div class="summary-item">DB: <span id="contextSummary">-</span></div>
     </div>
 
     <div class="tabs-header">
-      <button id="tabQaSimilar" class="tab-btn active" type="button">QA類似</button>
-      <button id="tabPlainFts" class="tab-btn" type="button">プレインFTS</button>
-      <button id="tabHybrid" class="tab-btn" type="button">ハイブリッド</button>
-      <button id="tabAiAnswer" class="tab-btn" type="button">AI整理</button>
+      <button class="tab-btn active" data-tab="qa" type="button">QA類似</button>
+      <button class="tab-btn" data-tab="plain" type="button">プレインFTS</button>
+      <button class="tab-btn" data-tab="hybrid" type="button">ハイブリッド</button>
+      <button class="tab-btn" data-tab="hybrid-ai" type="button">ハイブリッド＋AI整理</button>
+      <button class="tab-btn" data-tab="ai-answer" type="button">AI回答</button>
     </div>
 
-    <div class="kv-content-split">
-      <div class="kv-left-section">
-        <div class="kv-list-header">
-          <h3 class="kv-panel-title">検索結果</h3>
-        </div>
-        <div class="kv-table-wrap">
-          <div id="resultArea">検索条件を指定してください。</div>
-        </div>
-      </div>
-      <div class="kv-right-section">
-        <h3 class="kv-panel-title">詳細表示</h3>
-        <div class="kv-detail-wrap">
-          <pre id="detailArea" class="kv-detail-pre">検索結果を選択すると内容を表示します。</pre>
-        </div>
-      </div>
+    <div id="panel-qa" class="tab-panel active">
+      <div id="resultQaSimilarity"></div>
     </div>
+
+    <div id="panel-plain" class="tab-panel">
+      <div id="resultPlainFts"></div>
+    </div>
+
+    <div id="panel-hybrid" class="tab-panel">
+      <div id="resultHybrid"></div>
+    </div>
+
+    <div id="panel-hybrid-ai" class="tab-panel">
+      <div id="resultHybridAi"></div>
+    </div>
+
+    <div id="panel-ai-answer" class="tab-panel">
+      <div id="resultAiAnswer"></div>
+    </div>
+
   </div>
 </div>
-<script src="knowledge_search.js"></script>
+
+<script src="./knowledge_search.js"></script>
 </body>
 </html>
