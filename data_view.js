@@ -162,9 +162,7 @@ async function fetchWithAuth(path, options = {}, query = {}, retry401 = true) {
 async function apiGet(path, query = {}) {
   const res = await fetchWithAuth(
     path,
-    {
-      method: "GET"
-    },
+    { method: "GET" },
     query,
     true
   );
@@ -516,32 +514,6 @@ function resetPaging() {
   refreshChildPaging();
 }
 
-function setupPagingObservers() {
-  if (parentTableBody) {
-    const parentObserver = new MutationObserver(() => {
-      parentPage = 1;
-      refreshParentPaging();
-    });
-
-    parentObserver.observe(parentTableBody, {
-      childList: true,
-      subtree: false
-    });
-  }
-
-  if (childTableBody) {
-    const childObserver = new MutationObserver(() => {
-      childPage = 1;
-      refreshChildPaging();
-    });
-
-    childObserver.observe(childTableBody, {
-      childList: true,
-      subtree: false
-    });
-  }
-}
-
 function renderInitialScreen() {
   renderParentPlaceholder("データ種別を選択してください。");
   renderChildPlaceholder("親一覧から1件選択してください。");
@@ -605,7 +577,9 @@ function createViewContext() {
     renderParentPlaceholder,
     renderChildPlaceholder,
     btnCheckAll: btnParentCheckAll,
-    btnClearChecks: btnParentClearAll
+    btnClearChecks: btnParentClearAll,
+    refreshParentPager: refreshParentPaging,
+    refreshChildPager: refreshChildPaging
   };
 }
 

@@ -24,6 +24,12 @@ function extractRowsFromResponse(data) {
   return [];
 }
 
+function toPreviewText(value, maxLength = 50) {
+  const text = String(value || "").replace(/\s+/g, " ").trim();
+  if (text.length <= maxLength) return text;
+  return text.slice(0, maxLength) + "…";
+}
+
 function updateCheckedSummary() {
   if (ctx.selectionSummary) {
     ctx.selectionSummary.textContent = `選択 ${checkedParentIndexes.size} 件`;
@@ -56,6 +62,10 @@ function clearChildArea(message = "親一覧から1件選択してください�
         <td>${ctx.escapeHtml(message)}</td>
       </tr>
     `;
+  }
+
+  if (typeof ctx.refreshChildPager === "function") {
+    ctx.refreshChildPager();
   }
 }
 
@@ -112,14 +122,13 @@ function bindParentCheckboxEvents() {
   });
 }
 
-function bindChildRowEvents() {
+function bindChildRowEvents(parentRow) {
   const rows = ctx.childTableBody.querySelectorAll(".child-row");
 
   rows.forEach((tr) => {
     tr.addEventListener("click", () => {
       const index = Number(tr.dataset.index || "-1");
       const row = currentChildRows[index];
-      const parentRow = currentParentRows[selectedParentIndex];
 
       if (!row) return;
 
@@ -151,18 +160,22 @@ function renderChildTable(rows, parentRow) {
   `;
 
   ctx.childTableBody.innerHTML = rows.map((row, index) => {
-    const preview = String(row?.speech || "").replace(/\s+/g, " ").slice(0, 100);
+    const preview = toPreviewText(row?.speech || "", 50);
 
     return `
       <tr class="clickable-row child-row" data-index="${index}">
         <td>${ctx.escapeHtml(row?.speech_id ?? "")}</td>
         <td>${ctx.escapeHtml(row?.speaker ?? "")}</td>
-        <td>${ctx.escapeHtml(preview)}</td>
+        <td title="${ctx.escapeHtml(row?.speech ?? "")}">${ctx.escapeHtml(preview)}</td>
       </tr>
     `;
   }).join("");
 
-  bindChildRowEvents();
+  bindChildRowEvents(parentRow);
+
+  if (typeof ctx.refreshChildPager === "function") {
+    ctx.refreshChildPager();
+  }
 
   if (rows.length > 0) {
     setSelectedChildRow(0);
@@ -210,6 +223,9 @@ function renderParentTable(rows) {
   if (rows.length === 0) {
     ctx.renderParentPlaceholder("データがありません。");
     updateCheckedSummary();
+    if (typeof ctx.refreshParentPager === "function") {
+      ctx.refreshParentPager();
+    }
     return;
   }
 
@@ -245,22 +261,30 @@ function renderParentTable(rows) {
   bindParentRowEvents();
   updateCheckedSummary();
   clearChildArea("親一覧から1件選択してください。");
+
+  if (typeof ctx.refreshParentPager === "function") {
+    ctx.refreshParentPager();
+  }
 }
 
 async function load(viewContext) {
   ctx = viewContext;
 
   try {
-    ctx.renderParentPlaceholder("読み込み中...");
+    ctx.renderParentPlaceholder("読み込み中.");
     const data = await ctx.apiGet("/kokkai/documents");
     renderParentTable(data.rows || []);
   } catch (e) {
     ctx.renderParentPlaceholder(e.message || "親一覧の取得に失敗しました");
+    if (typeof ctx.refreshParentPager === "function") {
+      ctx.refreshParentPager();
+    }
   }
 }
 
 function getCheckedRows() {
   return Array.from(checkedParentIndexes)
+    .sort((a, b) => a - b)
     .map(i => currentParentRows[i])
     .filter(Boolean);
 }
