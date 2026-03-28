@@ -14,6 +14,9 @@ const parentTableBody = document.getElementById("parentTableBody");
 const childTableHead = document.getElementById("childTableHead");
 const childTableBody = document.getElementById("childTableBody");
 
+const parentPager = document.getElementById("parentPager");
+const childPager = document.getElementById("childPager");
+
 const detailPre = document.getElementById("detailPre");
 
 const API_BASE = "https://ank-api-986862757498.asia-northeast1.run.app/v1";
@@ -30,11 +33,17 @@ const DEFAULT_POLLING_CONFIG = {
 
 const ACTIVE_JOB_STORAGE_KEY = "ank_active_knowledge_job";
 
+const PARENT_PAGE_SIZE = 10;
+const CHILD_PAGE_SIZE = 10;
+
 let sourceList = [];
 let sourceMap = {};
 let currentSourceKey = "";
 let knowledgeRunning = false;
 let pollingConfig = { ...DEFAULT_POLLING_CONFIG };
+
+let parentPage = 1;
+let childPage = 1;
 
 function getSourceSelect() {
   return document.getElementById("sourceSelect");
@@ -151,7 +160,14 @@ async function fetchWithAuth(path, options = {}, query = {}, retry401 = true) {
 }
 
 async function apiGet(path, query = {}) {
-  const res = await fetchWithAuth(path, { method: "GET" }, query, true);
+  const res = await fetchWithAuth(
+    path,
+    {
+      method: "GET"
+    },
+    query,
+    true
+  );
 
   if (!res.ok) {
     throw new Error(await readErrorDetail(res));
@@ -380,7 +396,7 @@ function renderParentPlaceholder(message) {
   if (parentTableHead) parentTableHead.innerHTML = "";
   if (parentTableBody) {
     parentTableBody.innerHTML = `
-      <tr>
+      <tr class="placeholder-row">
         <td>${escapeHtml(message)}</td>
       </tr>
     `;
@@ -391,10 +407,138 @@ function renderChildPlaceholder(message) {
   if (childTableHead) childTableHead.innerHTML = "";
   if (childTableBody) {
     childTableBody.innerHTML = `
-      <tr>
+      <tr class="placeholder-row">
         <td>${escapeHtml(message)}</td>
       </tr>
     `;
+  }
+}
+
+function getBodyRows(tbody) {
+  if (!tbody) return [];
+  return Array.from(tbody.querySelectorAll("tr"));
+}
+
+function isPlaceholderOnly(rows) {
+  if (!rows || rows.length === 0) return true;
+  if (rows.length !== 1) return false;
+  return rows[0].classList.contains("placeholder-row");
+}
+
+function applyRowPaging(tbody, pagerEl, page, pageSize) {
+  const rows = getBodyRows(tbody);
+
+  if (rows.length === 0 || isPlaceholderOnly(rows)) {
+    if (pagerEl) {
+      pagerEl.innerHTML = "";
+      pagerEl.classList.add("hidden");
+    }
+    return {
+      page: 1,
+      totalPages: 1
+    };
+  }
+
+  const totalRows = rows.length;
+  const totalPages = Math.max(1, Math.ceil(totalRows / pageSize));
+  const safePage = Math.min(Math.max(1, page), totalPages);
+
+  const start = (safePage - 1) * pageSize;
+  const end = start + pageSize;
+
+  rows.forEach((row, index) => {
+    row.style.display = index >= start && index < end ? "" : "none";
+  });
+
+  return {
+    page: safePage,
+    totalPages
+  };
+}
+
+function renderPager(pagerEl, currentPage, totalPages, onMove) {
+  if (!pagerEl) return;
+
+  if (totalPages <= 1) {
+    pagerEl.innerHTML = "";
+    pagerEl.classList.add("hidden");
+    return;
+  }
+
+  pagerEl.classList.remove("hidden");
+  pagerEl.innerHTML = `
+    <button type="button" class="btn" data-move="first" ${currentPage <= 1 ? "disabled" : ""}>先頭</button>
+    <button type="button" class="btn" data-move="prev" ${currentPage <= 1 ? "disabled" : ""}>前へ</button>
+    <span class="placeholder">${currentPage} / ${totalPages}</span>
+    <button type="button" class="btn" data-move="next" ${currentPage >= totalPages ? "disabled" : ""}>次へ</button>
+    <button type="button" class="btn" data-move="last" ${currentPage >= totalPages ? "disabled" : ""}>末尾</button>
+  `;
+
+  pagerEl.querySelectorAll("button[data-move]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const move = btn.dataset.move;
+      let nextPage = currentPage;
+
+      if (move === "first") nextPage = 1;
+      if (move === "prev") nextPage = currentPage - 1;
+      if (move === "next") nextPage = currentPage + 1;
+      if (move === "last") nextPage = totalPages;
+
+      onMove(nextPage);
+    });
+  });
+}
+
+function refreshParentPaging() {
+  const result = applyRowPaging(parentTableBody, parentPager, parentPage, PARENT_PAGE_SIZE);
+  parentPage = result.page;
+
+  renderPager(parentPager, result.page, result.totalPages, (nextPage) => {
+    parentPage = nextPage;
+    refreshParentPaging();
+  });
+}
+
+function refreshChildPaging() {
+  const result = applyRowPaging(childTableBody, childPager, childPage, CHILD_PAGE_SIZE);
+  childPage = result.page;
+
+  renderPager(childPager, result.page, result.totalPages, (nextPage) => {
+    childPage = nextPage;
+    refreshChildPaging();
+  });
+}
+
+function resetPaging() {
+  parentPage = 1;
+  childPage = 1;
+  refreshParentPaging();
+  refreshChildPaging();
+}
+
+function setupPagingObservers() {
+  if (parentTableBody) {
+    const parentObserver = new MutationObserver(() => {
+      parentPage = 1;
+      refreshParentPaging();
+    });
+
+    parentObserver.observe(parentTableBody, {
+      childList: true,
+      subtree: false
+    });
+  }
+
+  if (childTableBody) {
+    const childObserver = new MutationObserver(() => {
+      childPage = 1;
+      refreshChildPaging();
+    });
+
+    childObserver.observe(childTableBody, {
+      childList: true,
+      subtree: false
+    });
   }
 }
 
@@ -407,6 +551,8 @@ function renderInitialScreen() {
   if (selectionSummary) selectionSummary.textContent = "選択 0 件";
   if (contextSummary) contextSummary.textContent = "親一覧";
   if (btnKnowledge) btnKnowledge.disabled = true;
+
+  resetPaging();
 }
 
 function resetViewForSource() {
@@ -418,6 +564,8 @@ function resetViewForSource() {
   if (selectionSummary) selectionSummary.textContent = "選択 0 件";
   if (contextSummary) contextSummary.textContent = "親一覧";
   if (btnKnowledge) btnKnowledge.disabled = true;
+
+  resetPaging();
 }
 
 function getCurrentModule() {
@@ -500,6 +648,11 @@ function decorateOpenDataButtons() {
   buttons.forEach((btn) => {
     btn.classList.add("btn", "btn-primary");
   });
+
+  const childButtons = childTableBody?.querySelectorAll(".btn-download-child") || [];
+  childButtons.forEach((btn) => {
+    btn.classList.add("btn", "btn-primary");
+  });
 }
 
 function updateOpenDataSummary() {
@@ -525,6 +678,7 @@ async function refreshParentList() {
     renderChildPlaceholder("親一覧から1件選択してください。");
     if (detailPre) detailPre.textContent = `選択中: ${source?.label || ""}`;
     if (contextSummary) contextSummary.textContent = `親一覧: ${source?.label || ""}`;
+    resetPaging();
     return;
   }
 
@@ -539,6 +693,8 @@ async function refreshParentList() {
   if (btnKnowledge) {
     btnKnowledge.disabled = false;
   }
+
+  resetPaging();
 }
 
 function buildKnowledgeResultText(data) {
@@ -753,9 +909,7 @@ async function fetchStatusData(sourceType, jobId) {
 
 async function runKnowledgeJobAndPoll(sourceType, jobId) {
   const runPath = getRunPathBySourceType(sourceType);
-  if (!runPath) {
-    throw new Error("run path が不正です");
-  }
+  if (!runPath) throw new Error("run path が不正です");
 
   await apiPost(runPath, { job_id: jobId });
 
@@ -1001,6 +1155,7 @@ function bindEvents() {
     const module = getCurrentModule();
     if (module && typeof module.checkAll === "function") {
       module.checkAll();
+      refreshParentPaging();
     }
   });
 
@@ -1008,6 +1163,7 @@ function bindEvents() {
     const module = getCurrentModule();
     if (module && typeof module.clearAllChecks === "function") {
       module.clearAllChecks();
+      refreshParentPaging();
     }
   });
 }
@@ -1040,8 +1196,35 @@ async function loadPollingConfig() {
   }
 }
 
+function setupPagingObservers() {
+  if (parentTableBody) {
+    const parentObserver = new MutationObserver(() => {
+      parentPage = 1;
+      refreshParentPaging();
+    });
+
+    parentObserver.observe(parentTableBody, {
+      childList: true,
+      subtree: false
+    });
+  }
+
+  if (childTableBody) {
+    const childObserver = new MutationObserver(() => {
+      childPage = 1;
+      refreshChildPaging();
+    });
+
+    childObserver.observe(childTableBody, {
+      childList: true,
+      subtree: false
+    });
+  }
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
   bindEvents();
+  setupPagingObservers();
   renderInitialScreen();
   await loadPollingConfig();
 });

@@ -26,27 +26,36 @@
       </div>
 
       <div class="section-block">
-        <div class="compact-actions">
-          <h3 class="panel-title">親一覧</h3>
-          <button id="btnParentCheckAll" class="btn" type="button">全チェック</button>
-          <button id="btnParentClearAll" class="btn" type="button">全解除</button>
-        </div>
+        <div class="split-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+          <div style="min-width:0; display:flex; flex-direction:column; gap:8px;">
+            <div class="compact-actions">
+              <h3 class="panel-title">親一覧</h3>
+              <button id="btnParentCheckAll" class="btn btn-primary" type="button">全チェック</button>
+              <button id="btnParentClearAll" class="btn" type="button">全解除</button>
+            </div>
 
-        <div class="dataset-list-wrap">
-          <table id="parentTable" style="width:100%; border-collapse:collapse;">
-            <thead id="parentTableHead"></thead>
-            <tbody id="parentTableBody"></tbody>
-          </table>
-        </div>
-      </div>
+            <div class="dataset-list-wrap" style="min-height:420px;">
+              <table id="parentTable" style="width:100%; border-collapse:collapse; table-layout:fixed;">
+                <thead id="parentTableHead"></thead>
+                <tbody id="parentTableBody"></tbody>
+              </table>
+            </div>
 
-      <div class="section-block">
-        <h3 class="panel-title">子一覧</h3>
-        <div class="dataset-list-wrap">
-          <table id="childTable" style="width:100%; border-collapse:collapse;">
-            <thead id="childTableHead"></thead>
-            <tbody id="childTableBody"></tbody>
-          </table>
+            <div id="parentPager" class="compact-actions hidden"></div>
+          </div>
+
+          <div style="min-width:0; display:flex; flex-direction:column; gap:8px;">
+            <h3 class="panel-title">子一覧</h3>
+
+            <div class="dataset-list-wrap" style="min-height:420px;">
+              <table id="childTable" style="width:100%; border-collapse:collapse; table-layout:fixed;">
+                <thead id="childTableHead"></thead>
+                <tbody id="childTableBody"></tbody>
+              </table>
+            </div>
+
+            <div id="childPager" class="compact-actions hidden"></div>
+          </div>
         </div>
       </div>
 
