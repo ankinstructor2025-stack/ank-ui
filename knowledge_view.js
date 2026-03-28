@@ -3,34 +3,17 @@ console.log("knowledge_view.js loaded");
 const API_BASE = "https://ank-api-986862757498.asia-northeast1.run.app/v1";
 const PAGE_SIZE = 10;
 
-const sourceSelect = document.getElementById("sourceSelect");
-const dbSelect = document.getElementById("dbSelect");
-
 const btnReload = document.getElementById("btnReload");
-const btnMenu = document.getElementById("btnMenu");
-const btnLogout = document.getElementById("btnLogout");
 
 const tabQa = document.getElementById("tabQa");
 const tabPlain = document.getElementById("tabPlain");
 
-const listTableHead = document.getElementById("listTableHead");
-const listTableBody = document.getElementById("listTableBody");
+const listContainer = document.getElementById("listContainer");
+const detailContainer = document.getElementById("detailContainer");
 
 const summaryText = document.getElementById("summaryText");
 const selectionSummary = document.getElementById("selectionSummary");
 const contextSummary = document.getElementById("contextSummary");
-
-const btnPrevPage = document.getElementById("btnPrevPage");
-const btnNextPage = document.getElementById("btnNextPage");
-const pageInfo = document.getElementById("pageInfo");
-const pagingSummary = document.getElementById("pagingSummary");
-
-const detailDbName = document.getElementById("detailDbName");
-const detailKnowledgeType = document.getElementById("detailKnowledgeType");
-const detailPre = document.getElementById("detailPre");
-
-let sourceList = [];
-let sourceMap = {};
 
 let currentSourceKey = "";
 let currentSourceType = "";
@@ -38,6 +21,7 @@ let currentDbName = "";
 let currentTab = "qa";
 let currentPage = 1;
 let currentTotal = 0;
+let currentRows = [];
 let currentSelectedRow = null;
 
 function escapeHtml(value) {
@@ -165,91 +149,6 @@ async function apiGet(path, query = {}) {
   return await res.json();
 }
 
-function normalizeSourceType(key, type) {
-  const keyText = String(key || "").trim();
-  const typeText = String(type || "").trim();
-
-  if (typeText === "upload") return "upload";
-  if (typeText === "public_url") return "public_url";
-
-  if (keyText === "api_kokkai") return "kokkai";
-  if (keyText === "api_datago") return "opendata";
-
-  if (keyText.startsWith("url_") || keyText.startsWith("url")) return "public_url";
-  if (keyText === "file_upload") return "upload";
-
-  return "";
-}
-
-function normalizeSourceMaster(list) {
-  if (!Array.isArray(list)) return [];
-
-  return list
-    .map((item) => {
-      const key = String(item?.key || "").trim();
-      const label = String(item?.label || item?.name || key).trim();
-      const group = String(item?.group || "その他").trim();
-      const type = String(item?.type || "").trim();
-      const sourceType = normalizeSourceType(key, type);
-
-      return {
-        key,
-        label,
-        group,
-        type,
-        sourceType
-      };
-    })
-    .filter((item) => item.key);
-}
-
-function renderSourceOptions(list) {
-  const groups = {};
-
-  list.forEach((item) => {
-    const groupName = item.group || "その他";
-    if (!groups[groupName]) groups[groupName] = [];
-    groups[groupName].push(item);
-  });
-
-  const html = [`<option value="" selected>選択してください</option>`];
-
-  Object.keys(groups).forEach((groupName) => {
-    html.push(`<optgroup label="${escapeHtml(groupName)}">`);
-
-    groups[groupName].forEach((item) => {
-      html.push(
-        `<option value="${escapeHtml(item.key)}">${escapeHtml(item.label || item.key)}</option>`
-      );
-    });
-
-    html.push(`</optgroup>`);
-  });
-
-  sourceSelect.innerHTML = html.join("");
-}
-
-async function loadSourceMaster() {
-  const res = await fetch("./source_master.json", {
-    method: "GET",
-    cache: "no-store"
-  });
-
-  if (!res.ok) {
-    throw new Error("source_master.json の取得に失敗しました");
-  }
-
-  const list = await res.json();
-  sourceList = normalizeSourceMaster(Array.isArray(list) ? list : []);
-  sourceMap = {};
-
-  sourceList.forEach((item) => {
-    sourceMap[item.key] = item;
-  });
-
-  renderSourceOptions(sourceList);
-}
-
 function setActiveTab(tab) {
   currentTab = tab === "plain" ? "plain" : "qa";
 
@@ -260,41 +159,38 @@ function setActiveTab(tab) {
   currentSelectedRow = null;
 }
 
-function clearDetail(message = "一覧から1件選択してください。") {
-  detailDbName.textContent = currentDbName || "-";
-  detailKnowledgeType.textContent = currentTab.toUpperCase();
-  detailPre.textContent = message;
+function updateSummary() {
+  summaryText.textContent = `${currentTotal} 件`;
+  selectionSummary.textContent = currentSelectedRow
+    ? `選択: ${currentSelectedRow.knowledge_id || "-"}`
+    : "未選択";
+  contextSummary.textContent = `DB: ${currentDbName || "-"} / ${currentTab.toUpperCase()}`;
 }
 
-function renderListPlaceholder(message) {
-  listTableHead.innerHTML = "";
-  listTableBody.innerHTML = `
-    <tr class="kv-placeholder-row">
-      <td colspan="4">${escapeHtml(message)}</td>
-    </tr>
+function clearDetail(message = "一覧から1件選択してください。") {
+  detailContainer.innerHTML = `
+    <div class="kv-detail-empty">
+      <div class="kv-detail-meta">DB: ${escapeHtml(currentDbName || "-")}</div>
+      <pre class="kv-detail-pre">${escapeHtml(message)}</pre>
+    </div>
   `;
 }
 
-function resetDbOptions(placeholder = "選択してください") {
-  currentDbName = "";
-  dbSelect.innerHTML = `<option value="">${escapeHtml(placeholder)}</option>`;
-  dbSelect.disabled = true;
+function renderListPlaceholder(message) {
+  listContainer.innerHTML = `
+    <div class="kv-placeholder-box">
+      ${escapeHtml(message)}
+    </div>
+  `;
 }
 
 function resetListState(message = "ナレッジDBを選択してください。") {
   currentTotal = 0;
   currentPage = 1;
+  currentRows = [];
   currentSelectedRow = null;
 
-  summaryText.textContent = "0 件";
-  selectionSummary.textContent = "未選択";
-  contextSummary.textContent = "ナレッジ一覧";
-  pagingSummary.textContent = "0 / 0 ページ";
-  pageInfo.textContent = "1 / 1";
-
-  btnPrevPage.disabled = true;
-  btnNextPage.disabled = true;
-
+  updateSummary();
   renderListPlaceholder(message);
   clearDetail(message);
 }
@@ -304,73 +200,87 @@ function formatDateTime(value) {
   return String(value);
 }
 
-function renderListTable(rows) {
-  const safeRows = Array.isArray(rows) ? rows : [];
+function buildQaCard(row, selected) {
+  return `
+    <button
+      type="button"
+      class="kv-item-card ${selected ? "is-selected" : ""}"
+      data-knowledge-id="${escapeHtml(row.knowledge_id || "")}"
+    >
+      <div class="kv-item-top">
+        <span class="kv-item-id">${escapeHtml(row.knowledge_id || "")}</span>
+        <span class="kv-item-sort">sort: ${escapeHtml(row.sort_no ?? "")}</span>
+      </div>
 
-  if (currentTab === "qa") {
-    listTableHead.innerHTML = `
-      <tr>
-        <th class="kv-medium-cell">knowledge_id</th>
-        <th>質問</th>
-        <th>回答</th>
-        <th class="kv-narrow-cell">sort_no</th>
-      </tr>
-    `;
-  } else {
-    listTableHead.innerHTML = `
-      <tr>
-        <th class="kv-medium-cell">knowledge_id</th>
-        <th>内容</th>
-        <th class="kv-narrow-cell">sort_no</th>
-        <th class="kv-wide-cell">updated_at</th>
-      </tr>
-    `;
-  }
+      <div class="kv-item-block">
+        <div class="kv-item-label">質問</div>
+        <div class="kv-item-text">${escapeHtml(row.question || "")}</div>
+      </div>
+
+      <div class="kv-item-block">
+        <div class="kv-item-label">回答</div>
+        <div class="kv-item-text">${escapeHtml(row.answer || "")}</div>
+      </div>
+    </button>
+  `;
+}
+
+function buildPlainCard(row, selected) {
+  return `
+    <button
+      type="button"
+      class="kv-item-card ${selected ? "is-selected" : ""}"
+      data-knowledge-id="${escapeHtml(row.knowledge_id || "")}"
+    >
+      <div class="kv-item-top">
+        <span class="kv-item-id">${escapeHtml(row.knowledge_id || "")}</span>
+        <span class="kv-item-sort">sort: ${escapeHtml(row.sort_no ?? "")}</span>
+      </div>
+
+      <div class="kv-item-block">
+        <div class="kv-item-label">内容</div>
+        <div class="kv-item-text">${escapeHtml(row.content || "")}</div>
+      </div>
+
+      <div class="kv-item-meta">
+        ${escapeHtml(formatDateTime(row.updated_at || row.created_at || ""))}
+      </div>
+    </button>
+  `;
+}
+
+function renderList(rows) {
+  const safeRows = Array.isArray(rows) ? rows : [];
+  currentRows = safeRows;
 
   if (safeRows.length === 0) {
-    listTableBody.innerHTML = `
-      <tr class="kv-placeholder-row">
-        <td colspan="4">データがありません。</td>
-      </tr>
-    `;
+    renderListPlaceholder("データがありません。");
     return;
   }
 
-  listTableBody.innerHTML = safeRows.map((row, idx) => {
-    const selectedClass =
-      currentSelectedRow && currentSelectedRow.knowledge_id === row.knowledge_id
-        ? "kv-selected-row"
-        : "";
+  listContainer.innerHTML = `
+    <div class="kv-item-list">
+      ${safeRows.map((row) => {
+        const selected =
+          currentSelectedRow &&
+          currentSelectedRow.knowledge_id === row.knowledge_id;
 
-    if (currentTab === "qa") {
-      return `
-        <tr class="kv-clickable-row ${selectedClass}" data-index="${idx}">
-          <td>${escapeHtml(row.knowledge_id || "")}</td>
-          <td title="${escapeHtml(row.question || "")}">${escapeHtml(row.question || "")}</td>
-          <td title="${escapeHtml(row.answer || "")}">${escapeHtml(row.answer || "")}</td>
-          <td>${escapeHtml(row.sort_no ?? "")}</td>
-        </tr>
-      `;
-    }
+        return currentTab === "qa"
+          ? buildQaCard(row, selected)
+          : buildPlainCard(row, selected);
+      }).join("")}
+    </div>
+  `;
 
-    return `
-      <tr class="kv-clickable-row ${selectedClass}" data-index="${idx}">
-        <td>${escapeHtml(row.knowledge_id || "")}</td>
-        <td title="${escapeHtml(row.content || "")}">${escapeHtml(row.content || "")}</td>
-        <td>${escapeHtml(row.sort_no ?? "")}</td>
-        <td>${escapeHtml(formatDateTime(row.updated_at || row.created_at || ""))}</td>
-      </tr>
-    `;
-  }).join("");
-
-  listTableBody.querySelectorAll("tr.kv-clickable-row").forEach((tr) => {
-    tr.addEventListener("click", () => {
-      const index = Number(tr.dataset.index);
-      const row = safeRows[index];
+  listContainer.querySelectorAll(".kv-item-card").forEach((button) => {
+    button.addEventListener("click", () => {
+      const knowledgeId = button.dataset.knowledgeId || "";
+      const row = safeRows.find((item) => String(item.knowledge_id || "") === knowledgeId);
       if (!row) return;
 
       currentSelectedRow = row;
-      renderListTable(safeRows);
+      updateSummary();
+      renderList(currentRows);
       renderDetail(row);
     });
   });
@@ -382,79 +292,51 @@ function renderDetail(row) {
     return;
   }
 
-  detailDbName.textContent = currentDbName || "-";
-  detailKnowledgeType.textContent = (row.knowledge_type || currentTab || "-").toUpperCase();
+  const knowledgeType = (row.knowledge_type || currentTab || "-").toUpperCase();
 
-  const lines = [];
+  let bodyHtml = "";
 
   if (currentTab === "qa") {
-    lines.push("[質問]");
-    lines.push(row.question || "");
-    lines.push("");
-    lines.push("[回答]");
-    lines.push(row.answer || "");
+    bodyHtml = `
+      <div class="kv-detail-section">
+        <div class="kv-detail-label">質問</div>
+        <pre class="kv-detail-pre">${escapeHtml(row.question || "")}</pre>
+      </div>
+
+      <div class="kv-detail-section">
+        <div class="kv-detail-label">回答</div>
+        <pre class="kv-detail-pre">${escapeHtml(row.answer || "")}</pre>
+      </div>
+    `;
   } else {
-    lines.push("[説明文]");
-    lines.push(row.content || "");
+    bodyHtml = `
+      <div class="kv-detail-section">
+        <div class="kv-detail-label">説明文</div>
+        <pre class="kv-detail-pre">${escapeHtml(row.content || "")}</pre>
+      </div>
+    `;
   }
 
-  detailPre.textContent = lines.join("\n");
-}
+  detailContainer.innerHTML = `
+    <div class="kv-detail-card">
+      <div class="kv-detail-head">
+        <div class="kv-detail-head-row">
+          <span class="kv-detail-head-label">DB</span>
+          <span class="kv-detail-head-value">${escapeHtml(currentDbName || "-")}</span>
+        </div>
+        <div class="kv-detail-head-row">
+          <span class="kv-detail-head-label">種別</span>
+          <span class="kv-detail-head-value">${escapeHtml(knowledgeType)}</span>
+        </div>
+        <div class="kv-detail-head-row">
+          <span class="kv-detail-head-label">ID</span>
+          <span class="kv-detail-head-value">${escapeHtml(row.knowledge_id || "-")}</span>
+        </div>
+      </div>
 
-function updatePaging(total, page, pageSize) {
-  const totalPages = Math.max(1, Math.ceil((Number(total) || 0) / pageSize));
-
-  currentTotal = Number(total) || 0;
-  currentPage = page;
-
-  summaryText.textContent = `${currentTotal} 件`;
-  selectionSummary.textContent = currentSelectedRow
-    ? `選択: ${currentSelectedRow.knowledge_id || "-"}`
-    : "未選択";
-  contextSummary.textContent = `DB: ${currentDbName || "-"} / ${currentTab.toUpperCase()}`;
-
-  pagingSummary.textContent = `${page} / ${totalPages} ページ`;
-  pageInfo.textContent = `${page} / ${totalPages}`;
-
-  btnPrevPage.disabled = page <= 1;
-  btnNextPage.disabled = page >= totalPages;
-}
-
-async function loadKnowledgeDbOptions() {
-  resetDbOptions("読込中です...");
-  resetListState("ナレッジDBを読込中です...");
-
-  if (!currentSourceType) {
-    resetDbOptions("データ種別を選択してください");
-    resetListState("データ種別を選択してください。");
-    return;
-  }
-
-  const data = await apiGet("/knowledge/dbs", {
-    source_type: currentSourceType
-  });
-
-  const items = Array.isArray(data?.items) ? data.items : [];
-  const options = [`<option value="">選択してください</option>`];
-
-  items.forEach((item) => {
-    const dbName = item.database_name || item.db_name || "";
-    if (!dbName) return;
-
-    options.push(
-      `<option value="${escapeHtml(dbName)}">${escapeHtml(dbName)}</option>`
-    );
-  });
-
-  dbSelect.innerHTML = options.join("");
-  dbSelect.disabled = false;
-
-  if (items.length === 0) {
-    resetListState("該当するナレッジDBがありません。");
-    return;
-  }
-
-  resetListState("ナレッジDBを選択してください。");
+      ${bodyHtml}
+    </div>
+  `;
 }
 
 async function loadKnowledgeItems() {
@@ -480,48 +362,49 @@ async function loadKnowledgeItems() {
   });
 
   const rows = Array.isArray(data?.items) ? data.items : [];
-  renderListTable(rows);
-  updatePaging(
-    data?.total || 0,
-    Number(data?.page) || currentPage,
-    Number(data?.page_size) || PAGE_SIZE
-  );
+  currentTotal = Number(data?.total || 0);
 
   if (rows.length > 0) {
     currentSelectedRow = rows[0];
-    renderListTable(rows);
+    renderList(rows);
     renderDetail(rows[0]);
   } else {
     currentSelectedRow = null;
+    renderList(rows);
     clearDetail("データがありません。");
   }
+
+  updateSummary();
 }
 
 function bindEvents() {
-  sourceSelect.addEventListener("change", async () => {
-    try {
-      currentSourceKey = sourceSelect.value || "";
+  document.addEventListener("toolbar:source-change", (event) => {
+    const detail = event.detail || {};
 
-      const source = sourceMap[currentSourceKey];
-      currentSourceType = source?.sourceType || "";
-      currentDbName = "";
-      currentSelectedRow = null;
-      currentPage = 1;
+    currentSourceKey = detail.sourceKey || "";
+    currentSourceType = detail.sourceType || "";
+    currentDbName = "";
+    currentPage = 1;
+    currentSelectedRow = null;
 
-      await loadKnowledgeDbOptions();
-    } catch (e) {
-      console.error(e);
-      resetDbOptions("取得失敗");
-      resetListState(e.message || "ナレッジDB読込に失敗しました。");
-    }
+    resetListState("ナレッジDBを選択してください。");
   });
 
-  dbSelect.addEventListener("change", async () => {
+  document.addEventListener("toolbar:db-change", async (event) => {
     try {
-      currentDbName = dbSelect.value || "";
+      const detail = event.detail || {};
+
+      currentSourceKey = detail.sourceKey || currentSourceKey;
+      currentSourceType = detail.sourceType || currentSourceType;
+      currentDbName = detail.dbName || "";
       currentPage = 1;
       currentSelectedRow = null;
-      await loadKnowledgeItems();
+
+      if (currentDbName) {
+        await loadKnowledgeItems();
+      } else {
+        resetListState("ナレッジDBを選択してください。");
+      }
     } catch (e) {
       console.error(e);
       resetListState(e.message || "ナレッジ一覧読込に失敗しました。");
@@ -554,7 +437,7 @@ function bindEvents() {
         if (currentDbName) {
           await loadKnowledgeItems();
         } else if (currentSourceType) {
-          await loadKnowledgeDbOptions();
+          resetListState("ナレッジDBを選択してください。");
         } else {
           resetListState("データ種別を選択してください。");
         }
@@ -564,56 +447,9 @@ function bindEvents() {
       }
     });
   }
-
-  btnPrevPage.addEventListener("click", async () => {
-    if (currentPage <= 1) return;
-
-    try {
-      currentPage -= 1;
-      currentSelectedRow = null;
-      await loadKnowledgeItems();
-    } catch (e) {
-      console.error(e);
-      currentPage += 1;
-      resetListState(e.message || "前ページ読込に失敗しました。");
-    }
-  });
-
-  btnNextPage.addEventListener("click", async () => {
-    const totalPages = Math.max(1, Math.ceil((Number(currentTotal) || 0) / PAGE_SIZE));
-    if (currentPage >= totalPages) return;
-
-    try {
-      currentPage += 1;
-      currentSelectedRow = null;
-      await loadKnowledgeItems();
-    } catch (e) {
-      console.error(e);
-      currentPage -= 1;
-      resetListState(e.message || "次ページ読込に失敗しました。");
-    }
-  });
-
-  btnMenu.addEventListener("click", () => {
-    window.location.href = "./menu.html";
-  });
-
-  btnLogout.addEventListener("click", () => {
-    sessionStorage.removeItem("idToken");
-    localStorage.removeItem("idToken");
-    window.location.href = "./index.html";
-  });
 }
 
-document.addEventListener("DOMContentLoaded", async () => {
+document.addEventListener("DOMContentLoaded", () => {
   bindEvents();
-  resetDbOptions("データ種別を選択してください");
   resetListState("データ種別を選択してください。");
-
-  try {
-    await loadSourceMaster();
-  } catch (e) {
-    console.error(e);
-    resetListState(e.message || "source master の取得に失敗しました。");
-  }
 });
