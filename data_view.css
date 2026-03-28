@@ -77,6 +77,21 @@
   flex:0 0 34px;
 }
 
+.parent-actions #btnKnowledge{
+  margin-left:auto;
+}
+
+.compact-actions .btn,
+#parentPager .btn,
+#childPager .btn,
+#btnKnowledge{
+  height:30px;
+  min-height:30px;
+  padding:4px 10px;
+  font-size:14px;
+  border-radius:12px;
+}
+
 /* ===== 詳細 ===== */
 .work-panel > .section-block:last-child{
   flex:1;
