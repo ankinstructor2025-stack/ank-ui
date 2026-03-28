@@ -1376,7 +1376,7 @@ textarea{
 .page-toolbar{
   display:grid;
   grid-template-columns:auto minmax(320px, 1fr) auto;
-  align-items:end;
+  align-items:center;
   gap:16px;
   margin-bottom:14px;
 }
@@ -1387,8 +1387,6 @@ textarea{
   font-weight:700;
   line-height:1.2;
   white-space:nowrap;
-  align-self:start;
-  padding-top:2px;
 }
 
 .page-toolbar-main{
