@@ -92,10 +92,8 @@
   border-radius:12px;
 }
 
-/* ===== 詳細 ===== */
 .work-panel > .section-block:last-child{
   flex:1;
-  min-height:120px;
   overflow:hidden;
 }
 
@@ -243,18 +241,15 @@ thead th,
 }
 
 /* ===== 詳細 ===== */
-.work-panel > .section-block:last-child .dataset-list-wrap{
-  flex:1;
-  min-height:0;
-  overflow:hidden;
-  border:none;
-  background:transparent;
+.work-panel > .section-block:last-child{
+  flex:0 0 auto;   /* ← 固定解除 */
+  overflow:visible;
 }
 
 #detailPre{
   width:100%;
-  height:100%;
-  overflow:auto;
+  height:auto;
+  overflow:visible;
   font-size:14px;
   line-height:1.45;
   white-space:pre-wrap;
