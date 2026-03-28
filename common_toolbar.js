@@ -119,7 +119,7 @@
         <div class="${mainClasses.join(" ")}">
           ${opts.showSourceSelect ? `
             <div class="toolbar-field">
-              <label for="sourceSelect">データ種別</label>
+              <!-- <label for="sourceSelect">データ種別</label> -->
               <select id="sourceSelect" class="toolbar-select"></select>
             </div>
           ` : ""}
