@@ -1,7 +1,7 @@
 /* ===============================
    data_view.css
-   - theme.css は共通部品だけ
-   - このファイルで data_view のレイアウトを持つ
+   - data_view 画面専用
+   - 余白を減らして一覧を優先
 =============================== */
 
 /* 画面全体 */
@@ -10,17 +10,17 @@
   max-width:none !important;
   min-height:100vh;
   margin:0 !important;
-  padding:8px !important;
+  padding:6px !important;
 }
 
 .card{
   width:100%;
-  min-height:calc(100vh - 16px);
-  height:calc(100vh - 16px);
+  height:calc(100vh - 12px);
+  min-height:calc(100vh - 12px);
   display:flex;
   flex-direction:column;
   overflow:hidden;
-  padding:12px !important;
+  padding:8px !important;
 }
 
 /* メイン枠 */
@@ -29,13 +29,13 @@
   min-height:0;
   display:flex;
   flex-direction:column;
-  gap:8px;
+  gap:6px;
   overflow:hidden;
   border:1px solid var(--panel-border);
   border-radius:12px;
   background:var(--panel-bg);
   color:var(--panel-text);
-  padding:10px;
+  padding:6px;
 }
 
 /* 各ブロック */
@@ -43,33 +43,36 @@
   border:1px solid var(--panel-border);
   border-radius:10px;
   background:var(--section-bg);
-  padding:10px;
+  padding:8px;
   display:flex;
   flex-direction:column;
-  gap:8px;
+  gap:6px;
   min-height:0;
 }
 
-/* 1段目: 操作行 */
+/* 1段目 */
 .work-panel > .section-block:first-child{
   flex:0 0 auto;
 }
 
-/* 2段目: 一覧エリアを固定 */
+/* 2段目: 一覧エリア固定 */
 .work-panel > .section-block:nth-child(2){
   flex:0 0 560px;
   height:560px;
   min-height:560px;
   max-height:560px;
+  padding:8px;
+  gap:6px;
 }
 
-/* 3段目: 詳細を可変 */
+/* 3段目: 詳細 */
 .work-panel > .section-block:last-child{
   flex:1 1 auto;
-  min-height:180px;
+  min-height:170px;
+  overflow:hidden;
 }
 
-/* 横並び系 */
+/* 横並び */
 .compact-actions{
   display:flex;
   align-items:center;
@@ -80,14 +83,14 @@
 
 .placeholder{
   color:var(--panel-muted);
-  font-size:16px;
-  line-height:1.4;
+  font-size:15px;
+  line-height:1.3;
   padding:0;
 }
 
 .panel-title{
   margin:0;
-  font-size:20px;
+  font-size:18px;
   font-weight:700;
   color:#ffffff;
   line-height:1.2;
@@ -97,7 +100,7 @@
 .work-panel > .section-block:nth-child(2) > div{
   display:grid !important;
   grid-template-columns:1fr 1fr !important;
-  gap:12px !important;
+  gap:10px !important;
   min-height:0;
   flex:1 1 auto;
 }
@@ -107,10 +110,10 @@
   min-height:0;
   display:flex !important;
   flex-direction:column;
-  gap:8px !important;
+  gap:4px !important;
 }
 
-/* 一覧の箱 */
+/* 一覧枠 */
 .dataset-list-wrap{
   border:1px solid #d6dee8;
   border-radius:10px;
@@ -119,12 +122,6 @@
   padding:0;
   min-height:0;
   flex:1 1 auto;
-}
-
-/* 親子一覧の高さを固定内で使い切る */
-.work-panel > .section-block:nth-child(2) .dataset-list-wrap{
-  flex:1 1 auto;
-  min-height:0;
 }
 
 /* テーブル共通 */
@@ -136,6 +133,7 @@
   background:#ffffff;
 }
 
+/* ヘッダ */
 #parentTableHead th,
 #childTableHead th{
   position:sticky;
@@ -143,22 +141,24 @@
   z-index:1;
   background:#e8eef7;
   color:#0f172a;
-  font-size:15px;
+  font-size:14px;
   font-weight:700;
   text-align:left;
-  padding:10px 12px;
+  padding:7px 10px;
   border-bottom:1px solid #d6dee8;
   white-space:nowrap;
+  line-height:1.2;
 }
 
+/* 本文 */
 #parentTableBody td,
 #childTableBody td{
-  padding:9px 12px;
-  font-size:15px;
+  padding:6px 10px;
+  font-size:14px;
   color:#0f172a;
   border-bottom:1px solid #e5ebf2;
   vertical-align:middle;
-  line-height:1.35;
+  line-height:1.2;
 }
 
 #parentTableBody tr:last-child td,
@@ -192,30 +192,58 @@
 }
 
 .placeholder-row td{
-  padding:14px 12px;
+  padding:10px;
   color:#64748b;
-  font-size:15px;
+  font-size:14px;
 }
 
 /* 列幅 */
 #parentTableHead th:first-child,
 #parentTableBody td:first-child{
-  width:44px;
+  width:40px;
 }
 
 #parentTableHead th:nth-child(2),
 #parentTableBody td:nth-child(2){
-  width:110px;
+  width:90px;
 }
 
 #parentTableHead th:last-child,
 #parentTableBody td:last-child{
-  width:80px;
+  width:70px;
 }
 
 #childTableHead th:first-child,
 #childTableBody td:first-child{
-  width:160px;
+  width:150px;
+}
+
+/* 上段の情報行 */
+.work-panel > .section-block:first-child .compact-actions{
+  min-height:38px;
+}
+
+#selectionSummary,
+#contextSummary{
+  display:inline-flex;
+  align-items:center;
+  min-height:34px;
+  font-size:15px;
+}
+
+#btnKnowledge{
+  margin-left:10px;
+}
+
+/* 一覧上のボタン行 */
+.work-panel > .section-block:nth-child(2) .compact-actions{
+  min-height:34px;
+  gap:8px;
+}
+
+#btnParentCheckAll,
+#btnParentClearAll{
+  min-width:88px;
 }
 
 /* ページャ */
@@ -224,10 +252,11 @@
   display:flex;
   align-items:center;
   justify-content:center;
-  gap:8px;
+  gap:6px;
   flex-wrap:wrap;
-  min-height:42px;
-  margin-top:4px;
+  min-height:34px;
+  margin-top:2px;
+  flex:0 0 34px;
 }
 
 #parentPager.hidden,
@@ -237,43 +266,12 @@
 
 #parentPager .placeholder,
 #childPager .placeholder{
-  padding:0 6px;
+  padding:0 4px;
   color:var(--panel-muted);
-  font-size:15px;
-}
-
-/* 上段 */
-.work-panel > .section-block:first-child .compact-actions{
-  min-height:46px;
-}
-
-#selectionSummary,
-#contextSummary{
-  display:inline-flex;
-  align-items:center;
-  min-height:40px;
-  font-size:16px;
-}
-
-#btnKnowledge{
-  margin-left:12px;
-}
-
-/* 親一覧の操作行 */
-.work-panel > .section-block:nth-child(2) .compact-actions{
-  min-height:42px;
-}
-
-#btnParentCheckAll,
-#btnParentClearAll{
-  min-width:92px;
+  font-size:14px;
 }
 
 /* 詳細表示 */
-.work-panel > .section-block:last-child{
-  overflow:hidden;
-}
-
 .work-panel > .section-block:last-child .dataset-list-wrap{
   flex:1 1 auto;
   min-height:0;
@@ -288,44 +286,41 @@
   margin:0;
   width:100%;
   height:100%;
-  min-height:180px;
+  min-height:160px;
   border:1px solid var(--panel-border);
   border-radius:10px;
   background:var(--box-bg);
-  padding:12px 14px;
+  padding:10px 12px;
   overflow:auto;
   font-family:inherit;
-  font-size:16px;
-  line-height:1.75;
+  font-size:15px;
+  line-height:1.6;
   color:#0f172a;
   white-space:pre-wrap;
   word-break:break-word;
 }
 
-/* 見出し間隔 */
-h3.panel-title{
-  margin:0;
-}
-
-/* ボタンの高さを揃える */
+/* ボタン */
 .compact-actions .btn,
 #parentPager .btn,
 #childPager .btn{
-  min-height:42px;
-  font-size:15px;
+  min-height:34px;
+  height:34px;
+  padding:6px 12px;
+  font-size:14px;
 }
 
-/* スクロールバーが出た時の見た目を少し安定 */
+/* スクロールバーで幅が暴れにくい */
 .dataset-list-wrap,
 #detailPre{
   scrollbar-gutter:stable;
 }
 
-/* 狭い画面 */
+/* 1100px以下 */
 @media (max-width:1100px){
   .card{
     height:auto;
-    min-height:calc(100vh - 16px);
+    min-height:calc(100vh - 12px);
   }
 
   .work-panel{
@@ -345,32 +340,34 @@ h3.panel-title{
 
   .work-panel > .section-block:last-child{
     flex:0 0 auto;
+    min-height:180px;
   }
 
   #detailPre{
-    min-height:220px;
+    min-height:180px;
   }
 }
 
+/* 720px以下 */
 @media (max-width:720px){
   .page{
-    padding:6px !important;
+    padding:4px !important;
   }
 
   .card{
-    min-height:calc(100vh - 12px);
     height:auto;
-    padding:10px !important;
+    min-height:calc(100vh - 8px);
+    padding:6px !important;
   }
 
   .work-panel{
-    padding:8px;
-    gap:8px;
+    padding:4px;
+    gap:4px;
   }
 
   .section-block{
-    padding:8px;
-    gap:6px;
+    padding:6px;
+    gap:4px;
   }
 
   .compact-actions{
@@ -384,5 +381,16 @@ h3.panel-title{
   #parentPager,
   #childPager{
     justify-content:flex-start;
+  }
+
+  #parentTableHead th,
+  #childTableHead th,
+  #parentTableBody td,
+  #childTableBody td{
+    font-size:13px;
+  }
+
+  #detailPre{
+    font-size:14px;
   }
 }
