@@ -244,10 +244,6 @@ function renderParentTable(rows) {
     return;
   }
 
-  if (ctx.summaryText) {
-    ctx.summaryText.textContent = `${rows.length} 件`;
-  }
-
   if (ctx.contextSummary) {
     ctx.contextSummary.textContent = "親一覧";
   }

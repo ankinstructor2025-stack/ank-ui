@@ -5,7 +5,6 @@ const btnKnowledge = document.getElementById("btnKnowledge");
 const btnParentCheckAll = document.getElementById("btnParentCheckAll");
 const btnParentClearAll = document.getElementById("btnParentClearAll");
 
-const summaryText = document.getElementById("summaryText");
 const selectionSummary = document.getElementById("selectionSummary");
 const contextSummary = document.getElementById("contextSummary");
 
@@ -519,7 +518,6 @@ function renderInitialScreen() {
   renderChildPlaceholder("親一覧から1件選択してください。");
 
   if (detailPre) detailPre.textContent = "データ種別を選択してください。";
-  if (summaryText) summaryText.textContent = "0 件";
   if (selectionSummary) selectionSummary.textContent = "選択 0 件";
   if (contextSummary) contextSummary.textContent = "親一覧";
   if (btnKnowledge) btnKnowledge.disabled = true;
@@ -532,7 +530,6 @@ function resetViewForSource() {
   renderChildPlaceholder("親一覧から1件選択してください。");
 
   if (detailPre) detailPre.textContent = "読み込み中です...";
-  if (summaryText) summaryText.textContent = "0 件";
   if (selectionSummary) selectionSummary.textContent = "選択 0 件";
   if (contextSummary) contextSummary.textContent = "親一覧";
   if (btnKnowledge) btnKnowledge.disabled = true;
@@ -560,9 +557,7 @@ function createViewContext() {
     sourceSelect: getSourceSelect(),
     btnKnowledge,
     btnReload,
-    summaryText,
-    parentCountEl: summaryText,
-    selectionSummary,
+]    selectionSummary,
     selectedCountEl: selectionSummary,
     contextSummary,
     parentTableHead,
@@ -866,10 +861,6 @@ function updateKnowledgeProgressSummary(statusData, selectedCount) {
   if (selectionSummary) {
     selectionSummary.textContent =
       `親 ${itemSummary.doneCount} / ${itemSummary.total}（done ${itemSummary.doneCountOnly}｜error ${itemSummary.errorCount}｜実行中 ${itemSummary.runningCount}｜待機 ${itemSummary.queuedCount}）`;
-  }
-
-  if (summaryText) {
-    summaryText.textContent = `${Number(statusData?.knowledge_count ?? statusData?.qa_count ?? 0) || 0} 件`;
   }
 
   applyModuleKnowledgeStatus(statusData);

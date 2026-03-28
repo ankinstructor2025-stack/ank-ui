@@ -237,7 +237,6 @@ function renderParentTable(rows) {
     ctx.renderParentPlaceholder("データがありません。");
     clearChildArea("子データはありません。");
 
-    if (ctx.summaryText) ctx.summaryText.textContent = `${filteredRows.length} 件`;
     if (ctx.contextSummary) ctx.contextSummary.textContent = "親一覧: アップロード";
     if (ctx.detailPre) ctx.detailPre.textContent = "データがありません。";
 
@@ -290,7 +289,6 @@ function renderParentTable(rows) {
 
   clearChildArea("子データはありません。");
 
-  if (ctx.summaryText) ctx.summaryText.textContent = `${filteredRows.length} 件`;
   if (ctx.contextSummary) ctx.contextSummary.textContent = "親一覧: アップロード";
   if (ctx.detailPre) ctx.detailPre.textContent = "親一覧を表示しました。";
 
