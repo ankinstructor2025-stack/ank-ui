@@ -31,8 +31,8 @@ const DEFAULT_POLLING_CONFIG = {
 
 const ACTIVE_JOB_STORAGE_KEY = "ank_active_knowledge_job";
 
-const PARENT_PAGE_SIZE = 10;
-const CHILD_PAGE_SIZE = 10;
+const PARENT_PAGE_SIZE = 5;
+const CHILD_PAGE_SIZE = 5;
 
 let sourceList = [];
 let sourceMap = {};
