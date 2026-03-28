@@ -1,5 +1,6 @@
 console.log("data_view.js loaded");
 
+const btnReload = document.getElementById("btnReload");
 const btnKnowledge = document.getElementById("btnKnowledge");
 const btnParentCheckAll = document.getElementById("btnParentCheckAll");
 const btnParentClearAll = document.getElementById("btnParentClearAll");
@@ -224,6 +225,10 @@ function setKnowledgeBusy(isBusy) {
   if (btnKnowledge) {
     btnKnowledge.disabled = isBusy;
     btnKnowledge.textContent = isBusy ? "ナレッジ化 実行中..." : "選択対象をナレッジ化";
+  }
+
+  if (btnReload) {
+    btnReload.disabled = isBusy;
   }
 
   const sourceSelect = getSourceSelect();
@@ -551,7 +556,10 @@ function createViewContext() {
     sourceMap,
     sourceSelect: getSourceSelect(),
     btnKnowledge,
-]    selectionSummary,
+    btnReload,
+    summaryText,
+    parentCountEl: summaryText,
+    selectionSummary,
     selectedCountEl: selectionSummary,
     contextSummary,
     parentTableHead,
@@ -1087,6 +1095,17 @@ function bindEvents() {
       renderParentPlaceholder(e.message || "読込に失敗しました");
       renderChildPlaceholder("親一覧から1件選択してください。");
       if (detailPre) detailPre.textContent = e.message || "読込に失敗しました";
+    }
+  });
+
+  btnReload?.addEventListener("click", async () => {
+    try {
+      await refreshParentList();
+    } catch (e) {
+      console.error(e);
+      renderParentPlaceholder(e.message || "再読込に失敗しました");
+      renderChildPlaceholder("親一覧から1件選択してください。");
+      if (detailPre) detailPre.textContent = e.message || "再読込に失敗しました";
     }
   });
 
