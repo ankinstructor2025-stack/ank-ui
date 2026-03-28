@@ -30,6 +30,12 @@ function toPreviewText(value, maxLength = 50) {
   return text.slice(0, maxLength) + "…";
 }
 
+function toSpeakerText(value, maxLength = 15) {
+  const text = String(value || "").replace(/\s+/g, " ").trim();
+  if (text.length <= maxLength) return text;
+  return text.slice(0, maxLength) + "…";
+}
+
 function updateCheckedSummary() {
   if (ctx.selectionSummary) {
     ctx.selectionSummary.textContent = `選択 ${checkedParentIndexes.size} 件`;
@@ -153,20 +159,29 @@ function renderChildTable(rows, parentRow) {
 
   ctx.childTableHead.innerHTML = `
     <tr>
-      <th>発言ID</th>
-      <th>発言者</th>
+      <th style="width:160px;">発言者</th>
       <th>内容</th>
     </tr>
   `;
 
   ctx.childTableBody.innerHTML = rows.map((row, index) => {
+    const speaker = toSpeakerText(row?.speaker || "", 15);
     const preview = toPreviewText(row?.speech || "", 50);
 
     return `
       <tr class="clickable-row child-row" data-index="${index}">
-        <td>${ctx.escapeHtml(row?.speech_id ?? "")}</td>
-        <td>${ctx.escapeHtml(row?.speaker ?? "")}</td>
-        <td title="${ctx.escapeHtml(row?.speech ?? "")}">${ctx.escapeHtml(preview)}</td>
+        <td
+          title="${ctx.escapeHtml(row?.speaker ?? "")}"
+          style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"
+        >
+          ${ctx.escapeHtml(speaker)}
+        </td>
+        <td
+          title="${ctx.escapeHtml(row?.speech ?? "")}"
+          style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"
+        >
+          ${ctx.escapeHtml(preview)}
+        </td>
       </tr>
     `;
   }).join("");
@@ -239,21 +254,35 @@ function renderParentTable(rows) {
 
   ctx.parentTableHead.innerHTML = `
     <tr>
-      <th></th>
-      <th>院</th>
+      <th style="width:44px;"></th>
+      <th style="width:110px;">院</th>
       <th>会議名</th>
-      <th>件数</th>
-      <th>issue_id</th>
+      <th style="width:80px;">件数</th>
     </tr>
   `;
 
   ctx.parentTableBody.innerHTML = rows.map((row, index) => `
     <tr class="clickable-row parent-row" data-index="${index}">
-      <td><input type="checkbox" class="parent-check" data-index="${index}"></td>
-      <td>${ctx.escapeHtml(row.name_of_house ?? "")}</td>
-      <td>${ctx.escapeHtml(row.name_of_meeting ?? "")}</td>
-      <td>${ctx.escapeHtml(row.row_count ?? "")}</td>
-      <td>${ctx.escapeHtml(row.issue_id ?? "")}</td>
+      <td>
+        <input type="checkbox" class="parent-check" data-index="${index}">
+      </td>
+      <td
+        title="${ctx.escapeHtml(row.name_of_house ?? "")}"
+        style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"
+      >
+        ${ctx.escapeHtml(row.name_of_house ?? "")}
+      </td>
+      <td
+        title="${ctx.escapeHtml(row.name_of_meeting ?? "")}"
+        style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"
+      >
+        ${ctx.escapeHtml(row.name_of_meeting ?? "")}
+      </td>
+      <td
+        style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"
+      >
+        ${ctx.escapeHtml(row.row_count ?? "")}
+      </td>
     </tr>
   `).join("");
 
@@ -271,7 +300,7 @@ async function load(viewContext) {
   ctx = viewContext;
 
   try {
-    ctx.renderParentPlaceholder("読み込み中.");
+    ctx.renderParentPlaceholder("読み込み中...");
     const data = await ctx.apiGet("/kokkai/documents");
     renderParentTable(data.rows || []);
   } catch (e) {
@@ -285,7 +314,7 @@ async function load(viewContext) {
 function getCheckedRows() {
   return Array.from(checkedParentIndexes)
     .sort((a, b) => a - b)
-    .map(i => currentParentRows[i])
+    .map((i) => currentParentRows[i])
     .filter(Boolean);
 }
 
