@@ -1,8 +1,5 @@
 console.log("data_source.js loaded");
 
-const sourceSelect = document.getElementById("sourceSelect");
-const sourceName = document.getElementById("sourceName");
-
 const panelEmpty = document.getElementById("panelEmpty");
 const panelKokkai = document.getElementById("panelKokkai");
 const panelUpload = document.getElementById("panelUpload");
@@ -16,8 +13,6 @@ const publicUrlPageList = document.getElementById("publicUrlPageList");
 const logBox = document.getElementById("logBox");
 const logText = document.getElementById("logText");
 
-const btnLogout = document.getElementById("btnLogout");
-const btnMenu = document.getElementById("btnMenu");
 const btnClearLog = document.getElementById("btnClearLog");
 
 const btnKokkaiRegister = document.getElementById("btnKokkaiRegister");
@@ -29,7 +24,12 @@ const API_BASE = "https://ank-api-986862757498.asia-northeast1.run.app/v1";
 
 let sourceList = [];
 let sourceMap = {};
+let currentSourceKey = "";
 let publicUrlConfigCache = null;
+
+function getSourceSelect() {
+  return document.getElementById("sourceSelect");
+}
 
 function hideAllPanels() {
   if (panelEmpty) panelEmpty.classList.add("hidden");
@@ -92,15 +92,6 @@ function writeLog(msg) {
   logText.scrollTop = logText.scrollHeight;
 }
 
-function escapeHtml(value) {
-  return String(value ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
-
 function getIdToken() {
   return sessionStorage.getItem("idToken");
 }
@@ -112,32 +103,6 @@ function requireIdToken() {
     return null;
   }
   return idToken;
-}
-
-function renderSourceOptions(list) {
-  const groups = {};
-
-  list.forEach((item) => {
-    const groupName = item.group || "その他";
-    if (!groups[groupName]) groups[groupName] = [];
-    groups[groupName].push(item);
-  });
-
-  const html = [`<option value="" selected disabled>選択してください</option>`];
-
-  Object.keys(groups).forEach((groupName) => {
-    html.push(`<optgroup label="${escapeHtml(groupName)}">`);
-    groups[groupName].forEach((item) => {
-      html.push(
-        `<option value="${escapeHtml(item.key)}">${escapeHtml(item.label)}</option>`
-      );
-    });
-    html.push(`</optgroup>`);
-  });
-
-  if (sourceSelect) {
-    sourceSelect.innerHTML = html.join("");
-  }
 }
 
 async function loadPublicUrlConfig(forceReload = false) {
@@ -184,17 +149,13 @@ function resetPublicUrlArea() {
 }
 
 async function applySelection(key) {
+  currentSourceKey = key || "";
   const p = sourceMap[key];
 
   if (!p) {
-    if (sourceName) sourceName.value = "";
     resetPublicUrlArea();
     showPanelByKey("");
     return;
-  }
-
-  if (sourceName) {
-    sourceName.value = p.label ?? "";
   }
 
   if (p.type === "public_url") {
@@ -247,41 +208,27 @@ async function applySelection(key) {
   showPanelByKey(key);
 }
 
-async function loadSourceMaster() {
-  try {
-    const res = await fetch("./source_master.json", {
-      method: "GET",
-      cache: "no-store"
-    });
+function bindToolbarEvents() {
+  document.addEventListener("toolbar:ready", (event) => {
+    const detail = event.detail || {};
+    sourceList = Array.isArray(detail.sourceList) ? detail.sourceList : [];
+    sourceMap = detail.sourceMap || {};
 
-    if (!res.ok) {
-      throw new Error("source_master.json の取得に失敗しました");
+    hideAllPanels();
+    resetPublicUrlArea();
+
+    if (panelEmpty) {
+      panelEmpty.classList.remove("hidden");
     }
-
-    const list = await res.json();
-
-    sourceList = Array.isArray(list) ? list : [];
-    sourceMap = Object.fromEntries(sourceList.map((item) => [item.key, item]));
-    renderSourceOptions(sourceList);
-  } catch (e) {
-    console.error(e);
-    if (sourceSelect) {
-      sourceSelect.innerHTML = `<option value="" selected disabled>データ種別読込失敗</option>`;
-    }
-    writeLog(`データ種別読込失敗: ${e.message}`);
-  }
-}
-
-if (btnLogout) {
-  btnLogout.addEventListener("click", () => {
-    sessionStorage.removeItem("idToken");
-    window.location.href = "index.html";
   });
-}
 
-if (btnMenu) {
-  btnMenu.addEventListener("click", () => {
-    window.location.href = "menu.html";
+  document.addEventListener("toolbar:source-change", async (event) => {
+    clearLog();
+
+    const detail = event.detail || {};
+    const sourceKey = detail.sourceKey || "";
+
+    await applySelection(sourceKey);
   });
 }
 
@@ -289,18 +236,12 @@ if (btnClearLog) {
   btnClearLog.addEventListener("click", clearLog);
 }
 
-if (sourceSelect) {
-  sourceSelect.addEventListener("change", async () => {
-    clearLog();
-    await applySelection(sourceSelect.value);
-  });
-}
-
 if (btnKokkaiRegister) {
   btnKokkaiRegister.addEventListener("click", async () => {
     writeLog("国会議事録ボタン押下");
 
-    const p = sourceMap[sourceSelect.value];
+    const sourceSelect = getSourceSelect();
+    const p = sourceMap[sourceSelect?.value || currentSourceKey];
     if (!p) {
       writeLog("取得元が選択されていません");
       return;
@@ -357,7 +298,8 @@ if (btnFetchDatasets) {
   btnFetchDatasets.addEventListener("click", async () => {
     writeLog("データセット取得");
 
-    const p = sourceMap[sourceSelect.value];
+    const sourceSelect = getSourceSelect();
+    const p = sourceMap[sourceSelect?.value || currentSourceKey];
     if (!p) {
       writeLog("取得元が選択されていません");
       return;
@@ -414,7 +356,8 @@ if (btnUrlRegister) {
   btnUrlRegister.addEventListener("click", async () => {
     writeLog("公開URL取得ボタン押下");
 
-    const p = sourceMap[sourceSelect.value];
+    const sourceSelect = getSourceSelect();
+    const p = sourceMap[sourceSelect?.value || currentSourceKey];
     if (!p) {
       writeLog("取得元が選択されていません");
       return;
@@ -443,9 +386,9 @@ if (btnUrlRegister) {
   });
 }
 
-document.addEventListener("DOMContentLoaded", async () => {
+document.addEventListener("DOMContentLoaded", () => {
   hideAllPanels();
   if (panelEmpty) panelEmpty.classList.remove("hidden");
   resetPublicUrlArea();
-  await loadSourceMaster();
+  bindToolbarEvents();
 });

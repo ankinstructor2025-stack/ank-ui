@@ -4,104 +4,16 @@
   <meta charset="UTF-8">
   <title>データ取得</title>
   <link rel="stylesheet" href="./theme.css">
-  <style>
-    html, body{
-      height:100%;
-    }
-
-    #dataSourcePage{
-      width:100%;
-      max-width:none;
-      min-height:100vh;
-      margin:0;
-      padding:16px;
-    }
-
-    #dataSourceCard{
-      width:100%;
-      min-height:calc(100vh - 32px);
-      display:flex;
-      flex-direction:column;
-    }
-
-    .ds-wrap{
-      display:flex;
-      flex-direction:column;
-      gap:16px;
-      flex:1;
-      min-height:0;
-    }
-
-    .main-area{
-      display:flex;
-      flex-direction:column;
-      gap:16px;
-      flex:1;
-      min-height:0;
-    }
-
-    .work-panel{
-      flex:1;
-      min-height:0;
-    }
-
-    #panelOpenData,
-    #panelUrl,
-    #panelUpload,
-    #panelKokkai{
-      display:flex;
-      flex-direction:column;
-      gap:12px;
-      flex:1;
-      min-height:0;
-    }
-
-    #panelUrl .section-block{
-      gap:8px;
-    }
-
-    #panelUrl .compact-actions{
-      margin-top:2px;
-    }
-
-    #publicUrlTarget{
-      width:100%;
-      min-height:72px;
-      resize:none;
-      overflow:hidden;
-    }
-  </style>
 </head>
 <body>
 
-<div id="dataSourcePage" class="page">
-  <div id="dataSourceCard" class="card">
+<div id="dataSourcePage" class="page ds-page">
+  <div id="dataSourceCard" class="card ds-card">
     <div class="ds-wrap">
 
-      <div class="header-row">
-        <h2>データ取得</h2>
-
-        <div class="header-actions">
-          <button id="btnMenu" class="btn" type="button">メニュー</button>
-          <button id="btnLogout" class="btn" type="button">ログアウト</button>
-        </div>
-      </div>
+      <div id="pageToolbar"></div>
 
       <div class="main-area">
-        <div class="common-panel">
-          <div class="common-grid">
-            <div>
-              <label for="sourceSelect">取得元</label>
-              <select id="sourceSelect"></select>
-            </div>
-
-            <div>
-              <label for="sourceName">名称</label>
-              <input id="sourceName" readonly>
-            </div>
-          </div>
-        </div>
-
         <div class="work-panel">
 
           <div id="panelEmpty" class="placeholder">
@@ -125,7 +37,7 @@
 
             <div class="section-block">
               <div>
-                <label>ファイル</label>
+                <label for="uploadFileInput">ファイル</label>
 
                 <div class="upload-file-row">
                   <input id="uploadFileInput" class="upload-file-input" type="file">
@@ -139,6 +51,7 @@
                   </div>
                 </div>
               </div>
+
               <div class="compact-actions">
                 <button id="btnUploadRegister" class="btn btn-primary" type="button">
                   アップロード
@@ -146,6 +59,7 @@
               </div>
             </div>
           </div>
+
           <div id="panelOpenData" class="hidden">
             <div class="section-block">
               <div class="compact-actions">
@@ -165,7 +79,7 @@
           <div id="panelUrl" class="hidden">
             <h3 class="panel-title">公開URL取得</h3>
 
-            <div class="section-block" style="flex:0 0 auto;">
+            <div class="section-block ds-section-fixed">
               <div>
                 <label for="publicUrlTarget">取得元URL</label>
                 <textarea id="publicUrlTarget" rows="2" readonly></textarea>
@@ -203,11 +117,26 @@
   </div>
 </div>
 
+<script src="./common_toolbar.js"></script>
 <script src="./data_source_upload.js"></script>
 <script src="./data_source_kokkai.js"></script>
 <script src="./data_source_opendata.js"></script>
 <script src="./data_source_url.js"></script>
 <script src="./data_source.js"></script>
+
+<script>
+renderPageToolbar({
+  mountId: "pageToolbar",
+  title: "データ取得",
+  showSourceSelect: true,
+  showDbSelect: false,
+  enableDbAutoLoad: false,
+  actions: [
+    { id: "btnMenu", label: "メニュー" },
+    { id: "btnLogout", label: "ログアウト" }
+  ]
+});
+</script>
 
 </body>
 </html>
