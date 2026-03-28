@@ -185,14 +185,14 @@ textarea{
 .toolbar-select{
   width:100%;
   min-width:0;
-  height:44px;
+  height:36px;
   border:1px solid #8390a5;
   border-radius:12px;
   padding:0 12px;
   font-size:15px;
   outline:none;
-  background:#7c8696;
-  color:#ffffff;
+  background:#ffffff;
+  color:#000000;
 }
 
 .page-toolbar-actions{
