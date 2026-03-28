@@ -114,3 +114,35 @@ thead th{
   line-height:1.4;
   white-space:pre-wrap;
 }
+
+/* 一覧枠 */
+.dataset-list-wrap{
+  background:#ffffff;
+  border:1px solid #d6dee8;
+}
+
+/* ヘッダ */
+#parentTableHead th,
+#childTableHead th{
+  background:#e8eef7;
+  color:#0f172a;
+  border-bottom:1px solid #d6dee8;
+}
+
+/* 行 */
+#parentTableBody td,
+#childTableBody td{
+  background:#ffffff;
+  color:#0f172a;
+  border-bottom:1px solid #e5ebf2;
+}
+
+/* ホバー */
+.clickable-row:hover{
+  background:#f7fbff;
+}
+
+/* 選択行 */
+.selected-row{
+  background:#e8f1ff !important;
+}
