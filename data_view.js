@@ -1,12 +1,7 @@
 console.log("data_view.js loaded");
 
-const sourceSelect = document.getElementById("sourceSelect");
-const sourceName = document.getElementById("sourceName");
-
 const btnReload = document.getElementById("btnReload");
 const btnKnowledge = document.getElementById("btnKnowledge");
-const btnMenu = document.getElementById("btnMenu");
-const btnLogout = document.getElementById("btnLogout");
 const btnParentCheckAll = document.getElementById("btnParentCheckAll");
 const btnParentClearAll = document.getElementById("btnParentClearAll");
 
@@ -40,6 +35,10 @@ let sourceMap = {};
 let currentSourceKey = "";
 let knowledgeRunning = false;
 let pollingConfig = { ...DEFAULT_POLLING_CONFIG };
+
+function getSourceSelect() {
+  return document.getElementById("sourceSelect");
+}
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -136,8 +135,6 @@ async function fetchWithAuth(path, options = {}, query = {}, retry401 = true) {
   });
 
   if (res.status === 401 && retry401) {
-    console.warn("401 detected. retry with refreshed token:", path);
-
     const refreshedToken = await requireIdToken(true);
     const retryHeaders = {
       ...(options.headers || {}),
@@ -154,14 +151,7 @@ async function fetchWithAuth(path, options = {}, query = {}, retry401 = true) {
 }
 
 async function apiGet(path, query = {}) {
-  const res = await fetchWithAuth(
-    path,
-    {
-      method: "GET"
-    },
-    query,
-    true
-  );
+  const res = await fetchWithAuth(path, { method: "GET" }, query, true);
 
   if (!res.ok) {
     throw new Error(await readErrorDetail(res));
@@ -228,6 +218,7 @@ function setKnowledgeBusy(isBusy) {
     btnReload.disabled = isBusy;
   }
 
+  const sourceSelect = getSourceSelect();
   if (sourceSelect) {
     sourceSelect.disabled = isBusy;
   }
@@ -235,22 +226,17 @@ function setKnowledgeBusy(isBusy) {
 
 function getStatusClass(status) {
   const s = String(status || "").toLowerCase();
-  if (s === "done") return "status-pill status-done";
-  if (s === "error") return "status-pill status-error";
-  if (s === "running") return "status-pill status-new";
-  return "status-pill status-new";
+  if (s === "done") return "url-chip status-done";
+  if (s === "error") return "url-chip status-error";
+  return "url-chip status-new";
 }
 
 function getProgressValues(data) {
-  const qaCurrent =
-    Number(data?.qa_current ?? data?.processed_qa_chunks ?? 0);
-  const qaTotal =
-    Number(data?.qa_total ?? data?.total_qa_chunks ?? 0);
+  const qaCurrent = Number(data?.qa_current ?? data?.processed_qa_chunks ?? 0);
+  const qaTotal = Number(data?.qa_total ?? data?.total_qa_chunks ?? 0);
 
-  const plainCurrent =
-    Number(data?.plain_current ?? data?.processed_plain_chunks ?? 0);
-  const plainTotal =
-    Number(data?.plain_total ?? data?.total_plain_chunks ?? 0);
+  const plainCurrent = Number(data?.plain_current ?? data?.processed_plain_chunks ?? 0);
+  const plainTotal = Number(data?.plain_total ?? data?.total_plain_chunks ?? 0);
 
   const chunkCurrent =
     Number(data?.chunk_current ?? data?.processed_chunks ?? (qaCurrent + plainCurrent));
@@ -269,9 +255,7 @@ function getProgressValues(data) {
 
 function applyModuleKnowledgeStatus(data) {
   const module = getCurrentModule();
-  if (!module || typeof module.applyKnowledgeStatus !== "function") {
-    return;
-  }
+  if (!module || typeof module.applyKnowledgeStatus !== "function") return;
 
   try {
     module.applyKnowledgeStatus(data);
@@ -372,34 +356,6 @@ async function validateStoredActiveJob(previousActiveJob) {
   }
 }
 
-function renderSourceOptions(list) {
-  const groups = {};
-
-  list.forEach((item) => {
-    const groupName = item.group || "その他";
-    if (!groups[groupName]) groups[groupName] = [];
-    groups[groupName].push(item);
-  });
-
-  const html = [`<option value="" selected disabled>選択してください</option>`];
-
-  Object.keys(groups).forEach((groupName) => {
-    html.push(`<optgroup label="${escapeHtml(groupName)}">`);
-
-    groups[groupName].forEach((item) => {
-      html.push(
-        `<option value="${escapeHtml(item.key)}">${escapeHtml(item.label || item.key)}</option>`
-      );
-    });
-
-    html.push(`</optgroup>`);
-  });
-
-  if (sourceSelect) {
-    sourceSelect.innerHTML = html.join("");
-  }
-}
-
 function mapKeyToSourceType(key, type) {
   if (key === "api_kokkai") return "kokkai";
   if (key === "api_datago") return "opendata";
@@ -420,19 +376,11 @@ function normalizeSourceMaster(list) {
   }));
 }
 
-function updateSourceName() {
-  const item = sourceMap[currentSourceKey];
-  const text = item ? item.label : "";
-
-  if (!sourceName) return;
-  sourceName.value = text;
-}
-
 function renderParentPlaceholder(message) {
   if (parentTableHead) parentTableHead.innerHTML = "";
   if (parentTableBody) {
     parentTableBody.innerHTML = `
-      <tr class="placeholder-row">
+      <tr>
         <td>${escapeHtml(message)}</td>
       </tr>
     `;
@@ -443,7 +391,7 @@ function renderChildPlaceholder(message) {
   if (childTableHead) childTableHead.innerHTML = "";
   if (childTableBody) {
     childTableBody.innerHTML = `
-      <tr class="placeholder-row">
+      <tr>
         <td>${escapeHtml(message)}</td>
       </tr>
     `;
@@ -489,8 +437,7 @@ function createViewContext() {
     apiBase: API_BASE,
     currentSourceKey,
     sourceMap,
-    sourceSelect,
-    sourceName,
+    sourceSelect: getSourceSelect(),
     btnKnowledge,
     btnReload,
     summaryText,
@@ -556,9 +503,7 @@ function decorateOpenDataButtons() {
 }
 
 function updateOpenDataSummary() {
-  if (currentSourceKey !== "api_datago") {
-    return;
-  }
+  if (currentSourceKey !== "api_datago") return;
 
   if (contextSummary) {
     contextSummary.textContent = "親一覧: 取得済ファイルのみ表示";
@@ -687,12 +632,8 @@ function isTerminalJobStatus(status) {
 }
 
 function getPollingIntervalMs(attempt) {
-  if (attempt > pollingConfig.very_long_after_count) {
-    return pollingConfig.long_interval_ms;
-  }
-  if (attempt > pollingConfig.long_after_count) {
-    return pollingConfig.normal_interval_ms;
-  }
+  if (attempt > pollingConfig.very_long_after_count) return pollingConfig.long_interval_ms;
+  if (attempt > pollingConfig.long_after_count) return pollingConfig.normal_interval_ms;
   return pollingConfig.initial_interval_ms;
 }
 
@@ -734,8 +675,8 @@ function summarizeJobStatusFallback(data) {
       total: 0,
       doneCountOnly: 0,
       errorCount: 0,
-      runningCount: 0,
-      queuedCount: 0,
+      runningCount: status === "running" ? 1 : 0,
+      queuedCount: status === "new" ? 1 : 0,
       doneCount: 0,
       remaining: 0
     };
@@ -765,277 +706,172 @@ function summarizeJobStatusFallback(data) {
     };
   }
 
-  if (status === "running" || status === "processing") {
-    return {
-      total,
-      doneCountOnly: 0,
-      errorCount: 0,
-      runningCount: total,
-      queuedCount: 0,
-      doneCount: 0,
-      remaining: total
-    };
-  }
-
   return {
     total,
     doneCountOnly: 0,
     errorCount: 0,
-    runningCount: 0,
-    queuedCount: total,
+    runningCount: status === "running" ? 1 : 0,
+    queuedCount: Math.max(0, total - (status === "running" ? 1 : 0)),
     doneCount: 0,
     remaining: total
   };
 }
 
-function updatePollingSummary(data) {
-  const items = Array.isArray(data?.items) ? data.items : [];
-  const summary =
-    items.length > 0
-      ? summarizeJobItems(items)
-      : summarizeJobStatusFallback(data);
+function updateKnowledgeProgressSummary(statusData, selectedCount) {
+  const itemSummary = Array.isArray(statusData?.items) && statusData.items.length > 0
+    ? summarizeJobItems(statusData.items)
+    : summarizeJobStatusFallback({
+        ...statusData,
+        selected_count: Number(selectedCount || statusData?.selected_count || 0)
+      });
 
-  const totalForDisplay = summary.total || Number(data?.selected_count) || 0;
-  const p = getProgressValues(data);
+  const p = getProgressValues(statusData);
+  const statusLabel = String(statusData?.status || "").toLowerCase() || "unknown";
 
   if (contextSummary) {
     contextSummary.textContent =
-      `ナレッジ化: CHUNK ${p.chunkCurrent} / ${p.chunkTotal}` +
-      `（QA ${p.qaCurrent} / ${p.qaTotal}｜PLAIN ${p.plainCurrent} / ${p.plainTotal}｜status: ${data?.status ?? "unknown"}）`;
+      `ナレッジ化: CHUNK ${p.chunkCurrent} / ${p.chunkTotal}（QA ${p.qaCurrent} / ${p.qaTotal}｜PLAIN ${p.plainCurrent} / ${p.plainTotal}｜status: ${statusLabel}）`;
   }
 
   if (selectionSummary) {
     selectionSummary.textContent =
-      `親 ${summary.doneCount} / ${totalForDisplay}` +
-      `（done ${summary.doneCountOnly}｜error ${summary.errorCount}｜実行中 ${summary.runningCount}｜待機 ${summary.queuedCount}）`;
+      `親 ${itemSummary.doneCount} / ${itemSummary.total}（done ${itemSummary.doneCountOnly}｜error ${itemSummary.errorCount}｜実行中 ${itemSummary.runningCount}｜待機 ${itemSummary.queuedCount}）`;
   }
+
+  if (summaryText) {
+    summaryText.textContent = `${Number(statusData?.knowledge_count ?? statusData?.qa_count ?? 0) || 0} 件`;
+  }
+
+  applyModuleKnowledgeStatus(statusData);
 }
 
-async function pollKnowledgeJobStatus(statusPath, jobId) {
-  const maxAttempts = pollingConfig.max_attempts || DEFAULT_POLLING_CONFIG.max_attempts;
-  const maxErrorCount = pollingConfig.max_error_count || DEFAULT_POLLING_CONFIG.max_error_count;
-
-  let lastData = null;
-  let lastError = null;
-  let consecutiveErrorCount = 0;
-
-  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-    try {
-      const data = await apiGet(statusPath, { job_id: jobId });
-      lastData = data;
-      lastError = null;
-      consecutiveErrorCount = 0;
-
-      if (detailPre) {
-        detailPre.textContent = buildStatusResultText(data);
-      }
-
-      updatePollingSummary(data);
-      applyModuleKnowledgeStatus(data);
-
-      if (isTerminalJobStatus(data?.status)) {
-        return data;
-      }
-    } catch (e) {
-      lastError = e;
-      consecutiveErrorCount += 1;
-      console.error(`poll failed [${attempt}/${maxAttempts}]`, e);
-
-      if (detailPre && lastData) {
-        detailPre.textContent = buildStatusResultText(lastData);
-      }
-
-      if (lastData) {
-        updatePollingSummary(lastData);
-        applyModuleKnowledgeStatus(lastData);
-      }
-
-      if (contextSummary) {
-        contextSummary.textContent = `ナレッジ化: status取得失敗（確認 ${attempt} / ${maxAttempts}）`;
-      }
-
-      if (consecutiveErrorCount >= maxErrorCount) {
-        throw new Error(`ステータス確認が連続失敗しました: ${e?.message || e}`);
-      }
-    }
-
-    if (attempt < maxAttempts) {
-      await sleep(getPollingIntervalMs(attempt));
-    }
-  }
-
-  if (lastData) {
-    throw new Error(
-      `ステータス確認が上限回数に達しました。last_status=${lastData?.status || "unknown"}`
-    );
-  }
-
-  throw lastError || new Error("ステータス確認に失敗しました");
+async function fetchStatusData(sourceType, jobId) {
+  const statusPath = getStatusPathBySourceType(sourceType);
+  if (!statusPath) throw new Error("status path が不正です");
+  return await apiGet(statusPath, { job_id: jobId });
 }
 
 async function runKnowledgeJobAndPoll(sourceType, jobId) {
   const runPath = getRunPathBySourceType(sourceType);
-  const statusPath = getStatusPathBySourceType(sourceType);
-
-  if (!runPath || !statusPath) {
-    throw new Error(`未対応の sourceType です: ${sourceType}`);
+  if (!runPath) {
+    throw new Error("run path が不正です");
   }
 
   await apiPost(runPath, { job_id: jobId });
-  return await pollKnowledgeJobStatus(statusPath, jobId);
+
+  let attempt = 0;
+  let errorCount = 0;
+
+  while (attempt < pollingConfig.max_attempts) {
+    attempt += 1;
+
+    try {
+      const statusData = await fetchStatusData(sourceType, jobId);
+      errorCount = 0;
+
+      updateKnowledgeProgressSummary(statusData, statusData?.selected_count ?? 0);
+
+      if (detailPre) {
+        detailPre.textContent = buildStatusResultText(statusData);
+      }
+
+      if (isTerminalJobStatus(statusData?.status)) {
+        clearActiveKnowledgeJob();
+        return statusData;
+      }
+    } catch (e) {
+      errorCount += 1;
+      console.error("polling error", e);
+
+      if (detailPre) {
+        detailPre.textContent = e.message || "ステータス取得に失敗しました。";
+      }
+
+      if (errorCount >= pollingConfig.max_error_count) {
+        throw e;
+      }
+    }
+
+    await sleep(getPollingIntervalMs(attempt));
+  }
+
+  throw new Error("ナレッジ化の監視がタイムアウトしました");
 }
 
-async function finalizeKnowledgePolling(statusData, checkedRowsLength = 0) {
-  const p = getProgressValues(statusData || {});
+async function resumeKnowledgePollingIfNeeded() {
+  const previous = loadActiveKnowledgeJob();
+  if (!previous) return;
 
-  if (detailPre) {
-    detailPre.textContent = buildStatusResultText(statusData || {});
-  }
+  const validated = await validateStoredActiveJob(previous);
+  if (!validated) return;
 
-  applyModuleKnowledgeStatus(statusData || {});
-
-  if (contextSummary) {
-    contextSummary.textContent =
-      `ナレッジ化: CHUNK ${p.chunkCurrent} / ${p.chunkTotal}` +
-      `（QA ${p.qaCurrent} / ${p.qaTotal}｜PLAIN ${p.plainCurrent} / ${p.plainTotal}｜status: ${statusData?.status ?? "unknown"}）`;
-  }
-
-  if (selectionSummary) {
-    const items = Array.isArray(statusData?.items) ? statusData.items : [];
-    const summary = summarizeJobItems(items);
-    const totalForDisplay = summary.total || Number(statusData?.selected_count) || checkedRowsLength;
-
-    selectionSummary.textContent =
-      `親 ${summary.doneCount} / ${totalForDisplay}` +
-      `（done ${summary.doneCountOnly}｜error ${summary.errorCount}｜実行中 ${summary.runningCount}｜待機 ${summary.queuedCount}）`;
-  }
-
-  if (statusData && String(statusData.status || "").toLowerCase() === "done") {
-    alert("ナレッジ化が完了しました");
-  } else if (statusData && String(statusData.status || "").toLowerCase() === "error") {
-    alert("ナレッジ化でエラーが発生しました");
-  } else {
-    alert("ナレッジ化は完了判定できませんでした。詳細を確認してください。");
-  }
-
-  clearActiveKnowledgeJob();
-  await refreshParentList();
-}
-
-function buildKnowledgeEndpointAndPayload(source, checkedRows) {
-  if (!source || !source.sourceType) {
-    throw new Error("sourceType が判定できません");
-  }
-
-  if (source.sourceType === "kokkai") {
-    return {
-      endpoint: "/knowledge/kokkai/job",
-      payload: {
-        source_type: "kokkai",
-        source_name: "国会議事録",
-        request_type: "extract_knowledge",
-        preview_only: false,
-        items: checkedRows.map((row) => ({
-          source_type: "kokkai",
-          parent_source_id: row.issue_id ?? null,
-          parent_key1: row.name_of_house ?? null,
-          parent_key2: row.name_of_meeting ?? null,
-          parent_label: `${row.name_of_house ?? ""} / ${row.name_of_meeting ?? ""}`,
-          row_count: row.row_count ?? 0
-        }))
-      }
-    };
-  }
-
-  if (source.sourceType === "opendata") {
-    return {
-      endpoint: "/knowledge/opendata/job",
-      payload: {
-        source_type: "opendata",
-        source_name: "オープンデータ",
-        request_type: "extract_knowledge",
-        preview_only: false,
-        items: checkedRows.map((row) => ({
-          source_type: "opendata",
-          parent_source_id: row.source_id ?? null,
-          parent_key1: row.dataset_id ?? null,
-          parent_key2: row.ext ?? null,
-          parent_label: row.title || row.dataset_id || row.source_id || "",
-          row_count: row.row_count ?? 0
-        }))
-      }
-    };
-  }
-
-  if (source.sourceType === "public_url") {
-    return {
-      endpoint: "/knowledge/url/jobs",
-      payload: {
-        source_type: "public_url",
-        source_name: "公開URL",
-        request_type: "extract_knowledge",
-        preview_only: false,
-        items: checkedRows.map((row) => ({
-          source_type: "public_url",
-          root_id: row.root_id ?? null,
-          parent_source_id: row.root_id ?? null,
-          parent_key1: row.source_key || row.source_type || source.key || null,
-          parent_key2: row.root_url ?? null,
-          parent_label: row.title || row.root_url || row.root_id || "",
-          row_count: row.child_count ?? row.page_count ?? 0
-        }))
-      }
-    };
-  }
-
-  if (source.sourceType === "upload") {
-    return {
-      endpoint: "/knowledge/upload/job",
-      payload: {
-        source_type: "upload",
-        source_name: "ファイルアップロード",
-        request_type: "extract_knowledge",
-        preview_only: false,
-        items: checkedRows.map((row) => ({
-          source_type: "upload",
-          parent_source_id: row.file_id ?? null,
-          parent_key1: row.logical_name ?? null,
-          parent_key2: row.ext ?? null,
-          parent_label: row.logical_name || row.original_name || row.file_id || "",
-          row_count: row.row_count ?? 0
-        }))
-      }
-    };
-  }
-
-  throw new Error("このデータ種別のナレッジ化は未対応です");
-}
-
-async function resolveCheckedRows(module) {
-  if (!module) {
-    return [];
-  }
-
-  if (typeof module.getCheckedRows === "function") {
-    const rows = module.getCheckedRows();
-    return Array.isArray(rows) ? rows : [];
-  }
-
-  if (typeof module.buildKnowledgeTargets === "function") {
-    const rows = await module.buildKnowledgeTargets();
-    return Array.isArray(rows) ? rows : [];
-  }
-
-  return [];
-}
-
-async function createKnowledgeJob() {
-  if (knowledgeRunning) {
+  if (!sourceMap[previous.source_key]) {
+    clearActiveKnowledgeJob();
     return;
   }
 
+  currentSourceKey = previous.source_key;
+
+  const sourceSelect = getSourceSelect();
+  if (sourceSelect) {
+    sourceSelect.value = currentSourceKey;
+  }
+
+  await refreshParentList();
+
+  const source = sourceMap[currentSourceKey];
+  if (!source?.sourceType) {
+    clearActiveKnowledgeJob();
+    return;
+  }
+
+  setKnowledgeBusy(true);
+
+  try {
+    if (detailPre) {
+      detailPre.textContent = "前回のナレッジ化ジョブを再接続しています...";
+    }
+
+    const statusData = await runKnowledgeJobAndPoll(source.sourceType, validated.job_id);
+    await finalizeKnowledgePolling(statusData, previous.selected_count || 0);
+  } catch (e) {
+    console.error(e);
+    if (detailPre) {
+      detailPre.textContent = e.message || "ジョブ再接続に失敗しました。";
+    }
+  } finally {
+    setKnowledgeBusy(false);
+  }
+}
+
+async function finalizeKnowledgePolling(statusData, checkedCount) {
+  if (detailPre) {
+    detailPre.textContent = buildStatusResultText(statusData);
+  }
+
+  if (String(statusData?.status || "").toLowerCase() === "done") {
+    alert("ナレッジ化が完了しました");
+  } else if (String(statusData?.status || "").toLowerCase() === "error") {
+    alert(statusData?.error_message || "ナレッジ化でエラーが発生しました");
+  }
+
+  updateKnowledgeProgressSummary(statusData, checkedCount);
+
+  try {
+    await refreshParentList();
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+async function createKnowledgeJob() {
   const module = getCurrentModule();
-  const checkedRows = await resolveCheckedRows(module);
+  if (!module || typeof module.getCheckedRows !== "function") {
+    alert("対象取得に失敗しました");
+    return;
+  }
+
+  const checkedRows = module.getCheckedRows();
 
   if (!checkedRows || checkedRows.length === 0) {
     alert("対象を選択してください");
@@ -1043,40 +879,23 @@ async function createKnowledgeJob() {
   }
 
   const source = sourceMap[currentSourceKey];
-  let endpoint = "";
-  let payload = null;
-
-  try {
-    const built = buildKnowledgeEndpointAndPayload(source, checkedRows);
-    endpoint = built.endpoint;
-    payload = built.payload;
-  } catch (e) {
-    alert(e.message || "ナレッジ化の設定に失敗しました");
+  if (!source?.sourceType) {
+    alert("source_type を判定できません");
     return;
   }
 
+  setKnowledgeBusy(true);
+
   try {
-    setKnowledgeBusy(true);
+    const payload = {
+      source_type: source.sourceType,
+      source_key: source.key,
+      items: checkedRows
+    };
 
-    if (detailPre) {
-      detailPre.textContent = "ナレッジ化ジョブを作成中です...";
-    }
+    const jobData = await apiPost("/knowledge/jobs", payload);
 
-    const previousActiveJob = loadActiveKnowledgeJob();
-    const liveActiveJob = await validateStoredActiveJob(previousActiveJob);
-
-    if (liveActiveJob && liveActiveJob.job_id) {
-      alert(
-        `別のジョブが実行中です。完了後に再実行してください。\n` +
-        `job_id=${liveActiveJob.job_id}\n` +
-        `status=${liveActiveJob.status}`
-      );
-      return;
-    }
-
-    const jobData = await apiPost(endpoint, payload);
-    const jobId = jobData?.job_id;
-
+    const jobId = String(jobData?.job_id || "");
     if (!jobId) {
       throw new Error("job_id が取得できませんでした");
     }
@@ -1084,7 +903,7 @@ async function createKnowledgeJob() {
     saveActiveKnowledgeJob({
       job_id: jobId,
       source_type: source.sourceType,
-      source_key: currentSourceKey,
+      source_key: source.key,
       selected_count: checkedRows.length
     });
 
@@ -1123,10 +942,32 @@ async function createKnowledgeJob() {
 }
 
 function bindEvents() {
-  sourceSelect?.addEventListener("change", async () => {
+  document.addEventListener("toolbar:ready", async (event) => {
+    const detail = event.detail || {};
+    const list = Array.isArray(detail.sourceList) ? detail.sourceList : [];
+    sourceList = normalizeSourceMaster(list);
+    sourceMap = {};
+
+    sourceList.forEach((item) => {
+      sourceMap[item.key] = item;
+    });
+
+    renderInitialScreen();
+
     try {
-      currentSourceKey = sourceSelect?.value || "";
-      updateSourceName();
+      await resumeKnowledgePollingIfNeeded();
+    } catch (e) {
+      console.error(e);
+      renderParentPlaceholder(e.message || "ジョブ再接続に失敗しました");
+      renderChildPlaceholder("親一覧から1件選択してください。");
+      if (detailPre) detailPre.textContent = e.message || "ジョブ再接続に失敗しました";
+    }
+  });
+
+  document.addEventListener("toolbar:source-change", async (event) => {
+    try {
+      const detail = event.detail || {};
+      currentSourceKey = detail.sourceKey || "";
       await refreshParentList();
     } catch (e) {
       console.error(e);
@@ -1156,61 +997,19 @@ function bindEvents() {
     }
   });
 
-  btnParentCheckAll?.addEventListener("click", async () => {
-    try {
-      const module = getCurrentModule();
-      if (module && typeof module.checkAll === "function") {
-        module.checkAll();
-      }
-    } catch (e) {
-      console.error(e);
-      alert(e.message || "全チェックに失敗しました");
+  btnParentCheckAll?.addEventListener("click", () => {
+    const module = getCurrentModule();
+    if (module && typeof module.checkAll === "function") {
+      module.checkAll();
     }
   });
 
-  btnParentClearAll?.addEventListener("click", async () => {
-    try {
-      const module = getCurrentModule();
-      if (module && typeof module.clearAllChecks === "function") {
-        module.clearAllChecks();
-      }
-    } catch (e) {
-      console.error(e);
-      alert(e.message || "全解除に失敗しました");
+  btnParentClearAll?.addEventListener("click", () => {
+    const module = getCurrentModule();
+    if (module && typeof module.clearAllChecks === "function") {
+      module.clearAllChecks();
     }
   });
-
-  btnMenu?.addEventListener("click", () => {
-    window.location.href = "./menu.html";
-  });
-
-  btnLogout?.addEventListener("click", () => {
-    sessionStorage.removeItem("idToken");
-    sessionStorage.removeItem(ACTIVE_JOB_STORAGE_KEY);
-    window.location.href = "./index.html";
-  });
-}
-
-async function loadSourceMaster() {
-  const res = await fetch("./source_master.json", {
-    method: "GET",
-    cache: "no-store"
-  });
-
-  if (!res.ok) {
-    throw new Error("source_master.json の取得に失敗しました");
-  }
-
-  const list = await res.json();
-
-  sourceList = normalizeSourceMaster(Array.isArray(list) ? list : []);
-  sourceMap = {};
-
-  sourceList.forEach((item) => {
-    sourceMap[item.key] = item;
-  });
-
-  renderSourceOptions(sourceList);
 }
 
 async function loadPollingConfig() {
@@ -1235,8 +1034,6 @@ async function loadPollingConfig() {
       max_attempts: Number(data?.max_attempts) || DEFAULT_POLLING_CONFIG.max_attempts,
       max_error_count: Number(data?.max_error_count) || DEFAULT_POLLING_CONFIG.max_error_count
     };
-
-    console.log("polling_config loaded", pollingConfig);
   } catch (e) {
     console.warn("polling_config load failed", e);
     pollingConfig = { ...DEFAULT_POLLING_CONFIG };
@@ -1246,14 +1043,5 @@ async function loadPollingConfig() {
 document.addEventListener("DOMContentLoaded", async () => {
   bindEvents();
   renderInitialScreen();
-
-  try {
-    await loadPollingConfig();
-    await loadSourceMaster();
-  } catch (e) {
-    console.error(e);
-    renderParentPlaceholder(e.message || "source master の取得に失敗しました");
-    renderChildPlaceholder("親一覧から1件選択してください。");
-    if (detailPre) detailPre.textContent = e.message || "source master の取得に失敗しました";
-  }
+  await loadPollingConfig();
 });
