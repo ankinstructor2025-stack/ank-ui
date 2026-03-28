@@ -1,46 +1,74 @@
 /* ===============================
-   data_view only
+   data_view.css
+   - theme.css は共通部品だけ
+   - このファイルで data_view のレイアウトを持つ
 =============================== */
 
-.dv-page{
+/* 画面全体 */
+.page{
   width:100%;
   max-width:none !important;
-  min-height:100vh;
   margin:0 !important;
   padding:16px !important;
 }
 
-.dv-card{
+.card{
   width:100%;
+  height:calc(100vh - 32px);
   min-height:calc(100vh - 32px);
   display:flex;
   flex-direction:column;
   overflow:hidden;
 }
 
-.dv-work-panel{
+/* メイン枠 */
+.work-panel{
   flex:1 1 auto;
   min-height:0;
   display:flex;
   flex-direction:column;
   gap:12px;
   overflow:hidden;
+  border:1px solid var(--panel-border);
+  border-radius:12px;
+  background:var(--panel-bg);
+  color:var(--panel-text);
+  padding:14px;
 }
 
-.dv-topbar{
+/* 各ブロック */
+.section-block{
+  border:1px solid var(--panel-border);
+  border-radius:10px;
+  background:var(--section-bg);
+  padding:12px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  min-height:0;
+}
+
+/* 1段目: 操作行 */
+.work-panel > .section-block:first-child{
   flex:0 0 auto;
 }
 
-.dv-summary-row{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:12px;
-  flex-wrap:wrap;
+/* 2段目: 一覧エリアを固定 */
+.work-panel > .section-block:nth-child(2){
+  flex:0 0 520px;
+  height:520px;
+  min-height:520px;
+  max-height:520px;
 }
 
-.dv-summary-left,
-.dv-summary-right{
+/* 3段目: 詳細を可変 */
+.work-panel > .section-block:last-child{
+  flex:1 1 auto;
+  min-height:160px;
+}
+
+/* 横並び系 */
+.compact-actions{
   display:flex;
   align-items:center;
   gap:10px;
@@ -48,72 +76,66 @@
   min-width:0;
 }
 
-.dv-summary-text{
-  font-size:14px;
+.placeholder{
   color:var(--panel-muted);
-}
-
-.dv-content{
-  flex:1 1 auto;
-  min-height:0;
-}
-
-.dv-split{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:12px;
-  min-height:0;
-}
-
-.dv-pane{
-  min-width:0;
-  min-height:0;
-  display:flex;
-  flex-direction:column;
-  gap:8px;
-}
-
-.dv-pane-head{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:10px;
-  flex-wrap:wrap;
-}
-
-.dv-pane-head-left,
-.dv-pane-head-right{
-  display:flex;
-  align-items:center;
-  gap:10px;
-  flex-wrap:wrap;
-}
-
-.dv-panel-title{
-  margin:0;
-  font-size:16px;
-  font-weight:700;
-  color:#ffffff;
-}
-
-.dv-list-wrap{
-  flex:1 1 auto;
-  min-height:0;
-  overflow:auto;
-  border:1px solid var(--panel-border);
-  border-radius:10px;
-  background:var(--box-bg);
+  font-size:13px;
+  line-height:1.4;
   padding:0;
 }
 
-.dv-table{
+.panel-title{
+  margin:0;
+  font-size:18px;
+  font-weight:700;
+  color:#ffffff;
+  line-height:1.2;
+}
+
+/* 一覧2カラム */
+.work-panel > .section-block:nth-child(2) > div{
+  display:grid !important;
+  grid-template-columns:1fr 1fr !important;
+  gap:16px !important;
+  min-height:0;
+  flex:1 1 auto;
+}
+
+.work-panel > .section-block:nth-child(2) > div > div{
+  min-width:0;
+  min-height:0;
+  display:flex !important;
+  flex-direction:column;
+  gap:8px !important;
+}
+
+/* 一覧の箱 */
+.dataset-list-wrap{
+  border:1px solid var(--panel-border);
+  border-radius:10px;
+  background:var(--box-bg);
+  overflow:auto;
+  padding:0;
+  min-height:0;
+  flex:1 1 auto;
+}
+
+/* 親子一覧の高さを固定内で使い切る */
+.work-panel > .section-block:nth-child(2) .dataset-list-wrap{
+  flex:1 1 auto;
+  min-height:0;
+}
+
+/* テーブル共通 */
+#parentTable,
+#childTable{
   width:100%;
   border-collapse:collapse;
   table-layout:fixed;
   background:#ffffff;
 }
 
-.dv-table thead th{
+#parentTableHead th,
+#childTableHead th{
   position:sticky;
   top:0;
   z-index:1;
@@ -127,100 +149,140 @@
   white-space:nowrap;
 }
 
-.dv-table tbody td{
-  padding:9px 12px;
+#parentTableBody td,
+#childTableBody td{
+  padding:7px 12px;
   font-size:13px;
   color:#0f172a;
   border-bottom:1px solid #e5ebf2;
   vertical-align:middle;
+  line-height:1.35;
 }
 
-.dv-table tbody tr:last-child td{
+#parentTableBody tr:last-child td,
+#childTableBody tr:last-child td{
   border-bottom:none;
 }
 
-.dv-table .clickable-row{
-  cursor:pointer;
-}
-
-.dv-table .clickable-row:hover{
-  background:#f7fbff;
-}
-
-.dv-table .selected-row{
-  background:#e8f1ff !important;
-}
-
-.dv-table .placeholder-row td{
-  padding:14px 12px;
-  color:#64748b;
-}
-
-.dv-cell-nowrap{
-  white-space:nowrap;
+#parentTable td,
+#childTable td,
+#parentTable th,
+#childTable th{
   overflow:hidden;
   text-overflow:ellipsis;
 }
 
-.dv-cell-break{
-  word-break:break-all;
+#parentTable td,
+#childTable td{
+  white-space:nowrap;
 }
 
-.dv-check-col{
+.clickable-row{
+  cursor:pointer;
+}
+
+.clickable-row:hover{
+  background:#f7fbff;
+}
+
+.selected-row{
+  background:#e8f1ff !important;
+}
+
+.placeholder-row td{
+  padding:14px 12px;
+  color:#64748b;
+}
+
+/* 列幅 */
+#parentTableHead th:first-child,
+#parentTableBody td:first-child{
   width:44px;
 }
 
-.dv-house-col{
+#parentTableHead th:nth-child(2),
+#parentTableBody td:nth-child(2){
   width:110px;
 }
 
-.dv-count-col{
+#parentTableHead th:last-child,
+#parentTableBody td:last-child{
   width:80px;
-  text-align:right;
 }
 
-.dv-speaker-col{
+#childTableHead th:first-child,
+#childTableBody td:first-child{
   width:160px;
 }
 
-.dv-actions{
+/* ページャ */
+#parentPager,
+#childPager{
   display:flex;
   align-items:center;
-  gap:8px;
-  flex-wrap:wrap;
-}
-
-.dv-pager{
-  flex:0 0 auto;
-  display:flex;
-  align-items:center;
-  justify-content:flex-end;
+  justify-content:center;
   gap:8px;
   flex-wrap:wrap;
   min-height:40px;
+  margin-top:4px;
 }
 
-.dv-pager .placeholder{
+#parentPager.hidden,
+#childPager.hidden{
+  display:none !important;
+}
+
+#parentPager .placeholder,
+#childPager .placeholder{
   padding:0 6px;
   color:var(--panel-muted);
 }
 
-.dv-detail-block{
-  flex:0 0 auto;
+/* 上段 */
+.work-panel > .section-block:first-child .compact-actions{
+  min-height:44px;
 }
 
-.dv-detail-wrap{
+#selectionSummary,
+#contextSummary{
+  display:inline-flex;
+  align-items:center;
+  min-height:38px;
+}
+
+#btnKnowledge{
+  margin-left:16px;
+}
+
+/* 親一覧の操作行 */
+.work-panel > .section-block:nth-child(2) .compact-actions{
+  min-height:40px;
+}
+
+#btnParentCheckAll,
+#btnParentClearAll{
+  min-width:88px;
+}
+
+/* 詳細表示 */
+.work-panel > .section-block:last-child .dataset-list-wrap{
+  flex:1 1 auto;
+  min-height:0;
+  padding:0;
+  border:none;
+  background:transparent;
+}
+
+#detailPre{
+  margin:0;
+  width:100%;
+  height:100%;
+  min-height:180px;
   border:1px solid var(--panel-border);
   border-radius:10px;
   background:var(--box-bg);
   padding:10px 12px;
-  min-height:180px;
-  max-height:280px;
   overflow:auto;
-}
-
-.dv-detail-pre{
-  margin:0;
   font-family:inherit;
   font-size:13px;
   line-height:1.7;
@@ -229,39 +291,86 @@
   word-break:break-word;
 }
 
-.dv-context{
-  color:var(--panel-muted);
-  font-size:13px;
-}
-
-.dv-selection{
-  color:var(--panel-muted);
-  font-size:13px;
-}
-
-.dv-top-actions{
-  display:flex;
-  align-items:center;
-  gap:10px;
-  flex-wrap:wrap;
-}
-
-.dv-pane .compact-actions{
+/* 見出し間隔 */
+h3.panel-title{
   margin:0;
 }
 
-.dv-pane .btn,
-.dv-topbar .btn,
-.dv-pager .btn{
+/* ボタンの高さを揃える */
+.compact-actions .btn,
+#parentPager .btn,
+#childPager .btn{
   min-height:38px;
 }
 
-@media (max-width: 1100px){
-  .dv-split{
-    grid-template-columns:1fr;
+/* スクロールバーが出た時の見た目を少し安定 */
+.dataset-list-wrap,
+#detailPre{
+  scrollbar-gutter:stable;
+}
+
+/* 狭い画面 */
+@media (max-width:1100px){
+  .card{
+    height:auto;
+    min-height:calc(100vh - 32px);
   }
 
-  .dv-detail-wrap{
+  .work-panel{
+    overflow:visible;
+  }
+
+  .work-panel > .section-block:nth-child(2){
+    flex:0 0 auto;
+    height:auto;
+    min-height:520px;
     max-height:none;
+  }
+
+  .work-panel > .section-block:nth-child(2) > div{
+    grid-template-columns:1fr !important;
+  }
+
+  .work-panel > .section-block:last-child{
+    flex:0 0 auto;
+  }
+
+  #detailPre{
+    min-height:220px;
+  }
+}
+
+@media (max-width:720px){
+  .page{
+    padding:12px !important;
+  }
+
+  .card{
+    min-height:calc(100vh - 24px);
+    height:auto;
+    padding:14px;
+  }
+
+  .work-panel{
+    padding:10px;
+    gap:10px;
+  }
+
+  .section-block{
+    padding:10px;
+    gap:8px;
+  }
+
+  .compact-actions{
+    gap:8px;
+  }
+
+  #btnKnowledge{
+    margin-left:0;
+  }
+
+  #parentPager,
+  #childPager{
+    justify-content:flex-start;
   }
 }
