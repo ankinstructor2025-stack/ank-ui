@@ -126,7 +126,7 @@
 
           ${opts.showDbSelect ? `
             <div class="toolbar-field">
-              <label for="dbSelect">ナレッジDB</label>
+              <!-- <label for="dbSelect">ナレッジDB</label> -->
               <select id="dbSelect" class="toolbar-select" disabled>
                 <option value="">選択してください</option>
               </select>
