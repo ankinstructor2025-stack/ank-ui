@@ -16,6 +16,13 @@
 
       <div class="main-area">
         <div class="work-panel">
+
+          <div id="panelEmpty">
+            <div class="section-block">
+              取得元を選択してください
+            </div>
+          </div>
+
           <div id="panelKokkai" class="hidden">
             <h3 class="panel-title">国会議事録取得</h3>
 
@@ -82,7 +89,7 @@
 
           <div id="panelUrl" class="hidden">
             <div class="url-panel">
-              <div id="publicUrlTargetDisplay" class="public-url-display"></div>
+              <div id="publicUrlTarget" class="public-url-display"></div>
 
               <div class="compact-actions compact-actions-left">
                 <button id="btnUrlRegister" class="btn btn-primary" type="button">
@@ -107,8 +114,16 @@
               </div>
             </div>
           </div>
+
+          <div id="panelApi" class="hidden">
+            <div class="section-block">
+              この取得元は未対応です
+            </div>
+          </div>
+
         </div>
       </div>
+
     </div>
   </div>
 </div>

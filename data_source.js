@@ -10,11 +10,6 @@ const panelApi = document.getElementById("panelApi");
 const publicUrlTarget = document.getElementById("publicUrlTarget");
 const publicUrlPageList = document.getElementById("publicUrlPageList");
 
-const logBox = document.getElementById("logBox");
-const logText = document.getElementById("logText");
-
-const btnClearLog = document.getElementById("btnClearLog");
-
 const btnKokkaiRegister = document.getElementById("btnKokkaiRegister");
 const btnUploadRegister = document.getElementById("btnUploadRegister");
 const btnFetchDatasets = document.getElementById("btnFetchDatasets");
@@ -26,6 +21,14 @@ let sourceList = [];
 let sourceMap = {};
 let currentSourceKey = "";
 let publicUrlConfigCache = null;
+
+/**
+ * 画面上にログは出さないが、既存モジュール互換のため受け口だけ残す。
+ * 必要になったらここを toast 表示などに差し替えればよい。
+ */
+function notifyMessage(_msg) {
+  // no-op
+}
 
 function getSourceSelect() {
   return document.getElementById("sourceSelect");
@@ -77,21 +80,6 @@ function showPanelByKey(key) {
   if (panelEmpty) panelEmpty.classList.remove("hidden");
 }
 
-function clearLog() {
-  if (logText) logText.textContent = "";
-  if (logBox) logBox.classList.add("hidden");
-}
-
-function writeLog(msg) {
-  if (!logBox || !logText) return;
-
-  logBox.classList.remove("hidden");
-
-  const now = new Date().toISOString();
-  logText.textContent += `[${now}] ${msg}\n`;
-  logText.scrollTop = logText.scrollHeight;
-}
-
 function getIdToken() {
   return sessionStorage.getItem("idToken");
 }
@@ -99,7 +87,7 @@ function getIdToken() {
 function requireIdToken() {
   const idToken = getIdToken();
   if (!idToken) {
-    writeLog("idToken がありません（ログインからやり直してください）");
+    alert("idToken がありません。ログインからやり直してください。");
     return null;
   }
   return idToken;
@@ -138,7 +126,12 @@ function findPublicUrlSource(config, sourceKey) {
 
 function resetPublicUrlArea() {
   if (publicUrlTarget) {
-    publicUrlTarget.value = "";
+    if ("value" in publicUrlTarget) {
+      publicUrlTarget.value = "";
+    } else {
+      publicUrlTarget.textContent = "";
+    }
+
     publicUrlTarget.readOnly = false;
     publicUrlTarget.classList.remove("public-url-readonly");
   }
@@ -160,7 +153,12 @@ async function applySelection(key) {
 
   if (p.type === "public_url") {
     if (publicUrlTarget) {
-      publicUrlTarget.value = "";
+      if ("value" in publicUrlTarget) {
+        publicUrlTarget.value = "";
+      } else {
+        publicUrlTarget.textContent = "";
+      }
+
       publicUrlTarget.readOnly = true;
       publicUrlTarget.classList.add("public-url-readonly");
     }
@@ -171,27 +169,44 @@ async function applySelection(key) {
 
       if (!source) {
         if (publicUrlTarget) {
-          publicUrlTarget.value = "定義未登録";
+          if ("value" in publicUrlTarget) {
+            publicUrlTarget.value = "定義未登録";
+          } else {
+            publicUrlTarget.textContent = "定義未登録";
+          }
         }
-        writeLog(`公開URL設定に source_key=${key} がありません`);
       } else {
         const label = source.label ?? "";
         const url = source.url ?? "";
+        const text = label && url ? `${label}\n${url}` : (label || url || "");
 
         if (publicUrlTarget) {
-          publicUrlTarget.value = label && url ? `${label}\n${url}` : (label || url || "");
+          if ("value" in publicUrlTarget) {
+            publicUrlTarget.value = text;
+          } else {
+            publicUrlTarget.textContent = text;
+          }
         }
       }
     } catch (e) {
       console.error(e);
       if (publicUrlTarget) {
-        publicUrlTarget.value = "取得設定 読込失敗";
+        if ("value" in publicUrlTarget) {
+          publicUrlTarget.value = "取得設定 読込失敗";
+        } else {
+          publicUrlTarget.textContent = "取得設定 読込失敗";
+        }
       }
-      writeLog(`公開URL設定読込失敗: ${e.message}`);
+      alert(`公開URL設定読込失敗: ${e.message}`);
     }
   } else {
     if (publicUrlTarget) {
-      publicUrlTarget.value = "";
+      if ("value" in publicUrlTarget) {
+        publicUrlTarget.value = "";
+      } else {
+        publicUrlTarget.textContent = "";
+      }
+
       publicUrlTarget.readOnly = false;
       publicUrlTarget.classList.remove("public-url-readonly");
     }
@@ -223,27 +238,18 @@ function bindToolbarEvents() {
   });
 
   document.addEventListener("toolbar:source-change", async (event) => {
-    clearLog();
-
     const detail = event.detail || {};
     const sourceKey = detail.sourceKey || "";
-
     await applySelection(sourceKey);
   });
 }
 
-if (btnClearLog) {
-  btnClearLog.addEventListener("click", clearLog);
-}
-
 if (btnKokkaiRegister) {
   btnKokkaiRegister.addEventListener("click", async () => {
-    writeLog("国会議事録ボタン押下");
-
     const sourceSelect = getSourceSelect();
     const p = sourceMap[sourceSelect?.value || currentSourceKey];
     if (!p) {
-      writeLog("取得元が選択されていません");
+      alert("取得元が選択されていません");
       return;
     }
 
@@ -251,7 +257,7 @@ if (btnKokkaiRegister) {
     if (!idToken) return;
 
     if (!window.DataSourceKokkai || typeof window.DataSourceKokkai.run !== "function") {
-      writeLog("data_source_kokkai.js が読み込まれていません");
+      alert("data_source_kokkai.js が読み込まれていません");
       return;
     }
 
@@ -260,24 +266,22 @@ if (btnKokkaiRegister) {
         apiBase: API_BASE,
         sourceKey: p.key,
         idToken,
-        writeLog
+        writeLog: notifyMessage
       });
     } catch (e) {
       console.error(e);
-      writeLog(`処理失敗: ${e.message}`);
+      alert(`処理失敗: ${e.message}`);
     }
   });
 }
 
 if (btnUploadRegister) {
   btnUploadRegister.addEventListener("click", async () => {
-    writeLog("アップロードボタン押下");
-
     const idToken = requireIdToken();
     if (!idToken) return;
 
     if (!window.DataSourceUpload || typeof window.DataSourceUpload.run !== "function") {
-      writeLog("data_source_upload.js が読み込まれていません");
+      alert("data_source_upload.js が読み込まれていません");
       return;
     }
 
@@ -285,23 +289,21 @@ if (btnUploadRegister) {
       await window.DataSourceUpload.run({
         apiBase: API_BASE,
         idToken,
-        writeLog
+        writeLog: notifyMessage
       });
     } catch (e) {
       console.error(e);
-      writeLog(`処理失敗: ${e.message}`);
+      alert(`処理失敗: ${e.message}`);
     }
   });
 }
 
 if (btnFetchDatasets) {
   btnFetchDatasets.addEventListener("click", async () => {
-    writeLog("データセット取得");
-
     const sourceSelect = getSourceSelect();
     const p = sourceMap[sourceSelect?.value || currentSourceKey];
     if (!p) {
-      writeLog("取得元が選択されていません");
+      alert("取得元が選択されていません");
       return;
     }
 
@@ -309,7 +311,7 @@ if (btnFetchDatasets) {
     if (!idToken) return;
 
     if (!window.DataSourceOpenData) {
-      writeLog("data_source_opendata.js が読み込まれていません");
+      alert("data_source_opendata.js が読み込まれていません");
       return;
     }
 
@@ -318,28 +320,26 @@ if (btnFetchDatasets) {
         apiBase: API_BASE,
         sourceKey: p.key,
         idToken,
-        writeLog,
+        writeLog: notifyMessage,
         silent
       });
 
       window.DataSourceOpenData.renderDatasets(
         data.datasets || [],
         {
-          onExpandDataset: async (datasetId, datasetTitle) => {
-            writeLog(`dataset 分解開始: ${datasetTitle}`);
-
+          onExpandDataset: async (datasetId, _datasetTitle) => {
             await window.DataSourceOpenData.expandDataset({
               apiBase: API_BASE,
               sourceKey: p.key,
               idToken,
               datasetId,
-              writeLog
+              writeLog: notifyMessage
             });
 
             await loadDatasets(true);
           }
         },
-        writeLog
+        notifyMessage
       );
     };
 
@@ -347,19 +347,17 @@ if (btnFetchDatasets) {
       await loadDatasets(false);
     } catch (e) {
       console.error(e);
-      writeLog(`処理失敗: ${e.message}`);
+      alert(`処理失敗: ${e.message}`);
     }
   });
 }
 
 if (btnUrlRegister) {
   btnUrlRegister.addEventListener("click", async () => {
-    writeLog("公開URL取得ボタン押下");
-
     const sourceSelect = getSourceSelect();
     const p = sourceMap[sourceSelect?.value || currentSourceKey];
     if (!p) {
-      writeLog("取得元が選択されていません");
+      alert("取得元が選択されていません");
       return;
     }
 
@@ -367,7 +365,7 @@ if (btnUrlRegister) {
     if (!idToken) return;
 
     if (!window.DataSourceUrl || typeof window.DataSourceUrl.run !== "function") {
-      writeLog("data_source_url.js が読み込まれていません");
+      alert("data_source_url.js が読み込まれていません");
       return;
     }
 
@@ -376,12 +374,12 @@ if (btnUrlRegister) {
         apiBase: API_BASE,
         sourceKey: p.key,
         idToken,
-        writeLog,
+        writeLog: notifyMessage,
         pagesContainer: publicUrlPageList
       });
     } catch (e) {
       console.error(e);
-      writeLog(`処理失敗: ${e.message}`);
+      alert(`処理失敗: ${e.message}`);
     }
   });
 }
