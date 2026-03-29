@@ -89,12 +89,11 @@ console.log("data_source_url.js loaded");
     return lines[0];
   }
 
-  function syncPublicUrlDisplay() {
-    const inputEl = document.getElementById("publicUrlTarget");
+  function syncPublicUrlDisplay(config) {
     const displayEl = document.getElementById("publicUrlTargetDisplay");
-    if (!inputEl || !displayEl) return;
+    if (!displayEl || !config) return;
 
-    const nextValue = formatPublicUrlDisplay(inputEl.value);
+    const nextValue = `${config.label}：${config.url}`;
     if (nextValue === lastDisplayValue) return;
 
     lastDisplayValue = nextValue;
