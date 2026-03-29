@@ -145,8 +145,12 @@
 }
 
 .url-page-card{
-  width:100%;
-  box-sizing:border-box;
+  height:34px;
+  padding:0 10px;
+  border-bottom:1px solid #e1e6ef;
+  display:flex;
+  align-items:center;
+  overflow:hidden;
 }
 
 .url-page-head{
@@ -254,15 +258,7 @@
 }
 
 .url-page-header{
-  display:flex;
-  align-items:center;
-  gap:8px;
-  padding:8px 10px;
-  border-bottom:1px solid #d7dde8;
-  background:#eef2f7;
-  font-size:13px;
-  font-weight:700;
-  color:#0f172a;
+  margin:0;
 }
 
 .url-page-row{
@@ -308,16 +304,6 @@
   white-space:nowrap;
   overflow:hidden;
   text-overflow:ellipsis;
-}
-
-.url-page-card{
-  height:34px;
-  padding:0 10px;
-  border-bottom:1px solid #e1e6ef;
-  display:flex;
-  align-items:center;
-  gap:8px;
-  overflow:hidden;
 }
 
 .url-page-meta{

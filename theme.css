@@ -352,3 +352,26 @@ textarea{
     margin-top:6px;
   }
 }
+
+/* ===============================
+   common list header
+=============================== */
+
+.list-header{
+  display:flex;
+  align-items:center;
+  min-height:34px;
+  padding:0 10px;
+  border-top:1px solid #cfd8e3;
+  border-bottom:1px solid #cfd8e3;
+  background:linear-gradient(180deg, #eef3f8 0%, #e3eaf3 100%);
+  color:#334155;
+  font-size:12px;
+  font-weight:700;
+}
+
+.list-header > div{
+  display:flex;
+  align-items:center;
+  min-height:34px;
+}
