@@ -128,10 +128,10 @@ console.log("data_source_opendata.js loaded");
     const rowNo = offset + indexOnPage + 1;
     const status = formatStatus(item.status);
     const done = status === "done";
-    const ext = formatExt(item.ext);
-    const originalName = String(item.original_name ?? "").trim();
     const title = String(item.title ?? "").trim();
     const datasetId = String(item.dataset_id ?? "").trim();
+    const childCount = Number(item.child_count ?? 0);
+    const sourceUrl = String(item.source_url ?? "").trim();
     const displayStatus = toStatusLabel(status);
     const chipClass = statusClassName(status);
 
@@ -154,22 +154,26 @@ console.log("data_source_opendata.js loaded");
           ${rowNo}. ${escapeHtml(title)}
         </div>
 
-        <div class="opendata-col-ext">
-          <span class="url-chip">${escapeHtml(ext)}</span>
+        <div class="opendata-col-count">
+          <span class="url-chip">${escapeHtml(childCount)}</span>
+        </div>
+
+        <div class="opendata-col-url" title="${escapeHtml(sourceUrl)}">
+          ${
+            sourceUrl
+              ? `<a href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(sourceUrl)}</a>`
+              : ""
+          }
         </div>
 
         <div class="opendata-col-status">
           <span class="url-chip ${chipClass}">${escapeHtml(displayStatus)}</span>
         </div>
 
-        <div class="opendata-col-name" title="${escapeHtml(originalName)}">
-          ${originalName ? escapeHtml(originalName) : ""}
-        </div>
-
         <div class="opendata-col-action">
           ${actionHtml}
-        </div>
-      </div>
+          </div>
+    </div>
     `;
   }
 
