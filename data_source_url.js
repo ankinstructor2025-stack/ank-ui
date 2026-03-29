@@ -3,6 +3,8 @@ console.log("data_source_url.js loaded");
 (function () {
 
   const PAGE_SIZE = 5;
+  let publicUrlDisplayTimer = null;
+  let lastDisplayValue = null;
 
   function buildRequestUrl(apiBase, path) {
     if (!path) throw new Error("path が指定されていません");
@@ -71,6 +73,44 @@ console.log("data_source_url.js loaded");
     return String(value).replace("T", " ").replace("+00:00", "");
   }
 
+  function formatPublicUrlDisplay(value) {
+    const text = String(value ?? "").trim();
+    if (!text) return "";
+
+    const lines = text
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean);
+
+    if (lines.length >= 2) {
+      return `${lines[0]}：${lines.slice(1).join(" ")}`;
+    }
+
+    return lines[0];
+  }
+
+  function syncPublicUrlDisplay() {
+    const inputEl = document.getElementById("publicUrlTarget");
+    const displayEl = document.getElementById("publicUrlTargetDisplay");
+    if (!inputEl || !displayEl) return;
+
+    const nextValue = formatPublicUrlDisplay(inputEl.value);
+    if (nextValue === lastDisplayValue) return;
+
+    lastDisplayValue = nextValue;
+    displayEl.textContent = nextValue;
+  }
+
+  function startPublicUrlDisplaySync() {
+    if (publicUrlDisplayTimer) return;
+
+    syncPublicUrlDisplay();
+
+    publicUrlDisplayTimer = window.setInterval(() => {
+      syncPublicUrlDisplay();
+    }, 300);
+  }
+
   async function decomposePage({ apiBase, idToken, pageUrl }) {
     const requestUrl = buildRequestUrl(apiBase, "/public-url/decompose");
 
@@ -109,11 +149,13 @@ console.log("data_source_url.js loaded");
   }
 
   function ensurePagerState(targetEl, pages) {
-    if (!targetEl) return {
-      currentPage: 1,
-      pageSize: PAGE_SIZE,
-      allPages: []
-    };
+    if (!targetEl) {
+      return {
+        currentPage: 1,
+        pageSize: PAGE_SIZE,
+        allPages: []
+      };
+    }
 
     if (!targetEl.__pagerState) {
       targetEl.__pagerState = {
@@ -182,13 +224,11 @@ console.log("data_source_url.js loaded");
 
       return `
         <div class="url-page-card" data-page-url="${escapeHtml(urlRaw)}">
-          <div class="url-page-head">
-            <div class="url-page-title">
-              ${rowNo}. 
-              <a href="${escapeHtml(urlRaw)}" target="_blank" rel="noopener noreferrer">
-                ${escapeHtml(urlRaw)}
-              </a>
-            </div>
+          <div class="url-page-title">
+            ${rowNo}. 
+            <a href="${escapeHtml(urlRaw)}" target="_blank" rel="noopener noreferrer">
+              ${escapeHtml(urlRaw)}
+            </a>
           </div>
 
           <div class="url-page-meta">
@@ -210,13 +250,13 @@ console.log("data_source_url.js loaded");
     const nextDisabled = currentPage >= totalPages ? "disabled" : "";
 
     return `
-      <div class="url-pager" style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:10px; border-top:1px solid #e1e6ef; background:#ffffff;">
-        <div class="url-pager-info" style="font-size:13px; color:#5b6472;">
+      <div class="url-pager">
+        <div class="url-pager-info">
           ${escapeHtml(totalCount)}件 / ${escapeHtml(currentPage)} / ${escapeHtml(totalPages)}ページ
         </div>
-        <div class="url-pager-actions" style="display:flex; align-items:center; gap:8px;">
-          <button type="button" class="btn btn-page-prev" ${prevDisabled}>前へ</button>
-          <button type="button" class="btn btn-page-next" ${nextDisabled}>次へ</button>
+        <div class="url-pager-actions">
+          <button type="button" class="btn btn-primary btn-page-prev" ${prevDisabled}>前へ</button>
+          <button type="button" class="btn btn-primary btn-page-next" ${nextDisabled}>次へ</button>
         </div>
       </div>
     `;
@@ -253,21 +293,23 @@ console.log("data_source_url.js loaded");
       ${pagerHtml}
     `;
 
-    targetEl.querySelectorAll(".btn-page-prev").forEach((btn) => {
-      btn.addEventListener("click", () => {
+    const prevBtn = targetEl.querySelector(".btn-page-prev");
+    if (prevBtn) {
+      prevBtn.addEventListener("click", () => {
         if (state.currentPage <= 1) return;
         state.currentPage -= 1;
         renderPages(null, targetEl, options);
       });
-    });
+    }
 
-    targetEl.querySelectorAll(".btn-page-next").forEach((btn) => {
-      btn.addEventListener("click", () => {
+    const nextBtn = targetEl.querySelector(".btn-page-next");
+    if (nextBtn) {
+      nextBtn.addEventListener("click", () => {
         if (state.currentPage >= totalPages) return;
         state.currentPage += 1;
         renderPages(null, targetEl, options);
       });
-    });
+    }
 
     targetEl.querySelectorAll(".btn-decompose").forEach((btn) => {
       btn.addEventListener("click", async () => {
@@ -314,11 +356,13 @@ console.log("data_source_url.js loaded");
 
   function resetPages(targetEl) {
     if (!targetEl) return;
+
     targetEl.__pagerState = {
       currentPage: 1,
       pageSize: PAGE_SIZE,
       allPages: []
     };
+
     targetEl.innerHTML = `<div class="placeholder">まだ取得していません</div>`;
   }
 
@@ -331,6 +375,7 @@ console.log("data_source_url.js loaded");
   }) {
     if (!sourceKey) throw new Error("sourceKey が指定されていません");
 
+    syncPublicUrlDisplay();
     writeLog?.("公開URL取得開始");
 
     const requestUrl = buildRequestUrl(apiBase, "/public-url/register");
@@ -352,7 +397,9 @@ console.log("data_source_url.js loaded");
 
     writeLog?.("公開URL取得完了");
 
-    if (data.page_count != null) writeLog?.(`page_count=${data.page_count}`);
+    if (data.page_count != null) {
+      writeLog?.(`page_count=${data.page_count}`);
+    }
 
     if (Array.isArray(data.pages)) {
       pagesContainer.__pagerState = {
@@ -373,10 +420,15 @@ console.log("data_source_url.js loaded");
     return data;
   }
 
+  document.addEventListener("DOMContentLoaded", () => {
+    startPublicUrlDisplaySync();
+  });
+
   window.DataSourceUrl = {
     run,
     renderPages,
-    resetPages
+    resetPages,
+    syncPublicUrlDisplay
   };
 
 })();

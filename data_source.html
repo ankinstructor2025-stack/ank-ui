@@ -17,6 +17,8 @@
       <div class="main-area">
         <div class="work-panel">
           <div id="panelKokkai" class="hidden">
+            <h3 class="panel-title">国会議事録取得</h3>
+
             <div class="section-block">
               <div class="compact-actions">
                 <button id="btnKokkaiRegister" class="btn btn-primary" type="button">
@@ -27,6 +29,8 @@
           </div>
 
           <div id="panelUpload" class="hidden">
+            <h3 class="panel-title">ファイルアップロード</h3>
+
             <div class="section-block">
               <div>
                 <label for="uploadFileInput">ファイル</label>
@@ -69,22 +73,19 @@
           </div>
 
           <div id="panelUrl" class="hidden">
-            <div class="section-block ds-section-fixed">
-              <div>
-                <label for="publicUrlTarget">取得元URL</label>
-                <textarea id="publicUrlTarget" rows="2" readonly></textarea>
-              </div>
+            <div class="url-panel">
+              <div id="publicUrlTargetDisplay" class="public-url-display"></div>
+              <textarea id="publicUrlTarget" rows="2" readonly class="public-url-target-hidden"></textarea>
 
-              <div class="compact-actions">
+              <div class="compact-actions compact-actions-left">
                 <button id="btnUrlRegister" class="btn btn-primary" type="button">
                   公開URL取得
                 </button>
               </div>
-            </div>
 
-            <div class="section-block">
-              <h4 class="panel-subtitle">子URL一覧</h4>
-              <div class="resource-list-wrap">
+              <h4 class="panel-subtitle url-list-title">子URL一覧</h4>
+
+              <div class="resource-list-wrap resource-list-wrap-url">
                 <div id="publicUrlPageList" class="placeholder">
                   まだ取得していません
                 </div>
