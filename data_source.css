@@ -347,3 +347,19 @@
   align-items:center;
   gap:8px;
 }
+
+.url-col-depth{
+  flex:0 0 70px;
+}
+
+.url-col-score{
+  flex:0 0 70px;
+}
+
+.url-col-status{
+  flex:0 0 110px;
+}
+
+.url-col-action{
+  flex:0 0 110px;
+}
