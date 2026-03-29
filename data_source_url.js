@@ -233,10 +233,7 @@ console.log("data_source_url.js loaded");
           <div class="url-page-meta">
             <span class="url-chip">${escapeHtml(depth)}</span>
             <span class="url-chip">${escapeHtml(score)}</span>
-            <span class="url-chip">${escapeHtml(decision)}</span>
-            <span class="url-chip">${escapeHtml(usable)}</span>
             <span class="url-chip ${statusClass}">${escapeHtml(displayStatus)}</span>
-            <span class="url-chip">${escapeHtml(createdAt)}</span>
             ${actionHtml}
           </div>
         </div>
