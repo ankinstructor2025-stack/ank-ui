@@ -77,6 +77,11 @@ function showPanelByKey(key) {
   if (panelEmpty) panelEmpty.classList.remove("hidden");
 }
 
+function clearLog() {
+  if (logText) logText.textContent = "";
+  if (logBox) logBox.classList.add("hidden");
+}
+
 function writeLog(msg) {
   if (!logBox || !logText) return;
 
