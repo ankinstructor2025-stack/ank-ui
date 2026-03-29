@@ -223,19 +223,32 @@ console.log("data_source_url.js loaded");
 
       return `
         <div class="url-page-card" data-page-url="${escapeHtml(urlRaw)}">
-          <div class="url-page-title">
-            ${rowNo}. 
+
+          <div class="url-col-url">
+            ${rowNo}.
             <a href="${escapeHtml(urlRaw)}" target="_blank" rel="noopener noreferrer">
               ${escapeHtml(urlRaw)}
             </a>
           </div>
 
-          <div class="url-page-meta">
-            <span class="url-chip">${escapeHtml(depth)}</span>
-            <span class="url-chip">${escapeHtml(score)}</span>
-            <span class="url-chip ${statusClass}">${escapeHtml(displayStatus)}</span>
+          <div class="url-col-depth">
+            ${escapeHtml(depth)}
+          </div>
+
+          <div class="url-col-score">
+            ${escapeHtml(score)}
+          </div>
+
+          <div class="url-col-status">
+            <span class="url-chip ${statusClass}">
+              ${escapeHtml(displayStatus)}
+            </span>
+          </div>
+
+          <div class="url-col-action">
             ${actionHtml}
           </div>
+
         </div>
       `;
     }).join("");
