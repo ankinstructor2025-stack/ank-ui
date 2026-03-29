@@ -141,25 +141,24 @@
 =============================== */
 
 .url-page-list{
-  display:flex;
-  flex-direction:column;
+  width:100%;
 }
 
 .url-page-card{
-  border-bottom:1px solid #e1e6ef;
-  padding:8px 10px;
+  width:100%;
+  box-sizing:border-box;
+}
+
+.url-page-head{
   display:flex;
-  flex-direction:column;
-  gap:4px;
+  align-items:center;
+  justify-content:flex-start;
+  gap:8px;
 }
 
 .url-page-title{
-  font-size:13px;
-  font-weight:700;
-  color:#0f172a;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
+  flex:1;
+  min-width:0;   /* ←これ重要（ellipsis効かせる） */
 }
 
 .url-page-meta{
