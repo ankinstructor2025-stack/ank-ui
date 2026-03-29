@@ -304,8 +304,8 @@
   border-bottom:1px solid #e1e6ef;
   padding:8px 10px;
   display:flex;
-  flex-direction:column;
-  gap:4px;
+  align-items:center;
+  gap:8px;
 }
 
 .url-page-meta{
