@@ -1,6 +1,8 @@
 console.log("data_source_opendata.js loaded");
 
 (function () {
+  const PAGE_SIZE = 5;
+
   function getDatasetListEl() {
     return document.getElementById("openDataDatasetList");
   }
@@ -25,9 +27,15 @@ console.log("data_source_opendata.js loaded");
 
   function resetOpenDataArea() {
     const datasetList = getDatasetListEl();
-    if (datasetList) {
-      datasetList.innerHTML = `<div class="placeholder">まだ取得していません</div>`;
-    }
+    if (!datasetList) return;
+
+    datasetList.__pagerState = {
+      currentPage: 1,
+      pageSize: PAGE_SIZE,
+      allItems: []
+    };
+
+    datasetList.innerHTML = `<div class="placeholder">まだ取得していません</div>`;
   }
 
   function formatExt(ext) {
@@ -55,7 +63,69 @@ console.log("data_source_opendata.js loaded");
     return "status-new";
   }
 
-  function buildDatasetRow(item) {
+  function cloneItems(items) {
+    if (!Array.isArray(items)) return [];
+    return items.map((item) => ({ ...item }));
+  }
+
+  function updateItemStatusLocally(items, datasetId, nextStatus, nextExt, nextOriginalName) {
+    return cloneItems(items).map((item) => {
+      if (String(item.dataset_id ?? "") !== String(datasetId ?? "")) {
+        return { ...item };
+      }
+
+      return {
+        ...item,
+        status: nextStatus,
+        ext: nextExt ?? item.ext,
+        original_name: nextOriginalName ?? item.original_name
+      };
+    });
+  }
+
+  function ensurePagerState(targetEl, items) {
+    if (!targetEl) {
+      return {
+        currentPage: 1,
+        pageSize: PAGE_SIZE,
+        allItems: []
+      };
+    }
+
+    if (!targetEl.__pagerState) {
+      targetEl.__pagerState = {
+        currentPage: 1,
+        pageSize: PAGE_SIZE,
+        allItems: []
+      };
+    }
+
+    if (Array.isArray(items)) {
+      targetEl.__pagerState.allItems = cloneItems(items);
+    }
+
+    if (!targetEl.__pagerState.pageSize || targetEl.__pagerState.pageSize < 1) {
+      targetEl.__pagerState.pageSize = PAGE_SIZE;
+    }
+
+    const totalPages = Math.max(
+      1,
+      Math.ceil((targetEl.__pagerState.allItems.length || 0) / targetEl.__pagerState.pageSize)
+    );
+
+    if (!targetEl.__pagerState.currentPage || targetEl.__pagerState.currentPage < 1) {
+      targetEl.__pagerState.currentPage = 1;
+    }
+
+    if (targetEl.__pagerState.currentPage > totalPages) {
+      targetEl.__pagerState.currentPage = totalPages;
+    }
+
+    return targetEl.__pagerState;
+  }
+
+  function buildDatasetRow(item, indexOnPage, offset) {
+    const rowNo = offset + indexOnPage + 1;
     const status = formatStatus(item.status);
     const done = status === "done";
     const ext = formatExt(item.ext);
@@ -81,7 +151,7 @@ console.log("data_source_opendata.js loaded");
     return `
       <div class="opendata-row" data-dataset-id="${escapeHtml(datasetId)}">
         <div class="opendata-col-title" title="${escapeHtml(title)}">
-          ${escapeHtml(title)}
+          ${rowNo}. ${escapeHtml(title)}
         </div>
 
         <div class="opendata-col-ext">
@@ -103,28 +173,98 @@ console.log("data_source_opendata.js loaded");
     `;
   }
 
+  function buildPagerHtml(currentPage, totalPages, totalCount) {
+    const prevDisabled = currentPage <= 1 ? "disabled" : "";
+    const nextDisabled = currentPage >= totalPages ? "disabled" : "";
+
+    return `
+      <div class="url-pager">
+        <div class="url-pager-info">
+          ${escapeHtml(totalCount)}件 / ${escapeHtml(currentPage)} / ${escapeHtml(totalPages)}ページ
+        </div>
+        <div class="url-pager-actions">
+          <button type="button" class="btn btn-primary btn-opendata-page-prev" ${prevDisabled}>前へ</button>
+          <button type="button" class="btn btn-primary btn-opendata-page-next" ${nextDisabled}>次へ</button>
+        </div>
+      </div>
+    `;
+  }
+
   function renderDatasets(items, handlers, writeLog) {
     const wrap = getDatasetListEl();
     if (!wrap) return;
 
-    if (!Array.isArray(items) || items.length === 0) {
+    const state = ensurePagerState(wrap, items);
+    const allItems = Array.isArray(state.allItems) ? state.allItems : [];
+
+    if (allItems.length === 0) {
       wrap.innerHTML = `<div class="placeholder">データセットがありません</div>`;
       return;
     }
 
-    wrap.innerHTML = items.map((item) => buildDatasetRow(item)).join("");
+    const totalCount = allItems.length;
+    const totalPages = Math.max(1, Math.ceil(totalCount / state.pageSize));
+    const currentPage = Math.min(Math.max(state.currentPage, 1), totalPages);
+    const startIndex = (currentPage - 1) * state.pageSize;
+    const endIndex = startIndex + state.pageSize;
+    const visibleItems = allItems.slice(startIndex, endIndex);
+
+    const rowsHtml = visibleItems
+      .map((item, i) => buildDatasetRow(item, i, startIndex))
+      .join("");
+
+    const pagerHtml = buildPagerHtml(currentPage, totalPages, totalCount);
+
+    wrap.innerHTML = `
+      <div class="opendata-list">${rowsHtml}</div>
+      ${pagerHtml}
+    `;
+
+    const prevBtn = wrap.querySelector(".btn-opendata-page-prev");
+    if (prevBtn) {
+      prevBtn.addEventListener("click", () => {
+        if (state.currentPage <= 1) return;
+        state.currentPage -= 1;
+        renderDatasets(null, handlers, writeLog);
+      });
+    }
+
+    const nextBtn = wrap.querySelector(".btn-opendata-page-next");
+    if (nextBtn) {
+      nextBtn.addEventListener("click", () => {
+        if (state.currentPage >= totalPages) return;
+        state.currentPage += 1;
+        renderDatasets(null, handlers, writeLog);
+      });
+    }
 
     const buttons = wrap.querySelectorAll(".btn-dataset-expand");
     buttons.forEach((btn) => {
       btn.addEventListener("click", async () => {
         const datasetId = btn.dataset.datasetId;
         const datasetTitle = btn.dataset.datasetTitle;
+        const originalText = btn.textContent;
+
+        btn.disabled = true;
+        btn.textContent = "取得中";
 
         try {
-          await handlers.onExpandDataset(datasetId, datasetTitle);
+          const data = await handlers.onExpandDataset(datasetId, datasetTitle);
+
+          state.allItems = updateItemStatusLocally(
+            state.allItems,
+            datasetId,
+            "done",
+            data?.ext,
+            data?.original_name
+          );
+
+          renderDatasets(null, handlers, writeLog);
         } catch (e) {
           console.error(e);
           writeLog(`dataset 取得失敗: ${e.message}`);
+          btn.disabled = false;
+          btn.textContent = originalText;
         }
       });
     });
