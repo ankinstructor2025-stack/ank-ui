@@ -41,6 +41,68 @@ console.log("data_source_opendata.js loaded");
     return v;
   }
 
+  function toStatusLabel(status) {
+    const v = formatStatus(status);
+    if (v === "done") return "取得済";
+    if (v === "new") return "未取得";
+    return v;
+  }
+
+  function statusClassName(status) {
+    const v = formatStatus(status);
+    if (v === "done") return "status-done";
+    if (v === "error") return "status-error";
+    return "status-new";
+  }
+
+  function buildDatasetRow(item) {
+    const status = formatStatus(item.status);
+    const done = status === "done";
+    const ext = formatExt(item.ext);
+    const originalName = String(item.original_name ?? "").trim();
+    const title = String(item.title ?? "").trim();
+    const datasetId = String(item.dataset_id ?? "").trim();
+    const displayStatus = toStatusLabel(status);
+    const chipClass = statusClassName(status);
+
+    const actionHtml = done
+      ? `<span class="url-chip status-done">取得済</span>`
+      : `
+        <button
+          type="button"
+          class="btn btn-primary btn-dataset-expand"
+          data-dataset-id="${escapeHtml(datasetId)}"
+          data-dataset-title="${escapeHtml(title)}"
+        >
+          取得
+        </button>
+      `;
+
+    return `
+      <div class="opendata-row" data-dataset-id="${escapeHtml(datasetId)}">
+        <div class="opendata-col-title" title="${escapeHtml(title)}">
+          ${escapeHtml(title)}
+        </div>
+
+        <div class="opendata-col-ext">
+          <span class="url-chip">${escapeHtml(ext)}</span>
+        </div>
+
+        <div class="opendata-col-status">
+          <span class="url-chip ${chipClass}">${escapeHtml(displayStatus)}</span>
+        </div>
+
+        <div class="opendata-col-name" title="${escapeHtml(originalName)}">
+          ${originalName ? escapeHtml(originalName) : ""}
+        </div>
+
+        <div class="opendata-col-action">
+          ${actionHtml}
+        </div>
+      </div>
+    `;
+  }
+
   function renderDatasets(items, handlers, writeLog) {
     const wrap = getDatasetListEl();
     if (!wrap) return;
@@ -50,43 +112,7 @@ console.log("data_source_opendata.js loaded");
       return;
     }
 
-    wrap.innerHTML = items.map((item) => {
-      const status = formatStatus(item.status);
-      const done = status === "done";
-      const ext = formatExt(item.ext);
-      const originalName = String(item.original_name ?? "").trim();
-
-      return `
-        <div class="choice-row">
-          <div class="choice-title-line" title="${escapeHtml(item.title)}">
-            ${escapeHtml(item.title)}
-          </div>
-
-          <div class="choice-meta-line">
-            <span class="choice-meta-chip">${escapeHtml(ext)}</span>
-            <span class="choice-meta-chip">${escapeHtml(status)}</span>
-            ${originalName ? `<span class="choice-meta-chip">${escapeHtml(originalName)}</span>` : ""}
-          </div>
-
-          <div class="choice-button-line">
-            ${
-              done
-                ? `<span class="choice-done-text">取得済</span>`
-                : `
-                  <button
-                    type="button"
-                    class="btn btn-primary btn-dataset-expand"
-                    data-dataset-id="${escapeHtml(item.dataset_id)}"
-                    data-dataset-title="${escapeHtml(item.title)}"
-                  >
-                    取得
-                  </button>
-                `
-            }
-          </div>
-        </div>
-      `;
-    }).join("");
+    wrap.innerHTML = items.map((item) => buildDatasetRow(item)).join("");
 
     const buttons = wrap.querySelectorAll(".btn-dataset-expand");
     buttons.forEach((btn) => {

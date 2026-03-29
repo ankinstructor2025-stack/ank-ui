@@ -101,15 +101,31 @@
    オープンデータ一覧
 =============================== */
 
-.choice-row{
-  padding:8px 10px;
-  border-bottom:1px solid #e1e6ef;
-  display:flex;
-  flex-direction:column;
-  gap:4px;
+.opendata-list-wrap{
+  background:#ffffff;
 }
 
-.choice-title-line{
+.opendata-header{
+  margin:0;
+}
+
+.opendata-row{
+  min-height:34px;
+  padding:0 10px;
+  border-bottom:1px solid #e1e6ef;
+  display:flex;
+  align-items:center;
+  overflow:hidden;
+  background:#ffffff;
+}
+
+.opendata-col-title{
+  flex:1 1 auto;
+  min-width:0;
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;
+  padding-right:10px;
   font-size:14px;
   font-weight:700;
   color:#0f172a;
@@ -118,23 +134,54 @@
   text-overflow:ellipsis;
 }
 
-.choice-meta-line{
+.opendata-col-ext{
+  flex:0 0 72px;
   display:flex;
-  gap:6px;
-  flex-wrap:wrap;
+  align-items:center;
+  justify-content:center;
 }
 
-.choice-meta-chip{
-  font-size:12px;
-  padding:2px 6px;
-  background:#e2e8f0;
-  color:#0f172a;
-  border-radius:6px;
+.opendata-col-status{
+  flex:0 0 92px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
 }
 
+.opendata-col-name{
+  flex:0 0 260px;
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;
+  color:#475569;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  padding-right:10px;
+}
+
+.opendata-col-action{
+  flex:0 0 96px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.opendata-col-action .btn{
+  height:26px;
+  min-width:58px;
+  padding:0 12px;
+  font-size:13px;
+  border-radius:8px;
+}
+
+/* 旧カード定義は整理済み */
+.choice-row,
+.choice-title-line,
+.choice-meta-line,
+.choice-meta-chip,
 .choice-button-line{
-  display:flex;
-  justify-content:flex-end;
+  display:none;
 }
 
 /* ===============================
