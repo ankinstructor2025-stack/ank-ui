@@ -5,27 +5,24 @@
 .main-area{
   flex:1;
   display:flex;
+  flex-direction:column;  /* ← これ追加 */
   overflow:hidden;
-  gap:0;
 }
 
 /* 左：作業エリア */
 .work-panel{
-  flex:1;
+  flex:1;   /* ← 上が伸びる */
   display:flex;
   flex-direction:column;
   overflow:hidden;
-  padding:0;
-  margin:0;
 }
 
 /* 右：ログ */
 .log{
-  width:360px;
-  border-left:1px solid #cfd8e3;
-  display:flex;
-  flex-direction:column;
-  background:#0f172a;
+  width:100%;          /* ← 横いっぱい */
+  height:200px;        /* ← 好みで調整 */
+  border-top:1px solid #cfd8e3;
+  border-left:none;    /* ← 横線やめる */
 }
 
 /* ===============================
