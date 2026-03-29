@@ -252,3 +252,86 @@
   height:48px;
   resize:none;
 }
+
+.url-page-header{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:8px 10px;
+  border-bottom:1px solid #d7dde8;
+  background:#eef2f7;
+  font-size:13px;
+  font-weight:700;
+  color:#0f172a;
+}
+
+.url-page-row{
+  display:flex;
+  align-items:flex-start;
+  gap:8px;
+  width:100%;
+}
+
+.url-col-url{
+  flex:1;
+  min-width:0;
+}
+
+.url-col-meta{
+  width:420px;
+  flex:0 0 420px;
+}
+
+.url-col-action{
+  width:100px;
+  flex:0 0 100px;
+}
+
+.url-page-title{
+  min-width:0;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.url-page-title a{
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.url-page-card{
+  border-bottom:1px solid #e1e6ef;
+  padding:8px 10px;
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+
+.url-page-meta{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  align-items:center;
+}
+
+.url-pager{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:8px;
+  padding:10px;
+  border-top:1px solid #d7dde8;
+  background:#ffffff;
+}
+
+.url-pager-info{
+  font-size:13px;
+  color:#5b6472;
+}
+
+.url-pager-actions{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
