@@ -75,6 +75,7 @@
           <div id="panelUrl" class="hidden">
             <div class="url-panel">
               <div id="publicUrlTargetDisplay" class="public-url-display"></div>
+
               <div class="compact-actions compact-actions-left">
                 <button id="btnUrlRegister" class="btn btn-primary" type="button">
                   公開URL取得
@@ -84,8 +85,16 @@
               <h4 class="panel-subtitle url-list-title">子URL一覧</h4>
 
               <div class="resource-list-wrap resource-list-wrap-url">
+                <div class="url-page-header">
+                  <div class="url-col-url">URL</div>
+                  <div class="url-col-depth">階層</div>
+                  <div class="url-col-score">評価</div>
+                  <div class="url-col-status">状態</div>
+                  <div class="url-col-action">操作</div>
+                </div>
+
                 <div id="publicUrlPageList" class="placeholder">
-                  まだ取得していません
+                  &nbsp;
                 </div>
               </div>
             </div>
