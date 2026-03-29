@@ -73,7 +73,7 @@
 
 .compact-actions{
   display:flex;
-  justify-content:flex-end;
+  justify-content:flex-start;
   gap:6px;
   margin:0;
   padding:0;
