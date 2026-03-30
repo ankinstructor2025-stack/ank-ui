@@ -1,6 +1,7 @@
 document.addEventListener("DOMContentLoaded", () => {
   const importBtn = document.getElementById("btn-import");
   const viewBtn = document.getElementById("btn-view");
+  const jobMonitorBtn = document.getElementById("btn-job-monitor");
   const knowledgeCreateBtn = document.getElementById("btn-knowledge-create");
   const knowledgeViewBtn = document.getElementById("btn-knowledge-view");
   const searchBtn = document.getElementById("btn-search");
@@ -15,6 +16,12 @@ document.addEventListener("DOMContentLoaded", () => {
   if (viewBtn) {
     viewBtn.addEventListener("click", () => {
       window.location.href = "data_view.html";
+    });
+  }
+
+  if (jobMonitorBtn) {
+    jobMonitorBtn.addEventListener("click", () => {
+      window.location.href = "job_monitor.html";
     });
   }
 
