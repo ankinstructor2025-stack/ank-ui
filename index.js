@@ -12,7 +12,7 @@ const firebaseConfig = {
   measurementId: "G-TC4J08VPTJ"
 };
 
-// ★Cloud Run(API) のベースURL
+// Cloud Run(API) のベースURL
 const API_BASE_URL = "https://ank-api-986862757498.asia-northeast1.run.app";
 
 // Firebase起動
@@ -35,6 +35,37 @@ function clearError() {
   if (errorBox) {
     errorBox.style.display = "none";
     errorBox.textContent = "";
+  }
+}
+
+function showStatus(message) {
+  const statusBox = document.getElementById("statusBox");
+  if (statusBox) {
+    statusBox.style.display = "block";
+    statusBox.textContent = message;
+  }
+}
+
+function clearStatus() {
+  const statusBox = document.getElementById("statusBox");
+  if (statusBox) {
+    statusBox.style.display = "none";
+    statusBox.textContent = "";
+  }
+}
+
+function setBusy(isBusy, message = "") {
+  const loginButton = document.getElementById("loginButton");
+
+  if (loginButton) {
+    loginButton.disabled = isBusy;
+    loginButton.textContent = isBusy ? "ログイン処理中..." : "Googleでログイン";
+  }
+
+  if (isBusy) {
+    showStatus(message || "処理中です。しばらくお待ちください。");
+  } else {
+    clearStatus();
   }
 }
 
@@ -69,18 +100,17 @@ async function fetchJsonOrThrow(url, options) {
 document.getElementById("loginButton").addEventListener("click", async (e) => {
   e.preventDefault();
 
-  const loginButton = document.getElementById("loginButton");
-  loginButton.disabled = true;
   clearError();
+  setBusy(true, "Googleログインを開始しています...");
 
   try {
-    // Googleログイン
+    setBusy(true, "Googleアカウントで認証しています...");
     const result = await signInWithPopup(auth, provider);
 
-    // IDトークン取得
+    setBusy(true, "認証情報を取得しています...");
     const idToken = await result.user.getIdToken();
 
-    // セッション開始
+    setBusy(true, "セッションを開始しています...");
     await fetchJsonOrThrow(`${API_BASE_URL}/v1/session`, {
       method: "POST",
       headers: {
@@ -90,7 +120,7 @@ document.getElementById("loginButton").addEventListener("click", async (e) => {
       body: JSON.stringify({})
     });
 
-    // ユーザー初期化
+    setBusy(true, "ユーザー環境を初期化しています...");
     const initResult = await fetchJsonOrThrow(`${API_BASE_URL}/v1/user/init`, {
       method: "POST",
       headers: {
@@ -106,12 +136,12 @@ document.getElementById("loginButton").addEventListener("click", async (e) => {
 
     sessionStorage.setItem("idToken", idToken);
 
-    // 成功時だけ遷移
+    setBusy(true, "メニューへ移動しています...");
     window.location.href = "./menu.html";
 
   } catch (err) {
     console.error(err);
     showError(err.message || String(err));
-    loginButton.disabled = false;
+    setBusy(false);
   }
 });
