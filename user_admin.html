@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>ユーザー管理</title>
+  <link rel="stylesheet" href="theme.css" />
+  <style>
+    .ua-wrap{
+      max-width:1100px;
+      margin:24px auto;
+      padding:0 16px;
+    }
+
+    .ua-card{
+      background:#fff;
+      border:1px solid #d9e0ea;
+      border-radius:12px;
+      padding:16px;
+      box-shadow:0 2px 8px rgba(0,0,0,0.06);
+    }
+
+    .ua-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:16px;
+    }
+
+    .ua-title{
+      font-size:20px;
+      font-weight:700;
+    }
+
+    .ua-actions{
+      display:flex;
+      gap:8px;
+    }
+
+    .ua-status{
+      margin:0 0 12px 0;
+      padding:10px 12px;
+      border-radius:8px;
+      background:#f5f7fb;
+      color:#223;
+      font-size:13px;
+      white-space:pre-wrap;
+      word-break:break-word;
+    }
+
+    .ua-error{
+      margin:0 0 12px 0;
+      padding:10px 12px;
+      border-radius:8px;
+      background:#fff1f1;
+      color:#a22;
+      border:1px solid #f0caca;
+      font-size:13px;
+      display:none;
+      white-space:pre-wrap;
+      word-break:break-word;
+    }
+
+    .ua-table{
+      width:100%;
+      border-collapse:collapse;
+    }
+
+    .ua-table th,
+    .ua-table td{
+      border-bottom:1px solid #e5eaf1;
+      padding:10px 8px;
+      text-align:left;
+      font-size:14px;
+      vertical-align:middle;
+    }
+
+    .ua-table th{
+      background:#f8fafc;
+    }
+
+    .uid-cell{
+      font-family:Consolas, Monaco, monospace;
+      font-size:13px;
+      word-break:break-all;
+    }
+
+    .btn-danger{
+      background:#b42318;
+      color:#fff;
+      border:1px solid #b42318;
+      padding:8px 12px;
+      border-radius:8px;
+      cursor:pointer;
+    }
+
+    .btn-danger:disabled{
+      opacity:.6;
+      cursor:not-allowed;
+    }
+
+    .btn-secondary{
+      background:#fff;
+      color:#223;
+      border:1px solid #cfd7e3;
+      padding:8px 12px;
+      border-radius:8px;
+      cursor:pointer;
+    }
+
+    .empty-row{
+      color:#667;
+    }
+  </style>
+</head>
+<body>
+  <div class="ua-wrap">
+    <div class="ua-card">
+      <div class="ua-head">
+        <div class="ua-title">ユーザー管理</div>
+        <div class="ua-actions">
+          <button id="btnReload" class="btn-secondary" type="button">再読込</button>
+          <button id="btnBack" class="btn-secondary" type="button">メニューへ戻る</button>
+        </div>
+      </div>
+
+      <div id="statusBox" class="ua-status">読み込み待ち</div>
+      <div id="errorBox" class="ua-error"></div>
+
+      <table class="ua-table">
+        <thead>
+          <tr>
+            <th style="width:42%">UID</th>
+            <th style="width:28%">GCS Prefix</th>
+            <th style="width:12%">ファイル数</th>
+            <th style="width:18%">操作</th>
+          </tr>
+        </thead>
+        <tbody id="userTableBody">
+          <tr>
+            <td colspan="4" class="empty-row">読み込み中...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script type="module" src="user_admin.js"></script>
+</body>
+</html>
