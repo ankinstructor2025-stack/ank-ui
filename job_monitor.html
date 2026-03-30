@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>ジョブ監視</title>
+  <link rel="stylesheet" href="theme.css">
+  <style>
+    .jm-page{
+      width:100%;
+      min-height:100vh;
+      margin:0;
+      padding:16px;
+    }
+
+    .jm-card{
+      width:100%;
+      min-height:calc(100vh - 32px);
+      display:flex;
+      flex-direction:column;
+      overflow:hidden;
+    }
+
+    .jm-wrap{
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+      width:100%;
+      max-width:1200px;
+      margin:0 auto;
+    }
+
+    .jm-header{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:16px;
+    }
+
+    .jm-title h2{
+      margin:0 0 6px 0;
+      font-size:22px;
+    }
+
+    .jm-title .subtitle{
+      color:#dbe5f0;
+      font-size:14px;
+      line-height:1.5;
+    }
+
+    .jm-actions{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+
+    .jm-panel{
+      background:var(--panel-bg);
+      border:1px solid var(--panel-border);
+      border-radius:14px;
+      overflow:hidden;
+      color:var(--panel-text);
+    }
+
+    .jm-toolbar{
+      display:flex;
+      align-items:end;
+      justify-content:space-between;
+      gap:12px;
+      padding:12px;
+      border-bottom:1px solid var(--panel-border);
+      background:linear-gradient(180deg, #eef3f8 0%, #e3eaf3 100%);
+    }
+
+    .jm-toolbar-left{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:end;
+    }
+
+    .jm-field{
+      min-width:180px;
+    }
+
+    .jm-field label{
+      margin-bottom:6px;
+      color:#334155;
+      font-size:13px;
+    }
+
+    .jm-field select{
+      width:100%;
+      height:36px;
+      border:1px solid #8390a5;
+      border-radius:10px;
+      padding:0 10px;
+      font-size:14px;
+      background:#fff;
+      color:#000;
+    }
+
+    .jm-summary{
+      padding:10px 12px;
+      border-bottom:1px solid var(--panel-border);
+      background:#f7f9fc;
+      color:#334155;
+      font-size:13px;
+    }
+
+    .jm-table-wrap{
+      overflow:auto;
+    }
+
+    .jm-table{
+      width:100%;
+      border-collapse:collapse;
+      background:#fff;
+      color:#0f172a;
+    }
+
+    .jm-table th,
+    .jm-table td{
+      padding:10px 12px;
+      border-bottom:1px solid #dbe3ee;
+      text-align:left;
+      font-size:14px;
+      vertical-align:top;
+      white-space:nowrap;
+    }
+
+    .jm-table th{
+      background:#eef3f8;
+      color:#334155;
+      font-size:12px;
+      font-weight:700;
+    }
+
+    .jm-table td.jm-col-message,
+    .jm-table td.jm-col-target{
+      white-space:normal;
+      min-width:220px;
+    }
+
+    .jm-status{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-width:84px;
+      padding:4px 10px;
+      border-radius:999px;
+      font-size:12px;
+      font-weight:700;
+      border:1px solid transparent;
+    }
+
+    .jm-status-queued{
+      background:#e2e8f0;
+      color:#334155;
+      border-color:#cbd5e1;
+    }
+
+    .jm-status-running{
+      background:#dbeafe;
+      color:#1d4ed8;
+      border-color:#93c5fd;
+    }
+
+    .jm-status-done{
+      background:#dcfce7;
+      color:#166534;
+      border-color:#86efac;
+    }
+
+    .jm-status-error{
+      background:#fee2e2;
+      color:#b91c1c;
+      border-color:#fca5a5;
+    }
+
+    .jm-progress{
+      min-width:140px;
+    }
+
+    .jm-progress-bar{
+      width:100%;
+      height:10px;
+      background:#e5e7eb;
+      border-radius:999px;
+      overflow:hidden;
+      margin-bottom:6px;
+    }
+
+    .jm-progress-fill{
+      height:100%;
+      background:#2563eb;
+      border-radius:999px;
+    }
+
+    .jm-progress-text{
+      font-size:12px;
+      color:#475569;
+    }
+
+    .jm-empty{
+      padding:24px;
+      color:#64748b;
+      font-size:14px;
+      background:#fff;
+    }
+
+    .jm-log{
+      min-height:120px;
+      max-height:180px;
+      overflow:auto;
+      padding:12px;
+      background:#031228;
+      color:#e5e7eb;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.10);
+      font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size:12px;
+      line-height:1.6;
+      white-space:pre-wrap;
+    }
+
+    @media (max-width:960px){
+      .jm-header{
+        flex-direction:column;
+      }
+
+      .jm-toolbar{
+        flex-direction:column;
+        align-items:stretch;
+      }
+
+      .jm-toolbar-left{
+        width:100%;
+      }
+
+      .jm-field{
+        min-width:0;
+        width:100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="jm-page">
+    <div class="card jm-card">
+      <div class="jm-wrap">
+
+        <div class="jm-header">
+          <div class="jm-title">
+            <h2>ジョブ監視</h2>
+            <div class="subtitle">
+              バックグラウンドで実行中の処理を確認します。実行状況、進捗、完了、エラーを確認する画面です。
+            </div>
+          </div>
+          <div class="jm-actions">
+            <button class="btn" id="btn-back-menu" type="button">メニュー</button>
+            <button class="btn btn-primary" id="btn-refresh" type="button">再読込</button>
+          </div>
+        </div>
+
+        <div class="jm-panel">
+          <div class="jm-toolbar">
+            <div class="jm-toolbar-left">
+              <div class="jm-field">
+                <label for="jobTypeFilter">処理種別</label>
+                <select id="jobTypeFilter">
+                  <option value="">すべて</option>
+                  <option value="ingest">データ取込</option>
+                  <option value="knowledge">ナレッジ作成</option>
+                  <option value="qa">QA作成</option>
+                </select>
+              </div>
+
+              <div class="jm-field">
+                <label for="jobStatusFilter">ステータス</label>
+                <select id="jobStatusFilter">
+                  <option value="">すべて</option>
+                  <option value="queued">queued</option>
+                  <option value="running">running</option>
+                  <option value="done">done</option>
+                  <option value="error">error</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="jm-summary" id="jobSummary">ジョブ件数: 0</div>
+
+          <div class="jm-table-wrap">
+            <table class="jm-table">
+              <thead>
+                <tr>
+                  <th>開始</th>
+                  <th>処理種別</th>
+                  <th>対象</th>
+                  <th>ステータス</th>
+                  <th>進捗</th>
+                  <th>メッセージ</th>
+                </tr>
+              </thead>
+              <tbody id="jobTableBody">
+                <tr>
+                  <td colspan="6" class="jm-empty">まだジョブはありません。</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="jm-log" id="jobLog">[job_monitor] ready</div>
+
+      </div>
+    </div>
+  </div>
+
+  <script src="job_monitor.js"></script>
+</body>
+</html>
