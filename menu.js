@@ -4,6 +4,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const jobMonitorBtn = document.getElementById("btn-job-monitor");
   const knowledgeCreateBtn = document.getElementById("btn-knowledge-create");
   const knowledgeViewBtn = document.getElementById("btn-knowledge-view");
+  const userAdminBtn = document.getElementById("btn-user-admin");
   const searchBtn = document.getElementById("btn-search");
   const logoutBtn = document.getElementById("btn-logout");
 
@@ -34,6 +35,12 @@ document.addEventListener("DOMContentLoaded", () => {
   if (knowledgeViewBtn) {
     knowledgeViewBtn.addEventListener("click", () => {
       window.location.href = "knowledge_view.html";
+    });
+  }
+
+  if (userAdminBtn) {
+    userAdminBtn.addEventListener("click", () => {
+      window.location.href = "user_admin.html";
     });
   }
 
