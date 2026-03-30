@@ -10,6 +10,10 @@ const panelApi = document.getElementById("panelApi");
 const publicUrlTarget = document.getElementById("publicUrlTarget");
 const publicUrlPageList = document.getElementById("publicUrlPageList");
 
+const logBox = document.getElementById("logBox");
+const logText = document.getElementById("logText");
+const btnClearLog = document.getElementById("btnClearLog");
+
 const btnKokkaiRegister = document.getElementById("btnKokkaiRegister");
 const btnUploadRegister = document.getElementById("btnUploadRegister");
 const btnFetchDatasets = document.getElementById("btnFetchDatasets");
@@ -22,12 +26,23 @@ let sourceMap = {};
 let currentSourceKey = "";
 let publicUrlConfigCache = null;
 
-/**
- * 画面上にログは出さないが、既存モジュール互換のため受け口だけ残す。
- * 必要になったらここを toast 表示などに差し替えればよい。
- */
-function notifyMessage(_msg) {
-  // no-op
+function writeLog(msg) {
+  if (!logText) return;
+
+  const line = String(msg ?? "");
+  const now = new Date();
+  const hh = String(now.getHours()).padStart(2, "0");
+  const mm = String(now.getMinutes()).padStart(2, "0");
+  const ss = String(now.getSeconds()).padStart(2, "0");
+
+  const prefix = `[${hh}:${mm}:${ss}] `;
+  logText.textContent += `${prefix}${line}\n`;
+  logText.scrollTop = logText.scrollHeight;
+}
+
+function clearLog() {
+  if (!logText) return;
+  logText.textContent = "";
 }
 
 function getSourceSelect() {
@@ -266,10 +281,11 @@ if (btnKokkaiRegister) {
         apiBase: API_BASE,
         sourceKey: p.key,
         idToken,
-        writeLog: notifyMessage
+        writeLog: writeLog
       });
     } catch (e) {
       console.error(e);
+      writeLog(`処理失敗: ${e.message}`);
       alert(`処理失敗: ${e.message}`);
     }
   });
@@ -289,10 +305,11 @@ if (btnUploadRegister) {
       await window.DataSourceUpload.run({
         apiBase: API_BASE,
         idToken,
-        writeLog: notifyMessage
+        writeLog: writeLog
       });
     } catch (e) {
       console.error(e);
+      writeLog(`処理失敗: ${e.message}`);
       alert(`処理失敗: ${e.message}`);
     }
   });
@@ -320,7 +337,7 @@ if (btnFetchDatasets) {
         apiBase: API_BASE,
         sourceKey: p.key,
         idToken,
-        writeLog: notifyMessage,
+        writeLog: writeLog,
         silent
       });
 
@@ -333,13 +350,13 @@ if (btnFetchDatasets) {
               sourceKey: p.key,
               idToken,
               datasetId,
-              writeLog: notifyMessage
+              writeLog: writeLog
             });
 
             await loadDatasets(true);
           }
         },
-        notifyMessage
+        writeLog
       );
     };
 
@@ -347,6 +364,7 @@ if (btnFetchDatasets) {
       await loadDatasets(false);
     } catch (e) {
       console.error(e);
+      writeLog(`処理失敗: ${e.message}`);
       alert(`処理失敗: ${e.message}`);
     }
   });
@@ -374,11 +392,12 @@ if (btnUrlRegister) {
         apiBase: API_BASE,
         sourceKey: p.key,
         idToken,
-        writeLog: notifyMessage,
+        writeLog: writeLog,
         pagesContainer: publicUrlPageList
       });
     } catch (e) {
       console.error(e);
+      writeLog(`処理失敗: ${e.message}`);
       alert(`処理失敗: ${e.message}`);
     }
   });
