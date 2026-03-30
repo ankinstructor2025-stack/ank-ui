@@ -12,7 +12,7 @@ const firebaseConfig = {
   measurementId: "G-TC4J08VPTJ"
 };
 
-// ★Cloud Run(API) のベースURL（あなたのURLに置き換える）
+// ★Cloud Run(API) のベースURL
 const API_BASE_URL = "https://ank-api-986862757498.asia-northeast1.run.app";
 
 // Firebase起動
@@ -20,46 +20,98 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 
+function showError(message) {
+  const errorBox = document.getElementById("errorBox");
+  if (errorBox) {
+    errorBox.style.display = "block";
+    errorBox.textContent = message;
+  } else {
+    alert(message);
+  }
+}
+
+function clearError() {
+  const errorBox = document.getElementById("errorBox");
+  if (errorBox) {
+    errorBox.style.display = "none";
+    errorBox.textContent = "";
+  }
+}
+
+async function fetchJsonOrThrow(url, options) {
+  const res = await fetch(url, options);
+
+  let data = null;
+  let text = "";
+
+  try {
+    data = await res.json();
+  } catch (_) {
+    try {
+      text = await res.text();
+    } catch (_) {
+      text = "";
+    }
+  }
+
+  if (!res.ok) {
+    const detail =
+      (data && (data.detail || data.message || data.error)) ||
+      text ||
+      `HTTP ${res.status} ${res.statusText}`;
+    throw new Error(detail);
+  }
+
+  return data;
+}
+
 // ログインボタン押下
 document.getElementById("loginButton").addEventListener("click", async (e) => {
   e.preventDefault();
 
+  const loginButton = document.getElementById("loginButton");
+  loginButton.disabled = true;
+  clearError();
+
   try {
-    // ログイン
+    // Googleログイン
     const result = await signInWithPopup(auth, provider);
 
-    // user_id取得
-    const user_id = result.user.uid;
-
-    // ★IDトークン取得（API側でuidを確定させるため）
+    // IDトークン取得
     const idToken = await result.user.getIdToken();
 
-    // APIに通知（session：デモ用に「ログイン確認」だけ）
-    await fetch(`${API_BASE_URL}/v1/session`, {
+    // セッション開始
+    await fetchJsonOrThrow(`${API_BASE_URL}/v1/session`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${idToken}`
       },
-      body: JSON.stringify({}) // ← user_idは送らない
+      body: JSON.stringify({})
     });
 
-    // ★ユーザDB存在保証（なければ template.sqlite をコピー）
-    await fetch(`${API_BASE_URL}/v1/user/init`, {
+    // ユーザー初期化
+    const initResult = await fetchJsonOrThrow(`${API_BASE_URL}/v1/user/init`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${idToken}`
       },
-      body: JSON.stringify({}) // ← body不要でもOK
+      body: JSON.stringify({})
     });
+
+    if (initResult && initResult.ok === false) {
+      throw new Error(initResult.detail || "ユーザー初期化に失敗しました。");
+    }
 
     sessionStorage.setItem("idToken", idToken);
 
-    // ★ここで遷移
+    // 成功時だけ遷移
     window.location.href = "./menu.html";
 
   } catch (err) {
-    alert(err.code || String(err));
+    console.error(err);
+    showError(err.message || String(err));
+    loginButton.disabled = false;
   }
 });
