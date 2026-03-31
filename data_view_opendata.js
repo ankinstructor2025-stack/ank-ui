@@ -336,6 +336,16 @@ window.DataViewOpenData = (function () {
     renderParentTable(rows);
   }
 
+  function getCheckedRows() {
+    const checks = Array.from(ctx.parentTableBody?.querySelectorAll(".parent-check:checked") || []);
+    return checks
+      .map((el) => {
+        const index = Number(el.dataset.index || "-1");
+        return currentParentRows[index];
+      })
+      .filter(Boolean);
+  }
+
   function applyKnowledgeStatus(statusData) {
     if (!Array.isArray(currentParentRows) || currentParentRows.length === 0) {
       return;
@@ -390,13 +400,7 @@ window.DataViewOpenData = (function () {
   }
 
   async function buildKnowledgeTargets() {
-    const checks = Array.from(ctx.parentTableBody?.querySelectorAll(".parent-check:checked") || []);
-    const selected = checks
-      .map((el) => {
-        const index = Number(el.dataset.index || "-1");
-        return currentParentRows[index];
-      })
-      .filter(Boolean);
+    const selected = getCheckedRows();
 
     return selected.map((row) => ({
       source_id: row.source_id,
@@ -409,6 +413,7 @@ window.DataViewOpenData = (function () {
   return {
     init,
     loadParents,
+    getCheckedRows,
     buildKnowledgeTargets,
     applyKnowledgeStatus
   };
