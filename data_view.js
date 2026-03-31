@@ -280,12 +280,108 @@ function getStatusPathBySourceType(sourceType) {
   return "";
 }
 
+function getJobPathBySourceType(sourceType) {
+  if (sourceType === "kokkai") return "/knowledge/kokkai/job";
+  if (sourceType === "opendata") return "/knowledge/opendata/job";
+  if (sourceType === "public_url") return "/knowledge/url/job";
+  if (sourceType === "upload") return "/knowledge/upload/job";
+  return "";
+}
+
 function getRunPathBySourceType(sourceType) {
   if (sourceType === "kokkai") return "/knowledge/kokkai/run";
   if (sourceType === "opendata") return "/knowledge/opendata/run";
   if (sourceType === "public_url") return "/knowledge/url/run";
   if (sourceType === "upload") return "/knowledge/upload/run";
   return "";
+}
+
+function buildKnowledgeJobPayload(source, checkedRows) {
+  const sourceType = String(source?.sourceType || "");
+  const sourceKey = String(source?.key || "");
+  const rows = Array.isArray(checkedRows) ? checkedRows : [];
+
+  if (!sourceType) {
+    throw new Error("source_type を判定できません");
+  }
+
+  if (rows.length === 0) {
+    throw new Error("対象を選択してください");
+  }
+
+  if (sourceType === "kokkai") {
+    return {
+      source_type: "kokkai",
+      source_name: "国会議事録",
+      request_type: "extract_knowledge",
+      preview_only: false,
+      items: rows.map((row) => ({
+        source_type: "kokkai",
+        parent_source_id: row.issue_id ?? row.source_id ?? null,
+        parent_key1: row.name_of_house ?? null,
+        parent_key2: row.name_of_meeting ?? null,
+        parent_label: row.logical_name || `${row.name_of_house ?? ""} / ${row.name_of_meeting ?? ""}`,
+        row_count: Number(row.row_count ?? row.child_count ?? 0)
+      }))
+    };
+  }
+
+  if (sourceType === "opendata") {
+    return {
+      source_type: "opendata",
+      source_name: "オープンデータ",
+      request_type: "extract_knowledge",
+      preview_only: false,
+      items: rows.map((row) => ({
+        source_type: "opendata",
+        parent_source_id: row.source_id ?? null,
+        parent_key1: row.dataset_id ?? null,
+        parent_key2: row.title ?? row.logical_name ?? null,
+        parent_label: row.title || row.logical_name || row.source_id || "",
+        row_count: Number(row.child_count ?? row.row_count ?? 0)
+      }))
+    };
+  }
+
+  if (sourceType === "public_url") {
+    return {
+      source_type: "public_url",
+      source_name: "公開URL",
+      request_type: "extract_knowledge",
+      preview_only: false,
+      items: rows.map((row) => ({
+        source_type: "public_url",
+        parent_source_id: row.root_id ?? row.source_id ?? row.page_id ?? null,
+        parent_key1: row.root_url ?? row.page_url ?? null,
+        parent_key2: row.title ?? null,
+        parent_label: row.title || row.root_url || row.page_url || row.source_id || "",
+        row_count: Number(row.child_count ?? row.row_count ?? 0)
+      }))
+    };
+  }
+
+  if (sourceType === "upload") {
+    return {
+      source_type: "upload",
+      source_name: "ファイルアップロード",
+      request_type: "extract_knowledge",
+      preview_only: false,
+      items: rows.map((row) => ({
+        source_type: "upload",
+        parent_source_id: row.file_id ?? row.source_id ?? null,
+        parent_key1: row.logical_name ?? row.file_name ?? row.original_name ?? null,
+        parent_key2: row.ext ?? null,
+        parent_label: row.logical_name || row.file_name || row.original_name || row.file_id || "",
+        row_count: Number(row.row_count ?? row.child_count ?? 0)
+      }))
+    };
+  }
+
+  return {
+    source_type: sourceType,
+    source_key: sourceKey,
+    items: rows
+  };
 }
 
 function saveActiveKnowledgeJob(job) {
@@ -1110,70 +1206,27 @@ function bindEvents() {
 
   btnParentClearAll?.addEventListener("click", () => {
     const module = getCurrentModule();
-    if (module && typeof module.clearAllChecks === "function") {
-      module.clearAllChecks();
+    if (module && typeof module.clearChecks === "function") {
+      module.clearChecks();
       refreshParentPaging();
     }
   });
 }
 
-async function loadPollingConfig() {
-  try {
-    const res = await fetch("./polling_config.json", {
-      method: "GET",
-      cache: "no-store"
-    });
-
-    if (!res.ok) {
-      pollingConfig = { ...DEFAULT_POLLING_CONFIG };
-      return;
-    }
-
-    const data = await res.json();
-    pollingConfig = {
-      initial_interval_ms: Number(data?.initial_interval_ms) || DEFAULT_POLLING_CONFIG.initial_interval_ms,
-      normal_interval_ms: Number(data?.normal_interval_ms) || DEFAULT_POLLING_CONFIG.normal_interval_ms,
-      long_interval_ms: Number(data?.long_interval_ms) || DEFAULT_POLLING_CONFIG.long_interval_ms,
-      long_after_count: Number(data?.long_after_count) || DEFAULT_POLLING_CONFIG.long_after_count,
-      very_long_after_count: Number(data?.very_long_after_count) || DEFAULT_POLLING_CONFIG.very_long_after_count,
-      max_attempts: Number(data?.max_attempts) || DEFAULT_POLLING_CONFIG.max_attempts,
-      max_error_count: Number(data?.max_error_count) || DEFAULT_POLLING_CONFIG.max_error_count
-    };
-  } catch (e) {
-    console.warn("polling_config load failed", e);
-    pollingConfig = { ...DEFAULT_POLLING_CONFIG };
-  }
-}
-
-function setupPagingObservers() {
-  if (parentTableBody) {
-    const parentObserver = new MutationObserver(() => {
-      parentPage = 1;
-      refreshParentPaging();
-    });
-
-    parentObserver.observe(parentTableBody, {
-      childList: true,
-      subtree: false
-    });
-  }
-
-  if (childTableBody) {
-    const childObserver = new MutationObserver(() => {
-      childPage = 1;
-      refreshChildPaging();
-    });
-
-    childObserver.observe(childTableBody, {
-      childList: true,
-      subtree: false
-    });
-  }
-}
-
 document.addEventListener("DOMContentLoaded", async () => {
   bindEvents();
-  setupPagingObservers();
   renderInitialScreen();
-  await loadPollingConfig();
+
+  try {
+    const polling = await fetch("./polling_config.json", { cache: "no-store" });
+    if (polling.ok) {
+      const cfg = await polling.json();
+      pollingConfig = {
+        ...DEFAULT_POLLING_CONFIG,
+        ...(cfg || {})
+      };
+    }
+  } catch (e) {
+    console.warn("polling_config load failed", e);
+  }
 });
