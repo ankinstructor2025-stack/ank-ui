@@ -19,18 +19,6 @@ const detailPre = document.getElementById("detailPre");
 
 const API_BASE = "https://ank-api-986862757498.asia-northeast1.run.app/v1";
 
-const DEFAULT_POLLING_CONFIG = {
-  initial_interval_ms: 5000,
-  normal_interval_ms: 10000,
-  long_interval_ms: 15000,
-  long_after_count: 6,
-  very_long_after_count: 18,
-  max_attempts: 120,
-  max_error_count: 3
-};
-
-const ACTIVE_JOB_STORAGE_KEY = "ank_active_knowledge_job";
-
 const PARENT_PAGE_SIZE = 5;
 const CHILD_PAGE_SIZE = 5;
 
@@ -38,7 +26,6 @@ let sourceList = [];
 let sourceMap = {};
 let currentSourceKey = "";
 let knowledgeRunning = false;
-let pollingConfig = { ...DEFAULT_POLLING_CONFIG };
 
 let parentPage = 1;
 let childPage = 1;
@@ -214,10 +201,6 @@ async function apiGetForCurrentView(path, query = {}) {
   return data;
 }
 
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 function setKnowledgeBusy(isBusy) {
   knowledgeRunning = isBusy;
 
@@ -237,47 +220,6 @@ function getStatusClass(status) {
   if (s === "done") return "url-chip status-done";
   if (s === "error") return "url-chip status-error";
   return "url-chip status-new";
-}
-
-function getProgressValues(data) {
-  const qaCurrent = Number(data?.qa_current ?? data?.processed_qa_chunks ?? 0);
-  const qaTotal = Number(data?.qa_total ?? data?.total_qa_chunks ?? 0);
-
-  const plainCurrent = Number(data?.plain_current ?? data?.processed_plain_chunks ?? 0);
-  const plainTotal = Number(data?.plain_total ?? data?.total_plain_chunks ?? 0);
-
-  const chunkCurrent =
-    Number(data?.chunk_current ?? data?.processed_chunks ?? (qaCurrent + plainCurrent));
-  const chunkTotal =
-    Number(data?.chunk_total ?? data?.total_chunks ?? (qaTotal + plainTotal));
-
-  return {
-    qaCurrent,
-    qaTotal,
-    plainCurrent,
-    plainTotal,
-    chunkCurrent,
-    chunkTotal
-  };
-}
-
-function applyModuleKnowledgeStatus(data) {
-  const module = getCurrentModule();
-  if (!module || typeof module.applyKnowledgeStatus !== "function") return;
-
-  try {
-    module.applyKnowledgeStatus(data);
-  } catch (e) {
-    console.warn("applyKnowledgeStatus failed", e);
-  }
-}
-
-function getStatusPathBySourceType(sourceType) {
-  if (sourceType === "kokkai") return "/knowledge/kokkai/status";
-  if (sourceType === "opendata") return "/knowledge/opendata/status";
-  if (sourceType === "public_url") return "/knowledge/url/status";
-  if (sourceType === "upload") return "/knowledge/upload/status";
-  return "";
 }
 
 function getJobPathBySourceType(sourceType) {
@@ -382,82 +324,6 @@ function buildKnowledgeJobPayload(source, checkedRows) {
     source_key: sourceKey,
     items: rows
   };
-}
-
-function saveActiveKnowledgeJob(job) {
-  try {
-    sessionStorage.setItem(
-      ACTIVE_JOB_STORAGE_KEY,
-      JSON.stringify({
-        job_id: job?.job_id || "",
-        source_type: job?.source_type || "",
-        source_key: job?.source_key || "",
-        selected_count: Number(job?.selected_count) || 0,
-        saved_at: new Date().toISOString()
-      })
-    );
-  } catch (e) {
-    console.warn("failed to save active job", e);
-  }
-}
-
-function loadActiveKnowledgeJob() {
-  try {
-    const raw = sessionStorage.getItem(ACTIVE_JOB_STORAGE_KEY);
-    if (!raw) return null;
-
-    const data = JSON.parse(raw);
-    if (!data || !data.job_id || !data.source_type) return null;
-    return data;
-  } catch (e) {
-    console.warn("failed to load active job", e);
-    return null;
-  }
-}
-
-function clearActiveKnowledgeJob() {
-  sessionStorage.removeItem(ACTIVE_JOB_STORAGE_KEY);
-}
-
-async function validateStoredActiveJob(previousActiveJob) {
-  if (!previousActiveJob || !previousActiveJob.job_id || !previousActiveJob.source_type) {
-    return null;
-  }
-
-  const statusPath = getStatusPathBySourceType(previousActiveJob.source_type);
-  if (!statusPath) {
-    clearActiveKnowledgeJob();
-    return null;
-  }
-
-  try {
-    const statusData = await apiGet(statusPath, { job_id: previousActiveJob.job_id });
-    const status = String(statusData?.status || "").toLowerCase();
-
-    if (status === "done" || status === "error") {
-      clearActiveKnowledgeJob();
-      return null;
-    }
-
-    return {
-      job_id: previousActiveJob.job_id,
-      status
-    };
-  } catch (e) {
-    const message = String(e?.message || "").toLowerCase();
-
-    if (
-      message.includes("not found") ||
-      message.includes("knowledge_jobs not found") ||
-      message.includes("ank.db not found") ||
-      message.includes("http 404")
-    ) {
-      clearActiveKnowledgeJob();
-      return null;
-    }
-
-    throw e;
-  }
 }
 
 function mapKeyToSourceType(key, type) {
@@ -794,285 +660,6 @@ function buildKnowledgeResultText(data) {
   return lines.join("\n").trim();
 }
 
-function buildStatusResultText(data) {
-  const p = getProgressValues(data);
-
-  const lines = [
-    `job_id: ${data?.job_id ?? ""}`,
-    `status: ${data?.status ?? ""}`,
-    `phase: ${data?.phase ?? ""}`,
-    `message: ${data?.message ?? ""}`,
-    `selected_count: ${data?.selected_count ?? 0}`,
-    `qa_count: ${data?.qa_count ?? data?.knowledge_count ?? 0}`,
-    `plain_count: ${data?.plain_count ?? 0}`,
-    `error_count: ${data?.error_count ?? 0}`,
-    `chunk: ${p.chunkCurrent} / ${p.chunkTotal}`,
-    `qa_chunk: ${p.qaCurrent} / ${p.qaTotal}`,
-    `plain_chunk: ${p.plainCurrent} / ${p.plainTotal}`,
-    `requested_at: ${data?.requested_at ?? ""}`,
-    `started_at: ${data?.started_at ?? ""}`,
-    `finished_at: ${data?.finished_at ?? ""}`,
-    `dataset_id: ${data?.dataset_id ?? ""}`,
-    `dataset_name: ${data?.dataset_name ?? ""}`,
-    `row_count: ${data?.row_count ?? 0}`,
-    `knowledge_count: ${data?.knowledge_count ?? 0}`,
-    `error_message: ${data?.error_message ?? ""}`,
-    ""
-  ];
-
-  const items = Array.isArray(data?.items) ? data.items : [];
-  if (items.length > 0) {
-    lines.push("items:");
-    items.forEach((item, idx) => {
-      lines.push(`- [${idx + 1}] ${item?.parent_label || item?.parent_source_id || ""}`);
-      lines.push(`  job_item_id: ${item?.job_item_id || ""}`);
-      lines.push(`  status: ${item?.status || ""}`);
-      lines.push(`  knowledge_count: ${item?.knowledge_count || 0}`);
-      lines.push(`  row_count: ${item?.row_count || 0}`);
-      lines.push(`  chunk: ${item?.chunk_done || 0} / ${item?.chunk_total || 0}`);
-      lines.push(`  qa_chunk: ${item?.qa_chunk_done || 0} / ${item?.qa_chunk_total || 0}`);
-      lines.push(`  plain_chunk: ${item?.plain_chunk_done || 0} / ${item?.plain_chunk_total || 0}`);
-      lines.push(`  started_at: ${item?.started_at || ""}`);
-      lines.push(`  finished_at: ${item?.finished_at || ""}`);
-      lines.push(`  error_message: ${item?.error_message || ""}`);
-    });
-  }
-
-  return lines.join("\n").trim();
-}
-
-function isTerminalJobStatus(status) {
-  const s = String(status || "").toLowerCase();
-  return s === "done" || s === "error";
-}
-
-function getPollingIntervalMs(attempt) {
-  if (attempt > pollingConfig.very_long_after_count) return pollingConfig.long_interval_ms;
-  if (attempt > pollingConfig.long_after_count) return pollingConfig.normal_interval_ms;
-  return pollingConfig.initial_interval_ms;
-}
-
-function summarizeJobItems(items) {
-  const normalized = Array.isArray(items) ? items : [];
-
-  const total = normalized.length;
-  const doneCountOnly = normalized.filter((x) => String(x?.status || "").toLowerCase() === "done").length;
-  const errorCount = normalized.filter((x) => String(x?.status || "").toLowerCase() === "error").length;
-  const runningCount = normalized.filter((x) => {
-    const s = String(x?.status || "").toLowerCase();
-    return s === "running" || s === "processing";
-  }).length;
-  const queuedCount = normalized.filter((x) => {
-    const s = String(x?.status || "").toLowerCase();
-    return s === "new" || s === "queued" || s === "pending" || s === "";
-  }).length;
-
-  const doneCount = doneCountOnly + errorCount;
-  const remaining = Math.max(0, total - doneCount);
-
-  return {
-    total,
-    doneCountOnly,
-    errorCount,
-    runningCount,
-    queuedCount,
-    doneCount,
-    remaining
-  };
-}
-
-function summarizeJobStatusFallback(data) {
-  const total = Number(data?.selected_count ?? 0);
-  const status = String(data?.status || "").toLowerCase();
-
-  if (total <= 0) {
-    return {
-      total: 0,
-      doneCountOnly: 0,
-      errorCount: 0,
-      runningCount: status === "running" ? 1 : 0,
-      queuedCount: status === "new" ? 1 : 0,
-      doneCount: 0,
-      remaining: 0
-    };
-  }
-
-  if (status === "done") {
-    return {
-      total,
-      doneCountOnly: total,
-      errorCount: 0,
-      runningCount: 0,
-      queuedCount: 0,
-      doneCount: total,
-      remaining: 0
-    };
-  }
-
-  if (status === "error") {
-    return {
-      total,
-      doneCountOnly: 0,
-      errorCount: total,
-      runningCount: 0,
-      queuedCount: 0,
-      doneCount: total,
-      remaining: 0
-    };
-  }
-
-  return {
-    total,
-    doneCountOnly: 0,
-    errorCount: 0,
-    runningCount: status === "running" ? 1 : 0,
-    queuedCount: Math.max(0, total - (status === "running" ? 1 : 0)),
-    doneCount: 0,
-    remaining: total
-  };
-}
-
-function updateKnowledgeProgressSummary(statusData, selectedCount) {
-  const itemSummary = Array.isArray(statusData?.items) && statusData.items.length > 0
-    ? summarizeJobItems(statusData.items)
-    : summarizeJobStatusFallback({
-        ...statusData,
-        selected_count: Number(selectedCount || statusData?.selected_count || 0)
-      });
-
-  const p = getProgressValues(statusData);
-  const statusLabel = String(statusData?.status || "").toLowerCase() || "unknown";
-
-  if (contextSummary) {
-    contextSummary.textContent =
-      `ナレッジ化: CHUNK ${p.chunkCurrent} / ${p.chunkTotal}（QA ${p.qaCurrent} / ${p.qaTotal}｜PLAIN ${p.plainCurrent} / ${p.plainTotal}｜status: ${statusLabel}）`;
-  }
-
-  if (selectionSummary) {
-    selectionSummary.textContent =
-      `親 ${itemSummary.doneCount} / ${itemSummary.total}（done ${itemSummary.doneCountOnly}｜error ${itemSummary.errorCount}｜実行中 ${itemSummary.runningCount}｜待機 ${itemSummary.queuedCount}）`;
-  }
-
-  applyModuleKnowledgeStatus(statusData);
-}
-
-async function fetchStatusData(sourceType, jobId) {
-  const statusPath = getStatusPathBySourceType(sourceType);
-  if (!statusPath) throw new Error("status path が不正です");
-  return await apiGet(statusPath, { job_id: jobId });
-}
-
-async function runKnowledgeJobAndPoll(sourceType, jobId) {
-  const runPath = getRunPathBySourceType(sourceType);
-  if (!runPath) throw new Error("run path が不正です");
-
-  await apiPost(runPath, { job_id: jobId });
-
-  let attempt = 0;
-  let errorCount = 0;
-
-  while (attempt < pollingConfig.max_attempts) {
-    attempt += 1;
-
-    try {
-      const statusData = await fetchStatusData(sourceType, jobId);
-      errorCount = 0;
-
-      updateKnowledgeProgressSummary(statusData, statusData?.selected_count ?? 0);
-
-      if (detailPre) {
-        detailPre.textContent = buildStatusResultText(statusData);
-      }
-
-      if (isTerminalJobStatus(statusData?.status)) {
-        clearActiveKnowledgeJob();
-        return statusData;
-      }
-    } catch (e) {
-      errorCount += 1;
-      console.error("polling error", e);
-
-      if (detailPre) {
-        detailPre.textContent = e.message || "ステータス取得に失敗しました。";
-      }
-
-      if (errorCount >= pollingConfig.max_error_count) {
-        throw e;
-      }
-    }
-
-    await sleep(getPollingIntervalMs(attempt));
-  }
-
-  throw new Error("ナレッジ化の監視がタイムアウトしました");
-}
-
-async function resumeKnowledgePollingIfNeeded() {
-  const previous = loadActiveKnowledgeJob();
-  if (!previous) return;
-
-  const validated = await validateStoredActiveJob(previous);
-  if (!validated) return;
-
-  if (!sourceMap[previous.source_key]) {
-    clearActiveKnowledgeJob();
-    return;
-  }
-
-  currentSourceKey = previous.source_key;
-
-  const sourceSelect = getSourceSelect();
-  if (sourceSelect) {
-    sourceSelect.value = currentSourceKey;
-  }
-
-  await refreshParentList();
-
-  const source = sourceMap[currentSourceKey];
-  if (!source?.sourceType) {
-    clearActiveKnowledgeJob();
-    return;
-  }
-
-  setKnowledgeBusy(true);
-
-  try {
-    if (detailPre) {
-      detailPre.textContent = "前回のナレッジ化ジョブを再接続しています...";
-    }
-
-    const statusData = await runKnowledgeJobAndPoll(source.sourceType, validated.job_id);
-    await finalizeKnowledgePolling(statusData, previous.selected_count || 0);
-  } catch (e) {
-    console.error(e);
-    if (detailPre) {
-      detailPre.textContent = e.message || "ジョブ再接続に失敗しました。";
-    }
-  } finally {
-    setKnowledgeBusy(false);
-  }
-}
-
-async function finalizeKnowledgePolling(statusData, checkedCount) {
-  if (detailPre) {
-    detailPre.textContent = buildStatusResultText(statusData);
-  }
-
-  if (String(statusData?.status || "").toLowerCase() === "done") {
-    alert("ナレッジ化が完了しました");
-  } else if (String(statusData?.status || "").toLowerCase() === "error") {
-    alert(statusData?.error_message || "ナレッジ化でエラーが発生しました");
-  }
-
-  updateKnowledgeProgressSummary(statusData, checkedCount);
-
-  try {
-    await refreshParentList();
-  } catch (e) {
-    console.error(e);
-  }
-}
-
 async function createKnowledgeJob() {
   const module = getCurrentModule();
   if (!module || typeof module.getCheckedRows !== "function") {
@@ -1101,8 +688,12 @@ async function createKnowledgeJob() {
       throw new Error(`job path が不正です: ${source.sourceType}`);
     }
 
-    const payload = buildKnowledgeJobPayload(source, checkedRows);
+    const runPath = getRunPathBySourceType(source.sourceType);
+    if (!runPath) {
+      throw new Error(`run path が不正です: ${source.sourceType}`);
+    }
 
+    const payload = buildKnowledgeJobPayload(source, checkedRows);
     const jobData = await apiPost(jobPath, payload);
 
     const jobId = String(jobData?.job_id || "");
@@ -1110,30 +701,22 @@ async function createKnowledgeJob() {
       throw new Error("job_id が取得できませんでした");
     }
 
-    saveActiveKnowledgeJob({
-      job_id: jobId,
-      source_type: source.sourceType,
-      source_key: source.key,
-      selected_count: checkedRows.length
-    });
+    await apiPost(runPath, { job_id: jobId });
 
     if (detailPre) {
       detailPre.textContent =
-        `ジョブを作成しました。\n\n${buildKnowledgeResultText(jobData || {})}\n\nバックグラウンド実行を開始します...`;
+        `ジョブを作成して実行を開始しました。\n\n${buildKnowledgeResultText(jobData || {})}`;
     }
 
     if (contextSummary) {
-      contextSummary.textContent =
-        `ナレッジ化: CHUNK 0 / 0（QA 0 / 0｜PLAIN 0 / 0｜status: ${jobData?.status ?? "new"}）`;
+      contextSummary.textContent = "ナレッジ化: Cloud Tasks に投入しました";
     }
 
     if (selectionSummary) {
-      selectionSummary.textContent =
-        `親 0 / ${checkedRows.length}（done 0｜error 0｜実行中 0｜待機 ${checkedRows.length}）`;
+      selectionSummary.textContent = `選択 ${checkedRows.length} 件`;
     }
 
-    const statusData = await runKnowledgeJobAndPoll(source.sourceType, jobId);
-    await finalizeKnowledgePolling(statusData, checkedRows.length);
+    alert("ナレッジ化を開始しました");
   } catch (e) {
     console.error(e);
 
@@ -1163,15 +746,6 @@ function bindEvents() {
     });
 
     renderInitialScreen();
-
-    try {
-      await resumeKnowledgePollingIfNeeded();
-    } catch (e) {
-      console.error(e);
-      renderParentPlaceholder(e.message || "ジョブ再接続に失敗しました");
-      renderChildPlaceholder("親一覧から1件選択してください。");
-      if (detailPre) detailPre.textContent = e.message || "ジョブ再接続に失敗しました";
-    }
   });
 
   document.addEventListener("toolbar:source-change", async (event) => {
@@ -1216,17 +790,4 @@ function bindEvents() {
 document.addEventListener("DOMContentLoaded", async () => {
   bindEvents();
   renderInitialScreen();
-
-  try {
-    const polling = await fetch("./polling_config.json", { cache: "no-store" });
-    if (polling.ok) {
-      const cfg = await polling.json();
-      pollingConfig = {
-        ...DEFAULT_POLLING_CONFIG,
-        ...(cfg || {})
-      };
-    }
-  } catch (e) {
-    console.warn("polling_config load failed", e);
-  }
 });
