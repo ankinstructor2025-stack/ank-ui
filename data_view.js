@@ -1000,13 +1000,14 @@ async function createKnowledgeJob() {
   setKnowledgeBusy(true);
 
   try {
-    const payload = {
-      source_type: source.sourceType,
-      source_key: source.key,
-      items: checkedRows
-    };
+    const jobPath = getJobPathBySourceType(source.sourceType);
+    if (!jobPath) {
+      throw new Error(`job path が不正です: ${source.sourceType}`);
+    }
 
-    const jobData = await apiPost("/knowledge/jobs", payload);
+    const payload = buildKnowledgeJobPayload(source, checkedRows);
+
+    const jobData = await apiPost(jobPath, payload);
 
     const jobId = String(jobData?.job_id || "");
     if (!jobId) {
