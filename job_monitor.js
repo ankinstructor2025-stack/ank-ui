@@ -6,13 +6,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const btnBackMenu = document.getElementById("btn-back-menu");
   const btnRefresh = document.getElementById("btn-refresh");
-  const jobTypeFilter = document.getElementById("jobTypeFilter");
-  const jobStatusFilter = document.getElementById("jobStatusFilter");
-  const jobSummary = document.getElementById("jobSummary");
-  const jobTableBody = document.getElementById("jobTableBody");
+  const queueSummary = document.getElementById("queueSummary");
+  const queueList = document.getElementById("queueList");
+  const taskPanelTitle = document.getElementById("taskPanelTitle");
+  const taskSummary = document.getElementById("taskSummary");
+  const taskTableBody = document.getElementById("taskTableBody");
   const jobLog = document.getElementById("jobLog");
 
-  let allJobs = [];
+  let allQueues = [];
+  let selectedQueueName = "";
 
   function log(message) {
     const now = new Date();
@@ -45,153 +47,232 @@ document.addEventListener("DOMContentLoaded", () => {
     const d = String(dt.getDate()).padStart(2, "0");
     const hh = String(dt.getHours()).padStart(2, "0");
     const mm = String(dt.getMinutes()).padStart(2, "0");
-    return `${y}-${m}-${d} ${hh}:${mm}`;
+    const ss = String(dt.getSeconds()).padStart(2, "0");
+    return `${y}-${m}-${d} ${hh}:${mm}:${ss}`;
   }
 
-  function normalizeStatus(status) {
-    const s = String(status || "").toLowerCase();
-    if (!s) return "queued";
-    return s;
+  function parseQueueShortName(queue) {
+    const fullName = String(queue.name || queue.queue_name || "");
+    if (!fullName) return "";
+    const parts = fullName.split("/");
+    return parts[parts.length - 1] || fullName;
   }
 
-  function calcProgress(job) {
-    const total =
-      Number(job.total_chunks ?? job.chunk_total ?? job.total ?? 0);
-    const current =
-      Number(job.processed_chunks ?? job.chunk_current ?? job.current ?? 0);
-
-    if (total > 0) {
-      const rate = Math.max(0, Math.min(100, Math.round((current / total) * 100)));
-      return {
-        current,
-        total,
-        rate,
-        text: `${current} / ${total}`
-      };
-    }
-
-    const status = normalizeStatus(job.status);
-    if (status === "done") {
-      return { current: 1, total: 1, rate: 100, text: "完了" };
-    }
-    if (status === "error") {
-      return { current: 0, total: 1, rate: 0, text: "エラー" };
-    }
-    return { current: 0, total: 0, rate: 0, text: "-" };
+  function parseTaskShortName(task) {
+    const fullName = String(task.name || task.short_name || "");
+    if (!fullName) return "";
+    const parts = fullName.split("/");
+    return task.short_name || parts[parts.length - 1] || fullName;
   }
 
-  function statusClass(status) {
-    const s = normalizeStatus(status);
-    if (s === "running") return "jm-status jm-status-running";
-    if (s === "done") return "jm-status jm-status-done";
-    if (s === "error") return "jm-status jm-status-error";
+  function normalizeTaskState(task) {
+    const dispatchCount = Number(task.dispatch_count ?? 0);
+    const responseCount = Number(task.response_count ?? 0);
+
+    if (responseCount > 0) {
+      return "retry";
+    }
+    if (dispatchCount > 0) {
+      return "running";
+    }
+    return "queued";
+  }
+
+  function taskStateClass(state) {
+    if (state === "running") return "jm-status jm-status-running";
+    if (state === "retry") return "jm-status jm-status-retry";
+    if (state === "error") return "jm-status jm-status-error";
     return "jm-status jm-status-queued";
   }
 
-  function renderJobs(jobs) {
-    jobSummary.textContent = `ジョブ件数: ${jobs.length}`;
+  function renderQueues() {
+    queueSummary.textContent = `キュー件数: ${allQueues.length}`;
 
-    if (!jobs.length) {
-      jobTableBody.innerHTML = `
+    if (!allQueues.length) {
+      queueList.innerHTML = `<div class="jm-empty">キューはありません。</div>`;
+      taskPanelTitle.textContent = "タスク一覧";
+      taskSummary.textContent = "タスク件数: 0";
+      taskTableBody.innerHTML = `
         <tr>
-          <td colspan="6" class="jm-empty">該当するジョブはありません。</td>
+          <td colspan="6" class="jm-empty">キューを選択してください。</td>
         </tr>
       `;
       return;
     }
 
-    jobTableBody.innerHTML = jobs.map((job) => {
-      const progress = calcProgress(job);
-      const startedAt =
-        job.started_at || job.requested_at || job.created_at || "";
-      const jobType =
-        job.job_type || job.type || job.source_type || "knowledge";
-      const target =
-        job.target_name || job.source_name || job.source_key || job.job_id || "-";
-      const status = normalizeStatus(job.status);
-      const message =
-        job.message || job.error_message || job.detail || "";
+    queueList.innerHTML = allQueues.map((queue) => {
+      const queueName = parseQueueShortName(queue);
+      const fullName = String(queue.name || "");
+      const state = String(queue.state || "-");
+      const taskCount = Number(queue.task_count ?? 0);
+      const activeClass = selectedQueueName === queueName ? "active" : "";
+
+      return `
+        <button
+          type="button"
+          class="jm-queue-item ${activeClass}"
+          data-queue-name="${escapeHtml(queueName)}"
+        >
+          <div class="jm-queue-name">${escapeHtml(queueName)}</div>
+          <div class="jm-queue-meta">
+            状態: ${escapeHtml(state)}<br>
+            残TASK数: ${taskCount}<br>
+            ${escapeHtml(fullName)}
+          </div>
+        </button>
+      `;
+    }).join("");
+
+    queueList.querySelectorAll(".jm-queue-item").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const queueName = btn.dataset.queueName || "";
+        if (!queueName) return;
+        selectedQueueName = queueName;
+        renderQueues();
+        fetchTasks(queueName);
+      });
+    });
+  }
+
+  function renderTasks(queueName, tasks) {
+    taskPanelTitle.textContent = queueName ? `タスク一覧: ${queueName}` : "タスク一覧";
+    taskSummary.textContent = `タスク件数: ${tasks.length}`;
+
+    if (!tasks.length) {
+      taskTableBody.innerHTML = `
+        <tr>
+          <td colspan="6" class="jm-empty">このキューに残TASKはありません。</td>
+        </tr>
+      `;
+      return;
+    }
+
+    taskTableBody.innerHTML = tasks.map((task) => {
+      const state = normalizeTaskState(task);
+      const taskName = parseTaskShortName(task) || "-";
+      const scheduleTime = task.schedule_time || "";
+      const dispatchCount = Number(task.dispatch_count ?? 0);
+      const responseCount = Number(task.response_count ?? 0);
+      const url = String(task.url || "");
 
       return `
         <tr>
-          <td>${escapeHtml(formatDateTime(startedAt))}</td>
-          <td>${escapeHtml(jobType)}</td>
-          <td class="jm-col-target">${escapeHtml(target)}</td>
-          <td><span class="${statusClass(status)}">${escapeHtml(status)}</span></td>
-          <td class="jm-progress">
-            <div class="jm-progress-bar">
-              <div class="jm-progress-fill" style="width:${progress.rate}%"></div>
-            </div>
-            <div class="jm-progress-text">${escapeHtml(progress.text)}</div>
-          </td>
-          <td class="jm-col-message">${escapeHtml(message)}</td>
+          <td><span class="${taskStateClass(state)}">${escapeHtml(state)}</span></td>
+          <td class="jm-col-name">${escapeHtml(taskName)}</td>
+          <td>${escapeHtml(formatDateTime(scheduleTime))}</td>
+          <td>${dispatchCount}</td>
+          <td>${responseCount}</td>
+          <td class="jm-col-url">${escapeHtml(url)}</td>
         </tr>
       `;
     }).join("");
   }
 
-  function applyFilter() {
-    const typeValue = jobTypeFilter.value;
-    const statusValue = jobStatusFilter.value;
-
-    const filtered = allJobs.filter((job) => {
-      const jobType = String(job.job_type || job.type || job.source_type || "knowledge");
-      const status = normalizeStatus(job.status);
-
-      if (typeValue && jobType !== typeValue) return false;
-      if (statusValue && status !== statusValue) return false;
-      return true;
-    });
-
-    renderJobs(filtered);
-  }
-
-  async function fetchJobs() {
+  async function fetchJsonOrThrow(url) {
     const idToken = getIdToken();
     if (!idToken) {
-      log("idToken がありません。ログイン画面へ戻ります。");
-      setTimeout(() => {
-        window.location.href = "index.html";
-      }, 500);
+      throw new Error("idToken がありません。ログインし直してください。");
+    }
+
+    const res = await fetch(url, {
+      method: "GET",
+      headers: {
+        "Authorization": `Bearer ${idToken}`
+      }
+    });
+
+    let data = null;
+    let text = "";
+
+    try {
+      data = await res.json();
+    } catch (_) {
+      try {
+        text = await res.text();
+      } catch (_) {
+        text = "";
+      }
+    }
+
+    if (!res.ok) {
+      const detail =
+        (data && (data.detail || data.message || data.error)) ||
+        text ||
+        `HTTP ${res.status} ${res.statusText}`;
+      throw new Error(detail);
+    }
+
+    return data;
+  }
+
+  async function fetchQueues() {
+    log("キュー一覧を取得します。");
+
+    try {
+      const data = await fetchJsonOrThrow(`${API_BASE}/v1/admin/task-queues`);
+
+      allQueues = Array.isArray(data)
+        ? data
+        : Array.isArray(data.queues)
+          ? data.queues
+          : [];
+
+      log(`キュー一覧取得完了: ${allQueues.length} 件`);
+      renderQueues();
+
+      if (selectedQueueName) {
+        const exists = allQueues.some((q) => parseQueueShortName(q) === selectedQueueName);
+        if (exists) {
+          await fetchTasks(selectedQueueName);
+          return;
+        }
+      }
+
+      if (allQueues.length > 0) {
+        selectedQueueName = parseQueueShortName(allQueues[0]);
+        renderQueues();
+        await fetchTasks(selectedQueueName);
+      } else {
+        selectedQueueName = "";
+        renderTasks("", []);
+      }
+    } catch (err) {
+      console.error(err);
+      log(`キュー一覧取得失敗: ${err.message}`);
+      allQueues = [];
+      renderQueues();
+    }
+  }
+
+  async function fetchTasks(queueName) {
+    if (!queueName) {
+      renderTasks("", []);
       return;
     }
 
-    log("ジョブ一覧を取得します。");
+    log(`タスク一覧を取得します: ${queueName}`);
 
     try {
-      const res = await fetch(`${API_BASE}/v1/knowledge/jobs`, {
-        method: "GET",
-        headers: {
-          "Authorization": `Bearer ${idToken}`
-        }
-      });
+      const data = await fetchJsonOrThrow(
+        `${API_BASE}/v1/admin/task-queues/${encodeURIComponent(queueName)}/tasks`
+      );
 
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}`);
-      }
-
-      const data = await res.json();
-
-      // 想定:
-      // { jobs: [...] }
-      // または { rows: [...] }
-      // または配列
-      allJobs = Array.isArray(data)
+      const tasks = Array.isArray(data)
         ? data
-        : Array.isArray(data.jobs)
-          ? data.jobs
-          : Array.isArray(data.rows)
-            ? data.rows
-            : [];
+        : Array.isArray(data.tasks)
+          ? data.tasks
+          : [];
 
-      log(`ジョブ一覧取得完了: ${allJobs.length} 件`);
-      applyFilter();
+      log(`タスク一覧取得完了: ${queueName} / ${tasks.length} 件`);
+      renderTasks(queueName, tasks);
     } catch (err) {
       console.error(err);
-      log(`ジョブ一覧取得失敗: ${err.message}`);
-      jobTableBody.innerHTML = `
+      log(`タスク一覧取得失敗: ${queueName} / ${err.message}`);
+      taskPanelTitle.textContent = `タスク一覧: ${queueName}`;
+      taskSummary.textContent = "タスク件数: 0";
+      taskTableBody.innerHTML = `
         <tr>
-          <td colspan="6" class="jm-empty">ジョブ一覧の取得に失敗しました。</td>
+          <td colspan="6" class="jm-empty">タスク一覧の取得に失敗しました。</td>
         </tr>
       `;
     }
@@ -205,17 +286,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (btnRefresh) {
     btnRefresh.addEventListener("click", () => {
-      fetchJobs();
+      fetchQueues();
     });
   }
 
-  if (jobTypeFilter) {
-    jobTypeFilter.addEventListener("change", applyFilter);
-  }
-
-  if (jobStatusFilter) {
-    jobStatusFilter.addEventListener("change", applyFilter);
-  }
-
-  fetchJobs();
+  fetchQueues();
 });
