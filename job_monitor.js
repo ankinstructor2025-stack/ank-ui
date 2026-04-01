@@ -116,8 +116,7 @@ document.addEventListener("DOMContentLoaded", () => {
           <div class="jm-queue-name">${escapeHtml(queueName)}</div>
           <div class="jm-queue-meta">
             状態: ${escapeHtml(state)}<br>
-            残TASK数: ${taskCount}<br>
-            ${escapeHtml(fullName)}
+            残TASK数: ${taskCount}
           </div>
         </button>
       `;
