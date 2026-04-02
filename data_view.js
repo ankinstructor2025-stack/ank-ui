@@ -223,19 +223,11 @@ function getStatusClass(status) {
 }
 
 function getJobPathBySourceType(sourceType) {
-  if (sourceType === "kokkai") return "/knowledge/kokkai/job";
-  if (sourceType === "opendata") return "/knowledge/opendata/job";
-  if (sourceType === "public_url") return "/knowledge/url/job";
-  if (sourceType === "upload") return "/knowledge/upload/job";
-  return "";
+  return "/knowledge/job";
 }
 
 function getRunPathBySourceType(sourceType) {
-  if (sourceType === "kokkai") return "/knowledge/kokkai/run";
-  if (sourceType === "opendata") return "/knowledge/opendata/run";
-  if (sourceType === "public_url") return "/knowledge/url/run";
-  if (sourceType === "upload") return "/knowledge/upload/run";
-  return "";
+  return "/knowledge/run";
 }
 
 function buildKnowledgeJobPayload(source, checkedRows) {
