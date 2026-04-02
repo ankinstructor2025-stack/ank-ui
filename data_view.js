@@ -92,31 +92,6 @@ function buildApiUrl(path, query = {}) {
   return url.toString();
 }
 
-function getCurrentUid() {
-  const auth = getFirebaseAuth();
-
-  if (auth && auth.currentUser && auth.currentUser.uid) {
-    const uid = auth.currentUser.uid;
-    sessionStorage.setItem("uid", uid);
-    return uid;
-  }
-
-  const cached = sessionStorage.getItem("uid");
-  if (cached) {
-    return cached;
-  }
-
-  throw new Error("ユーザー情報(uid)が見つかりません");
-}
-
-async function requireCurrentUid() {
-  const uid = getCurrentUid();
-  if (!uid) {
-    throw new Error("ユーザー情報(uid)が見つかりません");
-  }
-  return uid;
-}
-
 async function readErrorDetail(res) {
   let detail = `APIエラー (HTTP ${res.status})`;
 
@@ -710,11 +685,7 @@ async function createKnowledgeJob() {
       throw new Error(`run path が不正です: ${source.sourceType}`);
     }
 
-    const uid = await requireCurrentUid();
-
     const payload = buildKnowledgeJobPayload(source, checkedRows);
-    payload.uid = uid;
-
     const jobData = await apiPost(jobPath, payload);
 
     const jobId = String(jobData?.job_id || "");
