@@ -164,8 +164,6 @@ async function deleteUser(uid, button) {
   }
 }
 
-const btnLogout = document.getElementById("btnLogout");
-
 btnLogout.addEventListener("click", () => {
   // トークン削除
   sessionStorage.removeItem("idToken");
