@@ -4,7 +4,7 @@ const statusBox = document.getElementById("statusBox");
 const errorBox = document.getElementById("errorBox");
 const userTableBody = document.getElementById("userTableBody");
 const btnReload = document.getElementById("btnReload");
-const btnBack = document.getElementById("btnBack");
+const btnLogout = document.getElementById("btnLogout");
 
 function getIdToken() {
   return sessionStorage.getItem("idToken") || localStorage.getItem("idToken") || "";
