@@ -164,10 +164,15 @@ async function deleteUser(uid, button) {
   }
 }
 
-btnReload.addEventListener("click", loadUsers);
+const btnLogout = document.getElementById("btnLogout");
 
-btnBack.addEventListener("click", () => {
-  window.location.href = "menu.html";
+btnLogout.addEventListener("click", () => {
+  // トークン削除
+  sessionStorage.removeItem("idToken");
+  localStorage.removeItem("idToken");
+
+  // ログイン画面へ
+  window.location.href = "index.html";
 });
 
 loadUsers();
