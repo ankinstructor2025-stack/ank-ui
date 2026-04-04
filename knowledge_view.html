@@ -28,38 +28,6 @@
     padding:0;
   }
 
-  .kv-summary-row{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    gap:12px;
-    padding:8px 12px;
-    border:1px solid var(--panel-border);
-    border-radius:14px;
-    background:rgba(255,255,255,.08);
-    color:#fff;
-  }
-
-  .kv-summary-meta,
-  .kv-summary-right{
-    display:flex;
-    align-items:center;
-    gap:12px;
-    flex-wrap:wrap;
-    min-width:0;
-  }
-
-  .kv-muted{
-    color:rgba(255,255,255,.78);
-    font-size:13px;
-  }
-
-  .kv-btn-inline{
-    min-width:96px;
-    height:38px;
-    padding:0 14px;
-  }
-
   .kv-tabs-row{
     display:flex;
     gap:8px;
@@ -104,7 +72,7 @@
     align-items:center;
     justify-content:space-between;
     min-height:38px;
-    padding:0 12px;
+    padding:6px 12px;
     border-bottom:1px solid var(--panel-border);
     background:linear-gradient(180deg,#eef3f8 0%, #e3eaf3 100%);
   }
@@ -114,6 +82,12 @@
     color:var(--panel-text);
     font-size:14px;
     font-weight:700;
+  }
+
+  .kv-btn-inline{
+    min-width:96px;
+    height:34px;
+    padding:0 14px;
   }
 
   .kv-list{
@@ -235,11 +209,6 @@
   }
 
   @media (max-width: 720px){
-    .kv-summary-row{
-      flex-direction:column;
-      align-items:flex-start;
-    }
-
     .kv-tabs-row{
       flex-wrap:wrap;
     }
@@ -263,18 +232,6 @@
     <div id="pageToolbar"></div>
 
     <div class="work-panel kv-work-panel">
-      <div class="kv-summary-row">
-        <div class="kv-summary-meta">
-          <span id="summaryText">0 件</span>
-          <span id="pageSummary" class="kv-muted">1 / 1 ページ</span>
-        </div>
-
-        <div class="kv-summary-right">
-          <span id="contextSummary" class="kv-muted">ナレッジ一覧</span>
-          <button id="btnReload" class="btn kv-btn-inline" type="button">再読込</button>
-        </div>
-      </div>
-
       <div class="kv-tabs-row">
         <button id="tabQa" class="kv-tab-btn active" type="button">QA</button>
         <button id="tabPlain" class="kv-tab-btn" type="button">PLAIN</button>
@@ -283,6 +240,7 @@
       <div class="kv-list-section">
         <div class="kv-list-header">
           <h3 class="kv-panel-title">ナレッジ一覧</h3>
+          <button id="btnReload" class="btn kv-btn-inline" type="button">再読込</button>
         </div>
 
         <div id="listContainer" class="kv-list"></div>

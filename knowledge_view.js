@@ -11,10 +11,6 @@ const tabQa = document.getElementById("tabQa");
 const tabPlain = document.getElementById("tabPlain");
 
 const listContainer = document.getElementById("listContainer");
-
-const summaryText = document.getElementById("summaryText");
-const pageSummary = document.getElementById("pageSummary");
-const contextSummary = document.getElementById("contextSummary");
 const paginationInfo = document.getElementById("paginationInfo");
 
 let currentSourceKey = "";
@@ -165,18 +161,6 @@ function setActiveTab(tab) {
 
 function updateSummary() {
   const totalPages = getTotalPages();
-
-  if (summaryText) {
-    summaryText.textContent = `${currentTotal} 件`;
-  }
-
-  if (pageSummary) {
-    pageSummary.textContent = `${currentPage} / ${totalPages} ページ`;
-  }
-
-  if (contextSummary) {
-    contextSummary.textContent = `DB: ${currentDbName || "-"} / ${currentTab.toUpperCase()}`;
-  }
 
   if (paginationInfo) {
     paginationInfo.textContent = `${currentPage} / ${totalPages}`;
