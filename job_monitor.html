@@ -53,6 +53,13 @@
       flex-wrap:wrap;
     }
 
+    .jm-layout{
+      display:grid;
+      grid-template-columns:360px 1fr;
+      gap:12px;
+      align-items:start;
+    }
+
     .jm-panel{
       background:var(--panel-bg);
       border:1px solid var(--panel-border);
@@ -83,13 +90,6 @@
       background:#f7f9fc;
       color:#334155;
       font-size:13px;
-    }
-
-    .jm-layout{
-      display:grid;
-      grid-template-columns:360px 1fr;
-      gap:12px;
-      align-items:start;
     }
 
     .jm-queue-list{
@@ -196,9 +196,9 @@
     }
 
     .jm-status-retry{
-      background:#fef3c7;
-      color:#92400e;
-      border-color:#fcd34d;
+      background:#dcfce7;
+      color:#166534;
+      border-color:#86efac;
     }
 
     .jm-status-error{
@@ -253,7 +253,7 @@
           <div class="jm-title">
             <h2>ジョブ監視</h2>
             <div class="subtitle">
-              Cloud Tasks のキュー一覧を表示します。キューを選択すると、そのキューに残っているタスク一覧を確認できます。
+              ナレッジ作成ジョブの進捗を表示します。ジョブを選択すると、状態や件数を確認できます。
             </div>
           </div>
           <div class="jm-actions">
@@ -266,34 +266,30 @@
 
           <div class="jm-panel">
             <div class="jm-panel-head">
-              <div class="jm-panel-title">キュー一覧</div>
+              <div class="jm-panel-title">ジョブ一覧</div>
             </div>
-            <div class="jm-summary" id="queueSummary">キュー件数: 0</div>
+            <div class="jm-summary" id="queueSummary">ジョブ件数: 0</div>
             <div class="jm-queue-list" id="queueList">
-              <div class="jm-empty">まだキューはありません。</div>
+              <div class="jm-empty">まだジョブはありません。</div>
             </div>
           </div>
 
           <div class="jm-panel">
             <div class="jm-panel-head">
-              <div class="jm-panel-title" id="taskPanelTitle">タスク一覧</div>
+              <div class="jm-panel-title" id="taskPanelTitle">ジョブ詳細</div>
             </div>
-            <div class="jm-summary" id="taskSummary">タスク件数: 0</div>
+            <div class="jm-summary" id="taskSummary">詳細件数: 0</div>
             <div class="jm-table-wrap">
               <table class="jm-table">
                 <thead>
                   <tr>
-                    <th>状態</th>
-                    <th>タスク名</th>
-                    <th>スケジュール</th>
-                    <th>試行回数</th>
-                    <th>レスポンス回数</th>
-                    <th>URL</th>
+                    <th>項目</th>
+                    <th colspan="5">内容</th>
                   </tr>
                 </thead>
                 <tbody id="taskTableBody">
                   <tr>
-                    <td colspan="6" class="jm-empty">キューを選択してください。</td>
+                    <td colspan="6" class="jm-empty">ジョブを選択してください。</td>
                   </tr>
                 </tbody>
               </table>
