@@ -4,16 +4,18 @@ const API_BASE = "https://ank-api-986862757498.asia-northeast1.run.app/v1";
 const PAGE_SIZE = 10;
 
 const btnReload = document.getElementById("btnReload");
+const btnPrevPage = document.getElementById("btnPrevPage");
+const btnNextPage = document.getElementById("btnNextPage");
 
 const tabQa = document.getElementById("tabQa");
 const tabPlain = document.getElementById("tabPlain");
 
 const listContainer = document.getElementById("listContainer");
-const detailContainer = document.getElementById("detailContainer");
 
 const summaryText = document.getElementById("summaryText");
-const selectionSummary = document.getElementById("selectionSummary");
+const pageSummary = document.getElementById("pageSummary");
 const contextSummary = document.getElementById("contextSummary");
+const paginationInfo = document.getElementById("paginationInfo");
 
 let currentSourceKey = "";
 let currentSourceType = "";
@@ -22,7 +24,6 @@ let currentTab = "qa";
 let currentPage = 1;
 let currentTotal = 0;
 let currentRows = [];
-let currentSelectedRow = null;
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -149,6 +150,10 @@ async function apiGet(path, query = {}) {
   return await res.json();
 }
 
+function getTotalPages() {
+  return Math.max(1, Math.ceil(currentTotal / PAGE_SIZE));
+}
+
 function setActiveTab(tab) {
   currentTab = tab === "plain" ? "plain" : "qa";
 
@@ -156,24 +161,23 @@ function setActiveTab(tab) {
   tabPlain.classList.toggle("active", currentTab === "plain");
 
   currentPage = 1;
-  currentSelectedRow = null;
 }
 
 function updateSummary() {
-  summaryText.textContent = `${currentTotal} 件`;
-  selectionSummary.textContent = currentSelectedRow
-    ? `選択: ${currentSelectedRow.knowledge_id || "-"}`
-    : "未選択";
-  contextSummary.textContent = `DB: ${currentDbName || "-"} / ${currentTab.toUpperCase()}`;
-}
+  const totalPages = getTotalPages();
 
-function clearDetail(message = "一覧から1件選択してください。") {
-  detailContainer.innerHTML = `
-    <div class="kv-detail-empty">
-      <div class="kv-detail-meta">DB: ${escapeHtml(currentDbName || "-")}</div>
-      <pre class="kv-detail-pre">${escapeHtml(message)}</pre>
-    </div>
-  `;
+  summaryText.textContent = `${currentTotal} 件`;
+  pageSummary.textContent = `${currentPage} / ${totalPages} ページ`;
+  contextSummary.textContent = `DB: ${currentDbName || "-"} / ${currentTab.toUpperCase()}`;
+  paginationInfo.textContent = `${currentPage} / ${totalPages}`;
+
+  if (btnPrevPage) {
+    btnPrevPage.disabled = currentPage <= 1;
+  }
+
+  if (btnNextPage) {
+    btnNextPage.disabled = currentPage >= totalPages;
+  }
 }
 
 function renderListPlaceholder(message) {
@@ -188,64 +192,45 @@ function resetListState(message = "ナレッジDBを選択してください。"
   currentTotal = 0;
   currentPage = 1;
   currentRows = [];
-  currentSelectedRow = null;
 
   updateSummary();
   renderListPlaceholder(message);
-  clearDetail(message);
 }
 
-function formatDateTime(value) {
-  if (!value) return "";
-  return String(value);
-}
-
-function buildQaCard(row, selected) {
+function buildQaCard(row) {
   return `
-    <button
-      type="button"
-      class="kv-item-card ${selected ? "is-selected" : ""}"
-      data-knowledge-id="${escapeHtml(row.knowledge_id || "")}"
-    >
+    <div class="kv-item-card">
       <div class="kv-item-top">
         <span class="kv-item-id">${escapeHtml(row.knowledge_id || "")}</span>
         <span class="kv-item-sort">sort: ${escapeHtml(row.sort_no ?? "")}</span>
       </div>
 
-      <div class="kv-item-block">
-        <div class="kv-item-label">質問</div>
-        <div class="kv-item-text">${escapeHtml(row.question || "")}</div>
+      <div class="kv-line">
+        <span class="kv-line-label">質問：</span>
+        <span class="kv-line-text">${escapeHtml(row.question || "")}</span>
       </div>
 
-      <div class="kv-item-block">
-        <div class="kv-item-label">回答</div>
-        <div class="kv-item-text">${escapeHtml(row.answer || "")}</div>
+      <div class="kv-line">
+        <span class="kv-line-label">回答：</span>
+        <span class="kv-line-text">${escapeHtml(row.answer || "")}</span>
       </div>
-    </button>
+    </div>
   `;
 }
 
-function buildPlainCard(row, selected) {
+function buildPlainCard(row) {
   return `
-    <button
-      type="button"
-      class="kv-item-card ${selected ? "is-selected" : ""}"
-      data-knowledge-id="${escapeHtml(row.knowledge_id || "")}"
-    >
+    <div class="kv-item-card">
       <div class="kv-item-top">
         <span class="kv-item-id">${escapeHtml(row.knowledge_id || "")}</span>
         <span class="kv-item-sort">sort: ${escapeHtml(row.sort_no ?? "")}</span>
       </div>
 
-      <div class="kv-item-block">
-        <div class="kv-item-label">内容</div>
-        <div class="kv-item-text">${escapeHtml(row.content || "")}</div>
+      <div class="kv-line">
+        <span class="kv-line-label">内容：</span>
+        <span class="kv-line-text">${escapeHtml(row.content || "")}</span>
       </div>
-
-      <div class="kv-item-meta">
-        ${escapeHtml(formatDateTime(row.updated_at || row.created_at || ""))}
-      </div>
-    </button>
+    </div>
   `;
 }
 
@@ -261,80 +246,10 @@ function renderList(rows) {
   listContainer.innerHTML = `
     <div class="kv-item-list">
       ${safeRows.map((row) => {
-        const selected =
-          currentSelectedRow &&
-          currentSelectedRow.knowledge_id === row.knowledge_id;
-
         return currentTab === "qa"
-          ? buildQaCard(row, selected)
-          : buildPlainCard(row, selected);
+          ? buildQaCard(row)
+          : buildPlainCard(row);
       }).join("")}
-    </div>
-  `;
-
-  listContainer.querySelectorAll(".kv-item-card").forEach((button) => {
-    button.addEventListener("click", () => {
-      const knowledgeId = button.dataset.knowledgeId || "";
-      const row = safeRows.find((item) => String(item.knowledge_id || "") === knowledgeId);
-      if (!row) return;
-
-      currentSelectedRow = row;
-      updateSummary();
-      renderList(currentRows);
-      renderDetail(row);
-    });
-  });
-}
-
-function renderDetail(row) {
-  if (!row) {
-    clearDetail("一覧から1件選択してください。");
-    return;
-  }
-
-  const knowledgeType = (row.knowledge_type || currentTab || "-").toUpperCase();
-
-  let bodyHtml = "";
-
-  if (currentTab === "qa") {
-    bodyHtml = `
-      <div class="kv-detail-section">
-        <div class="kv-detail-label">質問</div>
-        <pre class="kv-detail-pre">${escapeHtml(row.question || "")}</pre>
-      </div>
-
-      <div class="kv-detail-section">
-        <div class="kv-detail-label">回答</div>
-        <pre class="kv-detail-pre">${escapeHtml(row.answer || "")}</pre>
-      </div>
-    `;
-  } else {
-    bodyHtml = `
-      <div class="kv-detail-section">
-        <div class="kv-detail-label">説明文</div>
-        <pre class="kv-detail-pre">${escapeHtml(row.content || "")}</pre>
-      </div>
-    `;
-  }
-
-  detailContainer.innerHTML = `
-    <div class="kv-detail-card">
-      <div class="kv-detail-head">
-        <div class="kv-detail-head-row">
-          <span class="kv-detail-head-label">DB</span>
-          <span class="kv-detail-head-value">${escapeHtml(currentDbName || "-")}</span>
-        </div>
-        <div class="kv-detail-head-row">
-          <span class="kv-detail-head-label">種別</span>
-          <span class="kv-detail-head-value">${escapeHtml(knowledgeType)}</span>
-        </div>
-        <div class="kv-detail-head-row">
-          <span class="kv-detail-head-label">ID</span>
-          <span class="kv-detail-head-value">${escapeHtml(row.knowledge_id || "-")}</span>
-        </div>
-      </div>
-
-      ${bodyHtml}
     </div>
   `;
 }
@@ -351,7 +266,6 @@ async function loadKnowledgeItems() {
   }
 
   renderListPlaceholder("読み込み中です...");
-  clearDetail("読み込み中です...");
 
   const data = await apiGet("/knowledge/items", {
     source_type: currentSourceType,
@@ -364,16 +278,12 @@ async function loadKnowledgeItems() {
   const rows = Array.isArray(data?.items) ? data.items : [];
   currentTotal = Number(data?.total || 0);
 
-  if (rows.length > 0) {
-    currentSelectedRow = rows[0];
-    renderList(rows);
-    renderDetail(rows[0]);
-  } else {
-    currentSelectedRow = null;
-    renderList(rows);
-    clearDetail("データがありません。");
+  const totalPages = getTotalPages();
+  if (currentPage > totalPages) {
+    currentPage = totalPages;
   }
 
+  renderList(rows);
   updateSummary();
 }
 
@@ -385,7 +295,6 @@ function bindEvents() {
     currentSourceType = detail.sourceType || "";
     currentDbName = "";
     currentPage = 1;
-    currentSelectedRow = null;
 
     resetListState("ナレッジDBを選択してください。");
   });
@@ -398,7 +307,6 @@ function bindEvents() {
       currentSourceType = detail.sourceType || currentSourceType;
       currentDbName = detail.dbName || "";
       currentPage = 1;
-      currentSelectedRow = null;
 
       if (currentDbName) {
         await loadKnowledgeItems();
@@ -444,6 +352,34 @@ function bindEvents() {
       } catch (e) {
         console.error(e);
         resetListState(e.message || "再読込に失敗しました。");
+      }
+    });
+  }
+
+  if (btnPrevPage) {
+    btnPrevPage.addEventListener("click", async () => {
+      if (currentPage <= 1) return;
+      try {
+        currentPage -= 1;
+        await loadKnowledgeItems();
+      } catch (e) {
+        console.error(e);
+        currentPage += 1;
+        resetListState(e.message || "前ページ読込に失敗しました。");
+      }
+    });
+  }
+
+  if (btnNextPage) {
+    btnNextPage.addEventListener("click", async () => {
+      if (currentPage >= getTotalPages()) return;
+      try {
+        currentPage += 1;
+        await loadKnowledgeItems();
+      } catch (e) {
+        console.error(e);
+        currentPage -= 1;
+        resetListState(e.message || "次ページ読込に失敗しました。");
       }
     });
   }

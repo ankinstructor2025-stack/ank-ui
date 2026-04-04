@@ -88,17 +88,8 @@
     box-shadow:0 6px 16px rgba(37,99,235,.28);
   }
 
-  .kv-content-split{
+  .kv-list-section{
     flex:1;
-    min-height:0;
-    display:grid;
-    grid-template-columns:minmax(420px, 48%) minmax(480px, 1fr);
-    gap:10px;
-  }
-
-  .kv-left-section,
-  .kv-right-section{
-    min-width:0;
     min-height:0;
     display:flex;
     flex-direction:column;
@@ -125,16 +116,16 @@
     font-weight:700;
   }
 
-  .kv-list,
-  .kv-detail{
+  .kv-list{
     flex:1;
     min-height:0;
     overflow:auto;
     background:var(--box-bg);
+    padding:10px;
   }
 
   .kv-placeholder-box{
-    margin:14px;
+    margin:4px;
     padding:16px 18px;
     border:1px dashed #b6c2d2;
     border-radius:12px;
@@ -146,31 +137,16 @@
   .kv-item-list{
     display:flex;
     flex-direction:column;
-    gap:10px;
-    padding:12px;
+    gap:8px;
   }
 
   .kv-item-card{
-    width:100%;
-    text-align:left;
     border:1px solid #d4dbe6;
-    border-radius:14px;
+    border-radius:12px;
     background:#fff;
-    padding:12px 14px;
+    padding:10px 12px;
     color:var(--panel-text);
-    cursor:pointer;
     box-shadow:0 1px 2px rgba(15,23,42,.04);
-  }
-
-  .kv-item-card:hover{
-    border-color:#8db4ff;
-    box-shadow:0 6px 16px rgba(37,99,235,.12);
-  }
-
-  .kv-item-card.is-selected{
-    border-color:#2563eb;
-    box-shadow:0 0 0 2px rgba(37,99,235,.12);
-    background:#f5f9ff;
   }
 
   .kv-item-top{
@@ -178,7 +154,7 @@
     justify-content:space-between;
     align-items:center;
     gap:10px;
-    margin-bottom:10px;
+    margin-bottom:6px;
     font-size:12px;
   }
 
@@ -194,106 +170,61 @@
     white-space:nowrap;
   }
 
-  .kv-item-block + .kv-item-block{
-    margin-top:10px;
-  }
-
-  .kv-item-label,
-  .kv-detail-label{
-    margin-bottom:6px;
-    color:#475569;
-    font-size:12px;
-    font-weight:700;
-  }
-
-  .kv-item-text{
-    color:#0f172a;
+  .kv-line{
+    display:flex;
+    gap:8px;
+    align-items:flex-start;
     font-size:14px;
-    line-height:1.6;
-    display:-webkit-box;
-    -webkit-line-clamp:3;
-    -webkit-box-orient:vertical;
+    line-height:1.5;
+    color:#0f172a;
+    white-space:nowrap;
     overflow:hidden;
-    word-break:break-word;
+    text-overflow:ellipsis;
   }
 
-  .kv-detail-card,
-  .kv-detail-empty{
-    padding:14px;
-    color:var(--panel-text);
+  .kv-line + .kv-line{
+    margin-top:4px;
   }
 
-  .kv-detail-head{
-    display:grid;
-    gap:8px;
-    margin-bottom:14px;
-    padding:12px;
-    border:1px solid #d8e1eb;
-    border-radius:12px;
-    background:#fff;
-  }
-
-  .kv-detail-head-row{
-    display:grid;
-    grid-template-columns:64px 1fr;
-    gap:8px;
-    align-items:start;
-  }
-
-  .kv-detail-head-label{
-    color:#64748b;
-    font-size:12px;
+  .kv-line-label{
+    flex:0 0 auto;
+    color:#475569;
     font-weight:700;
   }
 
-  .kv-detail-head-value{
-    color:#0f172a;
-    font-size:14px;
-    font-weight:600;
-    word-break:break-all;
+  .kv-line-text{
+    min-width:0;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
   }
 
-  .kv-detail-section + .kv-detail-section{
-    margin-top:12px;
+  .kv-pagination{
+    display:flex;
+    justify-content:flex-end;
+    align-items:center;
+    gap:8px;
+    padding:10px 14px;
+    border-top:1px solid var(--panel-border);
+    background:#f8fafc;
   }
 
-  .kv-detail-section{
-    padding:12px;
-    border:1px solid #d8e1eb;
-    border-radius:12px;
-    background:#fff;
+  .kv-page-info{
+    color:#334155;
+    font-size:13px;
+    min-width:120px;
+    text-align:center;
   }
 
-  .kv-detail-meta{
-    margin-bottom:8px;
-    color:#64748b;
-    font-size:12px;
-    font-weight:700;
+  .kv-page-btn{
+    min-width:88px;
+    height:36px;
+    padding:0 12px;
   }
 
-  .kv-detail-pre{
-    margin:0;
-    color:#0f172a;
-    background:transparent;
-    font-family:inherit;
-    font-size:14px;
-    line-height:1.7;
-    white-space:pre-wrap;
-    word-break:break-word;
-  }
-
-  @media (max-width: 1100px){
-    .kv-content-split{
-      grid-template-columns:1fr;
-    }
-
-    .kv-left-section{
-      min-height:320px;
-    }
-
-    .kv-right-section{
-      min-height:320px;
-    }
+  .kv-page-btn[disabled]{
+    opacity:.45;
+    cursor:not-allowed;
   }
 
   @media (max-width: 720px){
@@ -309,6 +240,11 @@
     .kv-tab-btn{
       flex:1 1 140px;
     }
+
+    .kv-pagination{
+      justify-content:center;
+      flex-wrap:wrap;
+    }
   }
 </style>
 </head>
@@ -323,7 +259,7 @@
       <div class="kv-summary-row">
         <div class="kv-summary-meta">
           <span id="summaryText">0 件</span>
-          <span id="selectionSummary" class="kv-muted">未選択</span>
+          <span id="pageSummary" class="kv-muted">1 / 1 ページ</span>
         </div>
 
         <div class="kv-summary-right">
@@ -337,19 +273,17 @@
         <button id="tabPlain" class="kv-tab-btn" type="button">PLAIN</button>
       </div>
 
-      <div class="kv-content-split">
-        <div class="kv-left-section">
-          <div class="kv-list-header">
-            <h3 class="kv-panel-title">ナレッジ一覧</h3>
-          </div>
-          <div id="listContainer" class="kv-list"></div>
+      <div class="kv-list-section">
+        <div class="kv-list-header">
+          <h3 class="kv-panel-title">ナレッジ一覧</h3>
         </div>
 
-        <div class="kv-right-section">
-          <div class="kv-list-header">
-            <h3 class="kv-panel-title">詳細</h3>
-          </div>
-          <div id="detailContainer" class="kv-detail"></div>
+        <div id="listContainer" class="kv-list"></div>
+
+        <div class="kv-pagination">
+          <button id="btnPrevPage" class="btn kv-page-btn" type="button">前へ</button>
+          <span id="paginationInfo" class="kv-page-info">1 / 1</span>
+          <button id="btnNextPage" class="btn kv-page-btn" type="button">次へ</button>
         </div>
       </div>
     </div>
