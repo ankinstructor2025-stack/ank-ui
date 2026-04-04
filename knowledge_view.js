@@ -197,10 +197,6 @@ function resetListState(message = "ナレッジDBを選択してください。"
 function buildQaCard(row) {
   return `
     <div class="kv-item-card">
-      <div class="kv-item-top">
-        <span class="kv-item-sort">sort: ${escapeHtml(row.sort_no ?? "")}</span>
-      </div>
-
       <div class="kv-line">
         <span class="kv-line-label">質問：</span>
         <span class="kv-line-text">${escapeHtml(row.question || "")}</span>
@@ -217,10 +213,6 @@ function buildQaCard(row) {
 function buildPlainCard(row) {
   return `
     <div class="kv-item-card">
-      <div class="kv-item-top">
-        <span class="kv-item-sort">sort: ${escapeHtml(row.sort_no ?? "")}</span>
-      </div>
-
       <div class="kv-line">
         <span class="kv-line-label">内容：</span>
         <span class="kv-line-text">${escapeHtml(row.content || "")}</span>
