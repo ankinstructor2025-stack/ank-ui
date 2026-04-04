@@ -167,20 +167,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const rows = [
       ["状態", `<span class="${jobStatusClass(job.status || "")}">${escapeHtml(job.status || "-")}</span>`],
-      ["フェーズ", escapeHtml(job.phase || "-")],
       ["source_type", escapeHtml(job.source_type || "-")],
       ["source_name", escapeHtml(job.source_name || "-")],
-      ["request_type", escapeHtml(job.request_type || "-")],
       ["選択件数", escapeHtml(job.selected_count ?? 0)],
       ["総chunk数", escapeHtml(job.total_chunks ?? 0)],
       ["完了chunk数", escapeHtml(job.done_chunks ?? 0)],
       ["エラーchunk数", escapeHtml(job.error_chunks ?? 0)],
       ["QA件数", escapeHtml(job.qa_count ?? 0)],
       ["Plain件数", escapeHtml(job.plain_count ?? 0)],
-      ["依頼日時", escapeHtml(formatDateTime(job.requested_at || ""))],
       ["開始日時", escapeHtml(formatDateTime(job.started_at || ""))],
       ["終了日時", escapeHtml(formatDateTime(job.finished_at || ""))],
-      ["更新日時", escapeHtml(formatDateTime(job.updated_at || ""))],
       ["エラー内容", escapeHtml(job.error_message || "")]
     ];
 
