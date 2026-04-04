@@ -166,10 +166,21 @@ function setActiveTab(tab) {
 function updateSummary() {
   const totalPages = getTotalPages();
 
-  summaryText.textContent = `${currentTotal} 件`;
-  pageSummary.textContent = `${currentPage} / ${totalPages} ページ`;
-  contextSummary.textContent = `DB: ${currentDbName || "-"} / ${currentTab.toUpperCase()}`;
-  paginationInfo.textContent = `${currentPage} / ${totalPages}`;
+  if (summaryText) {
+    summaryText.textContent = `${currentTotal} 件`;
+  }
+
+  if (pageSummary) {
+    pageSummary.textContent = `${currentPage} / ${totalPages} ページ`;
+  }
+
+  if (contextSummary) {
+    contextSummary.textContent = `DB: ${currentDbName || "-"} / ${currentTab.toUpperCase()}`;
+  }
+
+  if (paginationInfo) {
+    paginationInfo.textContent = `${currentPage} / ${totalPages}`;
+  }
 
   if (btnPrevPage) {
     btnPrevPage.disabled = currentPage <= 1;
@@ -181,6 +192,8 @@ function updateSummary() {
 }
 
 function renderListPlaceholder(message) {
+  if (!listContainer) return;
+
   listContainer.innerHTML = `
     <div class="kv-placeholder-box">
       ${escapeHtml(message)}
@@ -237,6 +250,8 @@ function buildPlainCard(row) {
 function renderList(rows) {
   const safeRows = Array.isArray(rows) ? rows : [];
   currentRows = safeRows;
+
+  if (!listContainer) return;
 
   if (safeRows.length === 0) {
     renderListPlaceholder("データがありません。");
@@ -319,25 +334,29 @@ function bindEvents() {
     }
   });
 
-  tabQa.addEventListener("click", async () => {
-    try {
-      setActiveTab("qa");
-      await loadKnowledgeItems();
-    } catch (e) {
-      console.error(e);
-      resetListState(e.message || "QA読込に失敗しました。");
-    }
-  });
+  if (tabQa) {
+    tabQa.addEventListener("click", async () => {
+      try {
+        setActiveTab("qa");
+        await loadKnowledgeItems();
+      } catch (e) {
+        console.error(e);
+        resetListState(e.message || "QA読込に失敗しました。");
+      }
+    });
+  }
 
-  tabPlain.addEventListener("click", async () => {
-    try {
-      setActiveTab("plain");
-      await loadKnowledgeItems();
-    } catch (e) {
-      console.error(e);
-      resetListState(e.message || "PLAIN読込に失敗しました。");
-    }
-  });
+  if (tabPlain) {
+    tabPlain.addEventListener("click", async () => {
+      try {
+        setActiveTab("plain");
+        await loadKnowledgeItems();
+      } catch (e) {
+        console.error(e);
+        resetListState(e.message || "PLAIN読込に失敗しました。");
+      }
+    });
+  }
 
   if (btnReload) {
     btnReload.addEventListener("click", async () => {
@@ -359,6 +378,7 @@ function bindEvents() {
   if (btnPrevPage) {
     btnPrevPage.addEventListener("click", async () => {
       if (currentPage <= 1) return;
+
       try {
         currentPage -= 1;
         await loadKnowledgeItems();
@@ -373,6 +393,7 @@ function bindEvents() {
   if (btnNextPage) {
     btnNextPage.addEventListener("click", async () => {
       if (currentPage >= getTotalPages()) return;
+
       try {
         currentPage += 1;
         await loadKnowledgeItems();
