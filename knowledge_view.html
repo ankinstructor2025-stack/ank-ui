@@ -23,7 +23,7 @@
   .kv-work-panel{
     display:flex;
     flex-direction:column;
-    gap:10px;
+    gap:8px;
     min-height:calc(100vh - 74px);
     padding:0;
   }
@@ -33,7 +33,7 @@
     justify-content:space-between;
     align-items:center;
     gap:12px;
-    padding:10px 14px;
+    padding:8px 12px;
     border:1px solid var(--panel-border);
     border-radius:14px;
     background:rgba(255,255,255,.08);
@@ -103,8 +103,8 @@
     display:flex;
     align-items:center;
     justify-content:space-between;
-    min-height:42px;
-    padding:0 14px;
+    min-height:38px;
+    padding:0 12px;
     border-bottom:1px solid var(--panel-border);
     background:linear-gradient(180deg,#eef3f8 0%, #e3eaf3 100%);
   }
@@ -112,7 +112,7 @@
   .kv-panel-title{
     margin:0;
     color:var(--panel-text);
-    font-size:15px;
+    font-size:14px;
     font-weight:700;
   }
 
@@ -121,14 +121,14 @@
     min-height:0;
     overflow:auto;
     background:var(--box-bg);
-    padding:10px;
+    padding:6px;
   }
 
   .kv-placeholder-box{
-    margin:4px;
-    padding:16px 18px;
+    margin:2px;
+    padding:12px 14px;
     border:1px dashed #b6c2d2;
-    border-radius:12px;
+    border-radius:10px;
     background:#ffffff;
     color:#475569;
     font-size:14px;
@@ -137,31 +137,25 @@
   .kv-item-list{
     display:flex;
     flex-direction:column;
-    gap:8px;
+    gap:4px;
   }
 
   .kv-item-card{
     border:1px solid #d4dbe6;
-    border-radius:12px;
+    border-radius:10px;
     background:#fff;
-    padding:10px 12px;
+    padding:6px 10px;
     color:var(--panel-text);
     box-shadow:0 1px 2px rgba(15,23,42,.04);
   }
 
   .kv-item-top{
     display:flex;
-    justify-content:space-between;
+    justify-content:flex-end;
     align-items:center;
-    gap:10px;
-    margin-bottom:6px;
-    font-size:12px;
-  }
-
-  .kv-item-id{
-    color:#1d4ed8;
-    font-weight:700;
-    word-break:break-all;
+    gap:8px;
+    margin-bottom:2px;
+    font-size:11px;
   }
 
   .kv-item-sort{
@@ -171,10 +165,10 @@
 
   .kv-line{
     display:flex;
-    gap:8px;
+    gap:6px;
     align-items:flex-start;
     font-size:14px;
-    line-height:1.5;
+    line-height:1.4;
     color:#0f172a;
     white-space:nowrap;
     overflow:hidden;
@@ -182,7 +176,7 @@
   }
 
   .kv-line + .kv-line{
-    margin-top:4px;
+    margin-top:2px;
   }
 
   .kv-line-label{
@@ -203,7 +197,7 @@
     justify-content:flex-end;
     align-items:center;
     gap:8px;
-    padding:10px 14px;
+    padding:8px 12px;
     border-top:1px solid var(--panel-border);
     background:#f8fafc;
   }
@@ -211,7 +205,7 @@
   .kv-page-info{
     color:#334155;
     font-size:13px;
-    min-width:120px;
+    min-width:72px;
     text-align:center;
   }
 
@@ -219,11 +213,25 @@
     min-width:88px;
     height:36px;
     padding:0 12px;
+    border:1px solid #1d4ed8;
+    border-radius:10px;
+    background:linear-gradient(180deg,#1d4ed8,#1e40af);
+    color:#fff;
+    font-size:13px;
+    font-weight:700;
+    cursor:pointer;
+    box-shadow:0 4px 12px rgba(37,99,235,.22);
+  }
+
+  .kv-page-btn:hover{
+    background:linear-gradient(180deg,#2563eb,#1d4ed8);
   }
 
   .kv-page-btn[disabled]{
     opacity:.45;
     cursor:not-allowed;
+    background:linear-gradient(180deg,#1d4ed8,#1e40af);
+    color:#fff;
   }
 
   @media (max-width: 720px){
@@ -280,9 +288,9 @@
         <div id="listContainer" class="kv-list"></div>
 
         <div class="kv-pagination">
-          <button id="btnPrevPage" class="btn kv-page-btn" type="button">前へ</button>
+          <button id="btnPrevPage" class="kv-page-btn" type="button">前へ</button>
           <span id="paginationInfo" class="kv-page-info">1 / 1</span>
-          <button id="btnNextPage" class="btn kv-page-btn" type="button">次へ</button>
+          <button id="btnNextPage" class="kv-page-btn" type="button">次へ</button>
         </div>
       </div>
     </div>

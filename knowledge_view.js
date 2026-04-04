@@ -157,8 +157,8 @@ function getTotalPages() {
 function setActiveTab(tab) {
   currentTab = tab === "plain" ? "plain" : "qa";
 
-  tabQa.classList.toggle("active", currentTab === "qa");
-  tabPlain.classList.toggle("active", currentTab === "plain");
+  if (tabQa) tabQa.classList.toggle("active", currentTab === "qa");
+  if (tabPlain) tabPlain.classList.toggle("active", currentTab === "plain");
 
   currentPage = 1;
 }
@@ -214,7 +214,6 @@ function buildQaCard(row) {
   return `
     <div class="kv-item-card">
       <div class="kv-item-top">
-        <span class="kv-item-id">${escapeHtml(row.knowledge_id || "")}</span>
         <span class="kv-item-sort">sort: ${escapeHtml(row.sort_no ?? "")}</span>
       </div>
 
@@ -235,7 +234,6 @@ function buildPlainCard(row) {
   return `
     <div class="kv-item-card">
       <div class="kv-item-top">
-        <span class="kv-item-id">${escapeHtml(row.knowledge_id || "")}</span>
         <span class="kv-item-sort">sort: ${escapeHtml(row.sort_no ?? "")}</span>
       </div>
 
