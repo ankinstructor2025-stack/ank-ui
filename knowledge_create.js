@@ -92,9 +92,9 @@ function renderParentPlaceholder(message) {
 }
 
 function resetScreen() {
-  renderParentPlaceholder("親一覧を読み込み中です...");
+  renderParentPlaceholder("正常終了ジョブを読み込み中です...");
   summaryText.textContent = "0 件";
-  contextSummary.textContent = "親一覧";
+  contextSummary.textContent = "正常終了ジョブ一覧";
   parentRows = [];
 }
 
@@ -106,7 +106,7 @@ function getNextAction(phase, status) {
     return null;
   }
 
-  if (!p || p === "created") {
+  if (!p || p === "done" || p === "created") {
     return { label: "クレンジング", action: "cleanse" };
   }
 
@@ -217,7 +217,7 @@ function renderStatusCell(status) {
 
 function renderParentTable(rows) {
   if (!rows.length) {
-    renderParentPlaceholder("job がありません");
+    renderParentPlaceholder("正常終了ジョブがありません");
     return;
   }
 
@@ -225,7 +225,6 @@ function renderParentTable(rows) {
     <tr>
       <th class="col-source-type">source_type</th>
       <th class="col-status">status</th>
-      <th class="col-status">phase</th>
       <th class="col-count">selected</th>
       <th class="col-count">qa</th>
       <th class="col-count">plain</th>
@@ -239,7 +238,6 @@ function renderParentTable(rows) {
         <tr>
           <td>${escapeHtml(row.source_type)}</td>
           <td>${renderStatusCell(row.status)}</td>
-          <td>${escapeHtml(row.phase ?? "created")}</td>
           <td>${escapeHtml(row.selected_count)}</td>
           <td>${escapeHtml(row.qa_count)}</td>
           <td>${escapeHtml(row.plain_count)}</td>
@@ -269,11 +267,11 @@ function renderParentTable(rows) {
 async function loadParentRows() {
   resetScreen();
 
-  const data = await apiGet("/knowledge/refine/jobs");
+  const data = await apiGet("/job-status/completed");
   parentRows = Array.isArray(data.jobs) ? data.jobs : [];
 
   summaryText.textContent = `${parentRows.length} 件`;
-  contextSummary.textContent = "親一覧: knowledge_jobs";
+  contextSummary.textContent = "正常終了ジョブ一覧: job_status JSON";
 
   renderParentTable(parentRows);
 }
@@ -296,6 +294,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     await loadParentRows();
   } catch (err) {
     console.error(err);
-    renderParentPlaceholder(err.message || "親一覧の読み込みに失敗しました");
+    renderParentPlaceholder(err.message || "正常終了ジョブ一覧の読み込みに失敗しました");
   }
 });
