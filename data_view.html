@@ -14,48 +14,50 @@
     <div id="pageToolbar"></div>
 
     <div class="work-panel">
-      <div class="section-block">
+      <div class="section-block section-summary">
         <div class="compact-actions">
           <span id="selectionSummary" class="placeholder">選択 0 件</span>
           <span id="contextSummary" class="placeholder">親一覧</span>
         </div>
       </div>
 
-      <div class="section-block">
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
-          <div style="min-width:0; display:flex; flex-direction:column; gap:8px;">
-            <div class="compact-actions">
+      <div class="section-block section-lists">
+        <div class="lists-grid">
+          <div class="list-pane">
+            <div class="compact-actions list-actions">
               <button id="btnParentCheckAll" class="btn btn-primary" type="button">全チェック</button>
               <button id="btnParentClearAll" class="btn btn-primary" type="button">全解除</button>
               <button id="btnKnowledge" class="btn btn-primary" type="button">選択対象をナレッジ化</button>
             </div>
 
-            <div class="dataset-list-wrap" style="min-height:420px;">
-              <table id="parentTable" style="width:100%; border-collapse:collapse; table-layout:fixed;">
+            <div class="dataset-list-wrap">
+              <table id="parentTable">
                 <thead id="parentTableHead"></thead>
                 <tbody id="parentTableBody"></tbody>
               </table>
             </div>
 
-            <div id="parentPager" class="compact-actions hidden"></div>
+            <div id="parentPager" class="pager hidden"></div>
           </div>
 
-          <div style="min-width:0; display:flex; flex-direction:column; gap:8px;">
-            <div class="dataset-list-wrap" style="min-height:420px;">
-              <table id="childTable" style="width:100%; border-collapse:collapse; table-layout:fixed;">
+          <div class="list-pane">
+            <div class="list-pane-spacer" aria-hidden="true"></div>
+
+            <div class="dataset-list-wrap">
+              <table id="childTable">
                 <thead id="childTableHead"></thead>
                 <tbody id="childTableBody"></tbody>
               </table>
             </div>
 
-            <div id="childPager" class="compact-actions hidden"></div>
+            <div id="childPager" class="pager hidden"></div>
           </div>
         </div>
       </div>
 
-      <div class="section-block">
+      <div class="section-block section-detail">
         <h3 class="panel-title">詳細表示</h3>
-        <div class="dataset-list-wrap">
+        <div class="detail-wrap">
           <pre id="detailPre">データ種別を選択してください。</pre>
         </div>
       </div>
