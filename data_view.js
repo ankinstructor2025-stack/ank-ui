@@ -764,7 +764,30 @@ function bindEvents() {
     try {
       const detail = event.detail || {};
       currentSourceKey = detail.sourceKey || "";
+
+      // ★ここで先にクラス付ける
+      document.body.classList.remove(
+        "source-kokkai",
+        "source-opendata",
+        "source-public-url",
+        "source-upload"
+      );
+
+      const source = sourceMap[currentSourceKey];
+
+      if (currentSourceKey === "api_kokkai") {
+        document.body.classList.add("source-kokkai");
+      } else if (currentSourceKey === "api_datago") {
+        document.body.classList.add("source-opendata");
+      } else if (currentSourceKey === "file_upload") {
+        document.body.classList.add("source-upload");
+      } else if (source?.sourceType === "public_url") {
+        document.body.classList.add("source-public-url");
+      }
+
+      // ★その後に描画
       await refreshParentList();
+
     } catch (e) {
       console.error(e);
       renderParentPlaceholder(e.message || "読込に失敗しました");
