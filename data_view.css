@@ -258,3 +258,57 @@ thead th,
     grid-template-rows:auto 520px minmax(120px, 1fr);
   }
 }
+
+async function refreshParentList() {
+  document.body.classList.remove(
+    "source-kokkai",
+    "source-opendata",
+    "source-public-url",
+    "source-upload"
+  );
+
+  if (currentSourceKey === "api_kokkai") {
+    document.body.classList.add("source-kokkai");
+  } else if (currentSourceKey === "api_datago") {
+    document.body.classList.add("source-opendata");
+  } else if (currentSourceKey === "file_upload") {
+    document.body.classList.add("source-upload");
+  } else {
+    const currentSource = sourceMap[currentSourceKey];
+    if (currentSource?.sourceType === "public_url") {
+      document.body.classList.add("source-public-url");
+    }
+  }
+
+  if (!currentSourceKey) {
+    renderInitialScreen();
+    return;
+  }
+
+  const module = getCurrentModule();
+  const source = sourceMap[currentSourceKey];
+  const ctx = createViewContext();
+
+  if (!module) {
+    renderParentPlaceholder("このデータ種別の照会処理は未実装です。");
+    renderChildPlaceholder("親一覧から1件選択してください。");
+    if (detailPre) detailPre.textContent = `選択中: ${source?.label || ""}`;
+    if (contextSummary) contextSummary.textContent = `親一覧: ${source?.label || ""}`;
+    resetPaging();
+    return;
+  }
+
+  resetViewForSource();
+  await loadModuleData(module, ctx);
+
+  if (currentSourceKey === "api_datago") {
+    decorateOpenDataButtons();
+    updateOpenDataSummary();
+  }
+
+  if (btnKnowledge) {
+    btnKnowledge.disabled = false;
+  }
+
+  resetPaging();
+}

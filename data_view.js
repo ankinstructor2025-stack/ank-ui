@@ -581,6 +581,26 @@ function updateOpenDataSummary() {
 }
 
 async function refreshParentList() {
+  document.body.classList.remove(
+    "source-kokkai",
+    "source-opendata",
+    "source-public-url",
+    "source-upload"
+  );
+
+  if (currentSourceKey === "api_kokkai") {
+    document.body.classList.add("source-kokkai");
+  } else if (currentSourceKey === "api_datago") {
+    document.body.classList.add("source-opendata");
+  } else if (currentSourceKey === "file_upload") {
+    document.body.classList.add("source-upload");
+  } else {
+    const currentSource = sourceMap[currentSourceKey];
+    if (currentSource?.sourceType === "public_url") {
+      document.body.classList.add("source-public-url");
+    }
+  }
+
   if (!currentSourceKey) {
     renderInitialScreen();
     return;
