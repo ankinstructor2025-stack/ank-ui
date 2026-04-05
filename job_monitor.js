@@ -192,7 +192,7 @@ document.addEventListener("DOMContentLoaded", () => {
     log("ジョブ一覧を取得します。");
 
     try {
-      const data = await fetchJsonOrThrow(`${API_BASE}/v1/job-status/running`);
+      const data = await fetchJsonOrThrow(`${API_BASE}/v1/job-status`);
 
       const jobs = Array.isArray(data)
         ? data
