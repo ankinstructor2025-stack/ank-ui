@@ -384,11 +384,12 @@ window.DataViewPublicUrl = (function () {
       .filter(Boolean);
 
     return selected.map((row) => ({
-      root_id: row.root_id,
       source_type: "public_url",
-      source_key: row.source_key || row.source_type || ctx.currentSourceKey,
-      title: row.title || row.root_url,
-      child_count: row.child_count || row.page_count || 0
+      parent_source_id: row.root_id,
+      parent_key1: row.source_key || row.source_type || ctx.currentSourceKey,
+      parent_key2: row.root_url || "",
+      parent_label: row.title || row.root_url || row.root_id,
+      row_count: Number(row.child_count || row.page_count || 0)
     }));
   }
 
