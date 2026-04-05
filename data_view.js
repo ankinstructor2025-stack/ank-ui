@@ -19,8 +19,8 @@ const detailPre = document.getElementById("detailPre");
 
 const API_BASE = "https://ank-api-986862757498.asia-northeast1.run.app/v1";
 
-const PARENT_PAGE_SIZE = 5;
-const CHILD_PAGE_SIZE = 5;
+const PARENT_PAGE_SIZE = 10;
+const CHILD_PAGE_SIZE = 10;
 
 let sourceList = [];
 let sourceMap = {};
