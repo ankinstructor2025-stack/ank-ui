@@ -258,3 +258,57 @@ thead th,
     grid-template-rows:auto 520px minmax(120px, 1fr);
   }
 }
+
+/* ===============================
+   オープンデータ専用
+=============================== */
+
+body.source-opendata #parentTableHead th:nth-child(3),
+body.source-opendata #parentTableBody td:nth-child(3){
+  display:none;
+}
+
+body.source-opendata #parentTableHead th:nth-child(2),
+body.source-opendata #parentTableBody td:nth-child(2){
+  width:auto;
+}
+
+body.source-opendata #parentTableHead th:nth-child(4),
+body.source-opendata #parentTableBody td:nth-child(4){
+  width:72px;
+}
+
+body.source-opendata #childTableBody td{
+  padding:3px 10px;
+  line-height:1.1;
+}
+
+body.source-opendata #childTableHead th:nth-child(5),
+body.source-opendata #childTableBody td:nth-child(5){
+  width:64px;
+  text-align:center;
+}
+
+body.source-opendata #childTableBody .btn-download-child{
+  height:24px;
+  min-height:24px;
+  padding:2px 8px;
+  font-size:12px;
+  line-height:1;
+  border-radius:8px;
+}
+
+body.source-opendata #childTableHead th:nth-child(2),
+body.source-opendata #childTableBody td:nth-child(2){
+  width:52px;
+}
+
+body.source-opendata #childTableHead th:nth-child(3),
+body.source-opendata #childTableBody td:nth-child(3){
+  width:124px;
+}
+
+body.source-opendata #childTableHead th:nth-child(4),
+body.source-opendata #childTableBody td:nth-child(4){
+  width:128px;
+}
