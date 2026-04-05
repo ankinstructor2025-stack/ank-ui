@@ -64,10 +64,10 @@
 
 /* ===== 一覧（固定） ===== */
 .work-panel > .section-block:nth-child(2){
-  flex:0 0 300px;
-  height:300px;
-  min-height:300px;
-  max-height:300px;
+  flex:0 0 450px;
+  height:450px;
+  min-height:450px;
+  max-height:450px;
   overflow:hidden;
   display:flex;
   flex-direction:column;
