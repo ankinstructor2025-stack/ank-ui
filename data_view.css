@@ -71,10 +71,10 @@ body{
 
 /* ===== 一覧エリア（縦だけ調整） ===== */
 .work-panel > .section-block:nth-child(2){
-  flex:0 0 520px;
-  height:520px;
-  min-height:520px;
-  max-height:520px;
+  flex:0 0 460px;
+  height:460px;
+  min-height:460px;
+  max-height:460px;
   overflow:hidden;
   display:flex;
   flex-direction:column;
