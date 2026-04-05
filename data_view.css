@@ -69,12 +69,12 @@ body{
   margin-left:auto;
 }
 
-/* ===== 一覧エリア ===== */
+/* ===== 一覧エリア（縦だけ調整） ===== */
 .work-panel > .section-block:nth-child(2){
-  flex:0 0 450px;
-  height:450px;
-  min-height:450px;
-  max-height:450px;
+  flex:0 0 520px;
+  height:520px;
+  min-height:520px;
+  max-height:520px;
   overflow:hidden;
   display:flex;
   flex-direction:column;
@@ -103,33 +103,22 @@ body{
   border-radius:12px;
 }
 
-/* ===== 横2分割 ===== */
+/* ===== 横2分割（均等のまま） ===== */
 .work-panel > .section-block:nth-child(2) > div{
   display:flex;
   gap:10px;
   flex:1 1 auto;
   min-height:0;
   height:0;
-  overflow:hidden;
 }
 
 .work-panel > .section-block:nth-child(2) > div > div{
+  flex:1;
   display:flex;
   flex-direction:column;
   min-width:0;
   min-height:0;
   overflow:hidden;
-}
-
-/* 親40% / 子60% */
-.work-panel > .section-block:nth-child(2) > div > div:first-child{
-  flex:0 0 40%;
-  max-width:40%;
-}
-
-.work-panel > .section-block:nth-child(2) > div > div:last-child{
-  flex:0 0 60%;
-  max-width:60%;
 }
 
 /* ===== 一覧スクロール ===== */
@@ -259,7 +248,7 @@ thead th,
   border-radius:12px;
 }
 
-/* ===== 詳細 ===== */
+/* ===== 詳細（残りを使う） ===== */
 .work-panel > .section-block:last-child{
   flex:1 1 auto;
   min-height:120px;
