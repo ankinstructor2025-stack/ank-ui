@@ -62,9 +62,12 @@
   margin-left:auto;
 }
 
+/* ===== 一覧（固定） ===== */
 .work-panel > .section-block:nth-child(2){
-  flex:1;
-  min-height:0;
+  flex:0 0 300px;
+  height:300px;
+  min-height:300px;
+  max-height:300px;
   overflow:hidden;
   display:flex;
   flex-direction:column;
@@ -93,11 +96,13 @@
   border-radius:12px;
 }
 
+/* ===== 横2分割 ===== */
 .work-panel > .section-block:nth-child(2) > div{
   display:flex;
   gap:10px;
-  flex:1;
+  flex:1 1 auto;
   min-height:0;
+  height:auto;
 }
 
 .work-panel > .section-block:nth-child(2) > div > div{
@@ -109,10 +114,15 @@
   overflow:hidden;
 }
 
+/* ===== 一覧スクロール ===== */
 .dataset-list-wrap{
   flex:1;
   min-height:0;
   overflow:auto;
+  background:#ffffff;
+  border:1px solid #d6dee8;
+  border-radius:10px;
+  scrollbar-gutter:stable;
 }
 
 /* ===== テーブル ===== */
