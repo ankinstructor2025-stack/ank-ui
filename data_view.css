@@ -75,7 +75,7 @@ body{
   height:360px;
   min-height:360px;
   max-height:360px;
-  overflow:hidden;
+  overflow:visible;
   display:flex;
   flex-direction:column;
 }
@@ -109,7 +109,6 @@ body{
   gap:10px;
   flex:1 1 auto;
   min-height:0;
-  height:0;
 }
 
 .work-panel > .section-block:nth-child(2) > div > div{
@@ -123,14 +122,13 @@ body{
 
 /* ===== 一覧スクロール ===== */
 .dataset-list-wrap{
-  flex:1 1 auto;
+  flex:1 1 0;
   min-height:0;
   overflow:auto;
   background:#ffffff;
   border:1px solid #d6dee8;
   border-radius:10px;
   scrollbar-gutter:stable;
-  margin-bottom:0;
 }
 
 /* ===== テーブル ===== */
@@ -232,7 +230,7 @@ thead th,
   height:30px;
   min-height:30px;
   flex:0 0 30px;
-  margin-top:6px;
+  margin-top:0;
 }
 
 #parentPager.hidden,
