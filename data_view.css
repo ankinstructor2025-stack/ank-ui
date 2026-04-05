@@ -312,3 +312,44 @@ body.source-opendata #childTableHead th:nth-child(4),
 body.source-opendata #childTableBody td:nth-child(4){
   width:128px;
 }
+
+/* ===============================
+   ファイルアップロード専用
+=============================== */
+
+/* 親: 作成日を非表示 */
+body.source-upload #parentTableHead th:nth-child(4),
+body.source-upload #parentTableBody td:nth-child(4){
+  display:none;
+}
+
+/* 親: ファイル名を広く */
+body.source-upload #parentTableHead th:nth-child(2),
+body.source-upload #parentTableBody td:nth-child(2){
+  width:auto;
+}
+
+/* 親: extを細く */
+body.source-upload #parentTableHead th:nth-child(3),
+body.source-upload #parentTableBody td:nth-child(3){
+  width:56px;
+}
+
+/* 親: DL列を細く */
+body.source-upload #parentTableHead th:nth-child(5),
+body.source-upload #parentTableBody td:nth-child(5){
+  width:64px;
+  text-align:center;
+}
+
+/* 親: DLボタンを小さめに */
+body.source-upload #parentTableBody .btn,
+body.source-upload #parentTableBody .btn-download,
+body.source-upload #parentTableBody .btn-download-child{
+  height:24px;
+  min-height:24px;
+  padding:2px 8px;
+  font-size:12px;
+  line-height:1;
+  border-radius:8px;
+}
