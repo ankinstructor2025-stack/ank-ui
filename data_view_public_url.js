@@ -101,6 +101,29 @@ window.DataViewPublicUrl = (function () {
     ).map((el) => Number(el.dataset.index || "-1"));
   }
 
+  function getCheckedRows() {
+    const indexes = getCheckedParentIndexes();
+    return indexes
+      .map((index) => currentParentRows[index])
+      .filter(Boolean);
+  }
+
+  function checkAll() {
+    const targets = ctx.parentTableBody?.querySelectorAll(".parent-check") || [];
+    targets.forEach((el) => {
+      el.checked = true;
+    });
+    syncParentCheckboxUi();
+  }
+
+  function clearChecks() {
+    const targets = ctx.parentTableBody?.querySelectorAll(".parent-check") || [];
+    targets.forEach((el) => {
+      el.checked = false;
+    });
+    syncParentCheckboxUi();
+  }
+
   function bindParentCheckboxEvents() {
     const checks = ctx.parentTableBody?.querySelectorAll(".parent-check") || [];
     checks.forEach((input) => {
@@ -111,21 +134,13 @@ window.DataViewPublicUrl = (function () {
 
     if (ctx.btnCheckAll) {
       ctx.btnCheckAll.onclick = () => {
-        const targets = ctx.parentTableBody?.querySelectorAll(".parent-check") || [];
-        targets.forEach((el) => {
-          el.checked = true;
-        });
-        syncParentCheckboxUi();
+        checkAll();
       };
     }
 
     if (ctx.btnClearChecks) {
       ctx.btnClearChecks.onclick = () => {
-        const targets = ctx.parentTableBody?.querySelectorAll(".parent-check") || [];
-        targets.forEach((el) => {
-          el.checked = false;
-        });
-        syncParentCheckboxUi();
+        clearChecks();
       };
     }
   }
@@ -375,13 +390,7 @@ window.DataViewPublicUrl = (function () {
   }
 
   async function buildKnowledgeTargets() {
-    const checks = Array.from(ctx.parentTableBody?.querySelectorAll(".parent-check:checked") || []);
-    const selected = checks
-      .map((el) => {
-        const index = Number(el.dataset.index || "-1");
-        return currentParentRows[index];
-      })
-      .filter(Boolean);
+    const selected = getCheckedRows();
 
     return selected.map((row) => ({
       source_type: "public_url",
@@ -396,6 +405,9 @@ window.DataViewPublicUrl = (function () {
   return {
     init,
     loadParents,
+    getCheckedRows,
+    checkAll,
+    clearChecks,
     buildKnowledgeTargets,
     applyKnowledgeStatus
   };
