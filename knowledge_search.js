@@ -23,6 +23,7 @@ const summaryText = document.getElementById("summaryText");
 const selectionSummary = document.getElementById("selectionSummary");
 const sourceSummary = document.getElementById("sourceSummary");
 const contextSummary = document.getElementById("contextSummary");
+const summaryBar = document.querySelector(".summary-bar");
 
 const resultQaSimilarity = document.getElementById("resultQaSimilarity");
 const resultPlainFts = document.getElementById("resultPlainFts");
@@ -144,18 +145,6 @@ function detectTabFromPanel(panel) {
   return "";
 }
 
-function getResultBoxByTab(tabName) {
-  const tab = normalizeTabName(tabName);
-
-  if (tab === "qa") return resultQaSimilarity;
-  if (tab === "plain") return resultPlainFts;
-  if (tab === "hybrid") return resultHybrid;
-  if (tab === "hybrid-ai") return resultHybridAi;
-  if (tab === "ai-answer") return resultAiAnswer;
-
-  return resultQaSimilarity;
-}
-
 function clearStoredResults() {
   lastQaResult = null;
   lastPlainResult = null;
@@ -172,7 +161,7 @@ function resetDatabaseOptions(placeholder = "選択してください") {
   databaseSelect.innerHTML =
     `<option value="" selected disabled>${escapeHtml(placeholder)}</option>`;
   currentDatabase = "";
-  contextSummary.textContent = "DB:-";
+  if (contextSummary) contextSummary.textContent = "DB:-";
 }
 
 function renderAllEmpty(message) {
@@ -195,8 +184,14 @@ function formatBm25(score) {
   return `bm25: ${score}`;
 }
 
-function joinSubParts(parts) {
-  return (parts || []).filter(Boolean).join(" / ");
+function appendScoreToTitle(title, scoreText) {
+  const safeTitle = (title || "").trim();
+  const safeScore = (scoreText || "").trim();
+
+  if (safeTitle && safeScore) return `${safeTitle}  /  ${safeScore}`;
+  if (safeTitle) return safeTitle;
+  if (safeScore) return safeScore;
+  return "";
 }
 
 /* ==============================
@@ -259,7 +254,7 @@ function renderDatabaseOptions(list) {
 function applyInitialDatabase(list) {
   if (!list || !list.length) {
     currentDatabase = "";
-    contextSummary.textContent = "DB:-";
+    if (contextSummary) contextSummary.textContent = "DB:-";
     return;
   }
 
@@ -268,13 +263,13 @@ function applyInitialDatabase(list) {
 
   if (!firstDb) {
     currentDatabase = "";
-    contextSummary.textContent = "DB:-";
+    if (contextSummary) contextSummary.textContent = "DB:-";
     return;
   }
 
   databaseSelect.value = firstDb;
   currentDatabase = firstDb;
-  contextSummary.textContent = `DB:${firstDb}`;
+  if (contextSummary) contextSummary.textContent = `DB:${firstDb}`;
 }
 
 async function reloadDatabaseListBySourceType() {
@@ -282,9 +277,9 @@ async function reloadDatabaseListBySourceType() {
   resetDatabaseOptions("読込中です...");
   setDatabaseDisabledState(true);
 
-  summaryText.textContent = "件数:0件";
-  selectionSummary.textContent = "入力:未実行";
-  sourceSummary.textContent = currentSourceType || "-";
+  if (summaryText) summaryText.textContent = "件数:0件";
+  if (selectionSummary) selectionSummary.textContent = "入力:未実行";
+  if (sourceSummary) sourceSummary.textContent = currentSourceType || "-";
 
   if (!currentSourceType) {
     resetDatabaseOptions("データ種別を選択してください");
@@ -298,12 +293,12 @@ async function reloadDatabaseListBySourceType() {
   setDatabaseDisabledState(false);
   applyInitialDatabase(dbList);
 
-  summaryText.textContent = "件数:0件";
-  selectionSummary.textContent = "入力:未実行";
-  sourceSummary.textContent = currentSourceType || "-";
+  if (summaryText) summaryText.textContent = "件数:0件";
+  if (selectionSummary) selectionSummary.textContent = "入力:未実行";
+  if (sourceSummary) sourceSummary.textContent = currentSourceType || "-";
 
   if (!dbList.length) {
-    contextSummary.textContent = "DB:-";
+    if (contextSummary) contextSummary.textContent = "DB:-";
     renderAllEmpty("該当するデータベースがありません。");
     return;
   }
@@ -322,13 +317,11 @@ function renderEmpty(box, message) {
 
 function buildCardHtml(item) {
   const title = (item?.title || "").trim();
-  const sub = (item?.sub || "").trim();
   const body = (item?.body || "").trim();
 
   return `
 <div class="result-card">
   ${title ? `<div class="result-card-title">${escapeHtml(title)}</div>` : ""}
-  ${sub ? `<div class="result-card-sub">${escapeHtml(sub)}</div>` : ""}
   ${body ? `<div class="result-card-body">${escapeHtml(body)}</div>` : ""}
 </div>
 `;
@@ -429,20 +422,13 @@ function buildPlainCards(items) {
   return (items || []).map((row) => {
     const body = (row.content_preview || row.content || "").trim();
     const rawTitle = (row.title || "").trim();
-
-    const title =
-      rawTitle && rawTitle !== body
-        ? rawTitle
-        : "";
-
-    const sub = joinSubParts([
-      row.source_type || "",
+    const title = appendScoreToTitle(
+      rawTitle && rawTitle !== body ? rawTitle : "プレイン結果",
       formatBm25(row.score)
-    ]);
+    );
 
     return {
       title,
-      sub,
       body
     };
   });
@@ -453,14 +439,11 @@ function buildQaCards(items) {
     const question = (row.question || "").trim();
     const answer = (row.answer || row.content_preview || "").trim();
 
-    const sub = joinSubParts([
-      row.source_type || "",
-      formatSimilarity(row.score)
-    ]);
-
     return {
-      title: question || "質問なし",
-      sub,
+      title: appendScoreToTitle(
+        question || "質問なし",
+        formatSimilarity(row.score)
+      ),
       body: answer || "回答なし"
     };
   });
@@ -472,20 +455,15 @@ function buildHybridCards(qaItems, plainItems) {
   if (!qaItems || qaItems.length === 0) {
     cards.push({
       title: "QA類似結果なし",
-      sub: "QA類似",
       body: "QA類似の結果はありません。"
     });
   } else {
     qaItems.forEach((row) => {
-      const sub = joinSubParts([
-        "QA類似",
-        row.source_type || "",
-        formatSimilarity(row.score)
-      ]);
-
       cards.push({
-        title: (row.question || "").trim() || "質問なし",
-        sub,
+        title: appendScoreToTitle(
+          (row.question || "").trim() || "質問なし",
+          formatSimilarity(row.score)
+        ),
         body: (row.answer || row.content_preview || "").trim() || "回答なし"
       });
     });
@@ -494,7 +472,6 @@ function buildHybridCards(qaItems, plainItems) {
   if (!plainItems || plainItems.length === 0) {
     cards.push({
       title: "FTS結果なし",
-      sub: "FTS",
       body: "プレインFTSの結果はありません。"
     });
   } else {
@@ -503,12 +480,10 @@ function buildHybridCards(qaItems, plainItems) {
       const rawTitle = (row.title || "").trim();
 
       cards.push({
-        title: rawTitle && rawTitle !== body ? rawTitle : "",
-        sub: joinSubParts([
-          "FTS",
-          row.source_type || "",
+        title: appendScoreToTitle(
+          rawTitle && rawTitle !== body ? rawTitle : "プレイン結果",
           formatBm25(row.score)
-        ]),
+        ),
         body
       });
     });
@@ -519,16 +494,10 @@ function buildHybridCards(qaItems, plainItems) {
 
 function buildAiAnswerCards(items) {
   return (items || []).map((row) => {
-    const sub = joinSubParts([
-      row.source_type || "",
-      row.source_label || ""
-    ]);
-
     const body = (row.answer || row.content_preview || row.content || "").trim();
 
     return {
       title: (row.title || "AI回答").trim(),
-      sub,
       body: body || "回答なし"
     };
   });
@@ -634,10 +603,10 @@ async function executeSearch() {
     return;
   }
 
-  selectionSummary.textContent = `入力:検索語 ${lines.length} 行`;
-  sourceSummary.textContent = currentSourceType || "-";
-  contextSummary.textContent = `DB:${currentDatabase}`;
-  summaryText.textContent = "件数:検索中";
+  if (selectionSummary) selectionSummary.textContent = `入力:検索語 ${lines.length} 行`;
+  if (sourceSummary) sourceSummary.textContent = currentSourceType || "-";
+  if (contextSummary) contextSummary.textContent = `DB:${currentDatabase}`;
+  if (summaryText) summaryText.textContent = "件数:検索中";
 
   renderAllEmpty("検索中...");
 
@@ -662,13 +631,6 @@ async function executeSearch() {
     lastHybridAiResult = hybridAiResult;
     lastAiAnswerResult = aiAnswerResult;
 
-    const qaCount = qaResult?.count || 0;
-    const plainCount = plainResult?.count || 0;
-    const hybridCount = hybridResult?.count || 0;
-
-    summaryText.textContent =
-      `QA:${qaCount}件 / FTS:${plainCount}件 / Hybrid:${hybridCount}件`;
-
     renderQaResult();
     renderPlainResult();
     renderHybridResult();
@@ -678,8 +640,7 @@ async function executeSearch() {
 
   } catch (err) {
     console.error("search error", err);
-    summaryText.textContent = "件数:0件";
-
+    if (summaryText) summaryText.textContent = "件数:0件";
     renderAllEmpty(err.message || "検索に失敗しました。");
   }
 }
@@ -701,10 +662,10 @@ function bindEvents() {
       resetDatabaseOptions("取得失敗");
       setDatabaseDisabledState(true);
 
-      summaryText.textContent = "件数:0件";
-      selectionSummary.textContent = "入力:未実行";
-      sourceSummary.textContent = currentSourceType || "-";
-      contextSummary.textContent = "DB:-";
+      if (summaryText) summaryText.textContent = "件数:0件";
+      if (selectionSummary) selectionSummary.textContent = "入力:未実行";
+      if (sourceSummary) sourceSummary.textContent = currentSourceType || "-";
+      if (contextSummary) contextSummary.textContent = "DB:-";
 
       renderAllEmpty(err.message || "DB一覧の取得に失敗しました。");
     }
@@ -712,14 +673,21 @@ function bindEvents() {
 
   databaseSelect.addEventListener("change", () => {
     currentDatabase = databaseSelect.value || "";
-    summaryText.textContent = "件数:0件";
-    selectionSummary.textContent = "入力:未実行";
-    sourceSummary.textContent = currentSourceType || "-";
-    contextSummary.textContent =
-      currentDatabase ? `DB:${currentDatabase}` : "DB:-";
+
+    if (summaryText) summaryText.textContent = "件数:0件";
+    if (selectionSummary) selectionSummary.textContent = "入力:未実行";
+    if (sourceSummary) sourceSummary.textContent = currentSourceType || "-";
+    if (contextSummary) {
+      contextSummary.textContent =
+        currentDatabase ? `DB:${currentDatabase}` : "DB:-";
+    }
 
     clearStoredResults();
-    renderAllEmpty(currentDatabase ? "検索文字列を入力してください。" : "データベースを選択してください。");
+    renderAllEmpty(
+      currentDatabase
+        ? "検索文字列を入力してください。"
+        : "データベースを選択してください。"
+    );
   });
 
   btnSearch.addEventListener("click", executeSearch);
@@ -744,13 +712,17 @@ function bindEvents() {
 document.addEventListener("DOMContentLoaded", async () => {
   bindEvents();
 
+  if (summaryBar) {
+    summaryBar.style.display = "none";
+  }
+
   resetDatabaseOptions("データ種別を選択してください");
   setDatabaseDisabledState(true);
 
-  summaryText.textContent = "件数:0件";
-  selectionSummary.textContent = "入力:未実行";
-  sourceSummary.textContent = "-";
-  contextSummary.textContent = "DB:-";
+  if (summaryText) summaryText.textContent = "件数:0件";
+  if (selectionSummary) selectionSummary.textContent = "入力:未実行";
+  if (sourceSummary) sourceSummary.textContent = "-";
+  if (contextSummary) contextSummary.textContent = "DB:-";
 
   renderAllEmpty("データ種別を選択してください。");
   setActiveTab("qa");
