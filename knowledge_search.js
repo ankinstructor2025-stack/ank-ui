@@ -183,6 +183,22 @@ function renderAllEmpty(message) {
   renderEmpty(resultAiAnswer, message);
 }
 
+function formatSimilarity(score) {
+  if (score === undefined || score === null || score === "") return "";
+  const num = Number(score);
+  if (Number.isNaN(num)) return `similarity: ${score}`;
+  return `similarity: ${num.toFixed(4)}`;
+}
+
+function formatBm25(score) {
+  if (score === undefined || score === null || score === "") return "";
+  return `bm25: ${score}`;
+}
+
+function joinSubParts(parts) {
+  return (parts || []).filter(Boolean).join(" / ");
+}
+
 /* ==============================
    DB一覧取得
 ============================== */
@@ -305,11 +321,15 @@ function renderEmpty(box, message) {
 }
 
 function buildCardHtml(item) {
+  const title = (item?.title || "").trim();
+  const sub = (item?.sub || "").trim();
+  const body = (item?.body || "").trim();
+
   return `
 <div class="result-card">
-  ${item.title ? `<div class="result-card-title">${escapeHtml(item.title)}</div>` : ""}
-  <div class="result-card-sub">${escapeHtml(item.sub || "")}</div>
-  <div class="result-card-body">${escapeHtml(item.body || "")}</div>
+  ${title ? `<div class="result-card-title">${escapeHtml(title)}</div>` : ""}
+  ${sub ? `<div class="result-card-sub">${escapeHtml(sub)}</div>` : ""}
+  ${body ? `<div class="result-card-body">${escapeHtml(body)}</div>` : ""}
 </div>
 `;
 }
@@ -407,39 +427,40 @@ async function searchByMode(dbName, lines, mode) {
 
 function buildPlainCards(items) {
   return (items || []).map((row) => {
-    const subParts = [];
-
-    if (row.source_type) subParts.push(row.source_type);
-    if (row.source_label) subParts.push(row.source_label);
-    if (row.score !== undefined) subParts.push(`bm25: ${row.score}`);
-
-    const body = (row.content_preview || "").trim();
+    const body = (row.content_preview || row.content || "").trim();
     const rawTitle = (row.title || "").trim();
 
+    const title =
+      rawTitle && rawTitle !== body
+        ? rawTitle
+        : "";
+
+    const sub = joinSubParts([
+      row.source_type || "",
+      formatBm25(row.score)
+    ]);
+
     return {
-      title: rawTitle && rawTitle !== body ? rawTitle : "",
-      sub: subParts.join(" / "),
-      body: body
+      title,
+      sub,
+      body
     };
   });
 }
 
 function buildQaCards(items) {
   return (items || []).map((row) => {
-    const subParts = [];
-
-    if (row.source_type) subParts.push(row.source_type);
-    if (row.source_label) subParts.push(row.source_label);
-    if (row.score !== undefined) {
-      subParts.push(`similarity: ${Number(row.score).toFixed(4)}`);
-    }
-
     const question = (row.question || "").trim();
     const answer = (row.answer || row.content_preview || "").trim();
 
+    const sub = joinSubParts([
+      row.source_type || "",
+      formatSimilarity(row.score)
+    ]);
+
     return {
       title: question || "質問なし",
-      sub: subParts.join(" / "),
+      sub,
       body: answer || "回答なし"
     };
   });
@@ -456,17 +477,15 @@ function buildHybridCards(qaItems, plainItems) {
     });
   } else {
     qaItems.forEach((row) => {
-      const subParts = ["QA類似"];
-
-      if (row.source_type) subParts.push(row.source_type);
-      if (row.source_label) subParts.push(row.source_label);
-      if (row.score !== undefined) {
-        subParts.push(`similarity: ${Number(row.score).toFixed(4)}`);
-      }
+      const sub = joinSubParts([
+        "QA類似",
+        row.source_type || "",
+        formatSimilarity(row.score)
+      ]);
 
       cards.push({
         title: (row.question || "").trim() || "質問なし",
-        sub: subParts.join(" / "),
+        sub,
         body: (row.answer || row.content_preview || "").trim() || "回答なし"
       });
     });
@@ -480,19 +499,17 @@ function buildHybridCards(qaItems, plainItems) {
     });
   } else {
     plainItems.forEach((row) => {
-      const subParts = ["FTS"];
-
-      if (row.source_type) subParts.push(row.source_type);
-      if (row.source_label) subParts.push(row.source_label);
-      if (row.score !== undefined) subParts.push(`bm25: ${row.score}`);
-
-      const body = (row.content_preview || "").trim();
+      const body = (row.content_preview || row.content || "").trim();
       const rawTitle = (row.title || "").trim();
 
       cards.push({
         title: rawTitle && rawTitle !== body ? rawTitle : "",
-        sub: subParts.join(" / "),
-        body: body
+        sub: joinSubParts([
+          "FTS",
+          row.source_type || "",
+          formatBm25(row.score)
+        ]),
+        body
       });
     });
   }
@@ -502,16 +519,16 @@ function buildHybridCards(qaItems, plainItems) {
 
 function buildAiAnswerCards(items) {
   return (items || []).map((row) => {
-    const subParts = [];
-
-    if (row.source_type) subParts.push(row.source_type);
-    if (row.source_label) subParts.push(row.source_label);
+    const sub = joinSubParts([
+      row.source_type || "",
+      row.source_label || ""
+    ]);
 
     const body = (row.answer || row.content_preview || row.content || "").trim();
 
     return {
       title: (row.title || "AI回答").trim(),
-      sub: subParts.join(" / "),
+      sub,
       body: body || "回答なし"
     };
   });
